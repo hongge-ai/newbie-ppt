@@ -1,4 +1,9 @@
-# PPT Master — AI generates native PowerPoint from any document
+# Newbie PPT — AI generates native PowerPoint from any document
+
+> **newbie-ppt** is a China-focused fork of [ppt-master](https://github.com/hugohe3/ppt-master) (MIT).
+> It keeps the full native-PowerPoint generation pipeline and adds a local web workbench:
+> create a task in the browser, browse the template market with real previews, configure
+> parameters, submit, and watch every page appear live — no more chat-only black box.
 
 [![Version](https://img.shields.io/github/v/release/hugohe3/ppt-master?label=version&color=blue)](https://github.com/hugohe3/ppt-master/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -303,6 +308,14 @@ AI:  Sure. Let's confirm the design spec:
 The AI handles everything — content analysis, visual design, SVG generation, and PPTX export.
 
 **Quick generation (skip the confirmation round trip):** say so explicitly and the AI goes straight to authoring and export.
+
+**Local workbench (visual, recommended for beginners):** skip describing your needs in chat — start the local workbench and do everything in the browser: create a task, browse the template market with **real template previews**, set page count / canvas / language / image policy, and upload source material. After submitting, paste the trigger sentence it shows into your AI chat. While the agent generates, the workbench shows every page as it appears; when it finishes you can download the PPTX and leave feedback.
+
+```bash
+python3 skills/ppt-master/scripts/workbench/server.py
+```
+
+The browser opens automatically at `http://127.0.0.1:7070`. Your AI agent remains the executor — the workbench only captures your decisions into task files and renders progress. See [`scripts/docs/workbench.md`](./skills/ppt-master/scripts/docs/workbench.md).
 
 ```
 You: Quickly generate a 5-page deck from projects/q3-report/sources/report.pdf — no need to confirm with me

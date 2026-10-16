@@ -1,4 +1,8 @@
-# PPT Master — AI 生成原生 PowerPoint，支持任意文档输入
+# 牛鼻 PPT — AI 生成原生 PowerPoint，支持任意文档输入
+
+> **newbie-ppt** 基于 [ppt-master](https://github.com/hugohe3/ppt-master)（MIT）二次开发，面向中国用户。
+> 完整保留原生 PowerPoint 生成管线，并新增本地 Web 工作台：在浏览器里建任务、
+> 模板市场真实预览、参数配置、一键提交、逐页实时看进度——告别纯聊天黑盒。
 
 [![Version](https://img.shields.io/github/v/release/hugohe3/ppt-master?label=version&color=blue)](https://github.com/hugohe3/ppt-master/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -308,6 +312,14 @@ AI：好的，先确认设计规范：
 AI 全程处理——内容分析、视觉设计、SVG 生成、PPTX 导出。
 
 **快速生成（跳过来回确认）：** 显式说明即可，AI 直接进入创作与导出。
+
+**本地工作台（可视化操作，推荐新手）：** 不用在聊天里描述需求——启动本地工作台,在浏览器里完成全部操作:新建任务、浏览模板市场并**预览模板真实效果**、配置页数/画幅/语言/配图策略、上传参考材料;提交后把页面给出的触发语粘贴到 AI 对话即可。生成过程中,工作台实时显示每一页产出,完成后可直接下载 PPTX 并提交反馈。
+
+```bash
+python3 skills/ppt-master/scripts/workbench/server.py
+```
+
+浏览器会自动打开 `http://127.0.0.1:7070`。执行者仍是你的 AI agent——工作台只负责收集你的决策、落盘为任务文件、并展示生成进度。详见 [scripts/docs/workbench.md](./skills/ppt-master/scripts/docs/workbench.md)。
 
 ```
 你：用 projects/q3-report/sources/report.pdf 快速生成一份 5 页 PPT，不用跟我确认

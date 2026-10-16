@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>牛鼻 PPT 工作台</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <span class="brand">牛鼻 PPT 工作台</span>
+      <nav class="topnav">
+        <a href="#/tasks">任务</a>
+      </nav>
+      <span class="conn-state" id="conn-state" hidden>连接中断,重试中…</span>
+    </div>
+  </header>
+  <main id="view" class="view">
+    <section class="placeholder">
+      <h1>工作台已启动</h1>
+      <p>加载中…</p>
+    </section>
+  </main>
+  <div id="notify" class="notify" hidden></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

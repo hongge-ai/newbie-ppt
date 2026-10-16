@@ -13,6 +13,7 @@ This directory contains user-facing scripts for conversion, project setup, SVG p
 - `scripts/template_import/`: internal PPTX reference-preparation helpers used by `pptx_template_import.py`
 - `scripts/pptx_ooxml/`: shared OOXML intake, cloning, and package primitives
 - `scripts/svg_finalize/`: internal post-processing helpers used by `finalize_svg.py`
+- `scripts/workbench/`: repository-level local task workbench server (see [`docs/workbench.md`](docs/workbench.md))
 - `scripts/docs/`: topic-focused script documentation
 - `scripts/prompt_audit.py` + `scripts/prompt_audit_manifest.json`: maintainer-only prompt budget/governance lint (see [`docs/prompt_audit.md`](docs/prompt_audit.md)); the manifest is audit-only and never loaded as prompt context
 - `scripts/assets/`: static assets consumed by scripts
@@ -59,6 +60,7 @@ python3 scripts/update_repo.py
 | Animation resources | `sound_sync.py` | [sound vocabulary and sync](../templates/sounds/README.md); [docs/pptx-animations.md](./docs/pptx-animations.md) |
 | Spec maintenance | `update_spec.py`, `visualization_recall.py`; legacy `chart_recall.py` | [docs/update_spec.md](./docs/update_spec.md); [docs/visualization-recall.md](./docs/visualization-recall.md) |
 | Spec review | `spec_review/server.py`, `check_spec_annotations.py` | [docs/spec_review.md](./docs/spec_review.md) |
+| Local workbench | `workbench/server.py` | [docs/workbench.md](./docs/workbench.md) |
 | Image tools | `image_gen.py`, `image_treat.py`, `analyze_images.py`, `gemini_watermark_remover.py` | [docs/image.md](./docs/image.md) |
 | Maintenance smokes | Inline temporary-project commands | [advanced image and motion](./docs/advanced-image-motion-smoke.md); [mask and gradient](./docs/mask-gradient-smoke.md); [multilingual text](./docs/multilingual-text-smoke.md) |
 | Repo maintenance | `update_repo.py` | README install/update section |
@@ -443,7 +445,8 @@ python3 scripts/update_repo.py --skip-pip
 - [SVG Pipeline Tools](./docs/svg-pipeline.md)
 - [PPTX Transition Core](./docs/pptx-transitions.md)
 - [Image Tools](./docs/image.md)
+- [Local Workbench](./docs/workbench.md)
 - [Troubleshooting](./docs/troubleshooting.md)
 - [Skill Entry](../SKILL.md)
 
-_Last updated: 2026-07-11_
+_Last updated: 2026-10-15_

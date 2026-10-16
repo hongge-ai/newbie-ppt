@@ -51,7 +51,7 @@
     "skills/ppt-master/references/semantic-svg.md": 1500,
     "skills/ppt-master/references/native-hyperlinks.md": 1250,
     "skills/ppt-master/references/canvas-formats.md": 1250,
-    "skills/ppt-master/workflows/routing.md": 3000,
+    "skills/ppt-master/workflows/routing.md": 3250,
     "skills/ppt-master/references/artifact-ownership.md": 4500,
     "skills/ppt-master/workflows/governance/failure-recovery.md": 2750,
     "skills/ppt-master/workflows/stages/resume-execute.md": 1750,
@@ -2432,6 +2432,10 @@
       {
         "glob": "skills/ppt-master/scripts/docs/spec_review.md",
         "reason": "Spec review tool reference for browser editing, annotation sidecars, HTTP APIs, and server lifecycle; not loaded as runtime prompt context."
+      },
+      {
+        "glob": "skills/ppt-master/scripts/docs/workbench.md",
+        "reason": "Workbench server, task file-bus, and template market reference; the routing row loads it on demand when a submitted workbench task is processed."
       },
       {
         "glob": "skills/ppt-master/scripts/docs/narration.md",
