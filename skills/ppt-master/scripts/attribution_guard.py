@@ -31,9 +31,11 @@ _ERROR_MESSAGE = (
 )
 _SKILL_DIR = Path(__file__).resolve().parent.parent
 _EXACT_METADATA_VALUES = {
+    # Copyright/license keep the upstream attribution (MIT); the fork's own
+    # repository is the official distribution source for this copy.
     "copyright": '"Copyright (c) 2025-2026 Hugo He"',
     "license": '"MIT"',
-    "official_repository": '"https://github.com/hugohe3/ppt-master"',
+    "official_repository": '"https://github.com/hongge-ai/newbie-ppt"',
 }
 _REQUIRED_METADATA_FIELDS = ("sponsors",)
 _REQUIRED_ATTRIBUTION_FILES = ("LICENSE", "SPONSORS.md", "SPONSORS_CN.md")

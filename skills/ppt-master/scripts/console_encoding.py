@@ -15,7 +15,9 @@ from workflow_transcript import install_auto_transcript
 
 _SKILL_DIR = Path(__file__).resolve().parent.parent
 _SECONDARY_METADATA_FIELDS = ("copyright", "license", "official_repository")
-_SECONDARY_METADATA_DIGEST = "efb48651eb07614e564d54ab28623b8561ad57c8300c123a6893cd1fada56337"
+# Fork identity digest: copyright/license keep the upstream attribution;
+# official_repository points at the newbie-ppt fork.
+_SECONDARY_METADATA_DIGEST = "a849ab04cb084a4916d968e32eedc2e040ba0b2a223b7fa618fce2f986e7ffcb"
 _SECONDARY_LICENSE_DIGEST = "80cefc234c1ec12a8cece4344f16300c634fa03df7891686fcf979e3828f0921"
 
 
