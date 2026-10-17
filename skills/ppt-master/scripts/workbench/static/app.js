@@ -31,7 +31,10 @@
       return resp.json().catch(function () { return {}; }).then(function (data) {
         if (!resp.ok) {
           var message = data && data.error ? data.error : ('HTTP ' + resp.status);
-          throw new Error(message);
+          var error = new Error(message);
+          error.status = resp.status;
+          error.body = data;
+          throw error;
         }
         return data;
       });
@@ -486,12 +489,16 @@
     return bits.join(' · ');
   }
 
-  function templateCard(card, selected) {
+  function templateCard(card, selected, opts) {
+    opts = opts || {};
     var keywords = (card.keywords || []).slice(0, 4).map(function (kw) {
       return '<span class="kw">' + esc(kw) + '</span>';
     }).join('');
+    var classes = 'tpl-card';
+    if (selected) classes += ' tpl-selected';
+    if (opts.dim) classes += ' tpl-dim';
     return (
-      '<div class="tpl-card' + (selected ? ' tpl-selected' : '') + '" data-kind="' + esc(card.kind) + '" data-id="' + esc(card.id) + '">' +
+      '<div class="' + classes + '" data-kind="' + esc(card.kind) + '" data-id="' + esc(card.id) + '">' +
       '<div class="tpl-card-head"><span class="tpl-name">' + esc(card.id) + '</span>' +
       (selected ? '<span class="badge badge-done">已选</span>' : '') + '</div>' +
       '<div class="tpl-kind">' + esc(KIND_LABELS[card.kind] || card.kind) + '</div>' +
@@ -500,6 +507,9 @@
       (keywords ? '<div class="tpl-kws">' + keywords + '</div>' : '') +
       '<div class="tpl-actions">' +
       '<button class="btn btn-small" data-preview="' + esc(card.kind) + '/' + encodeURIComponent(card.id) + '">预览</button>' +
+      (opts.customize
+        ? '<button class="btn btn-small" data-customize="' + esc(card.kind) + '/' + encodeURIComponent(card.id) + '">基于此自定义</button>'
+        : '') +
       (selected
         ? '<button class="btn btn-small btn-danger" data-unselect="' + esc(card.kind) + '">取消选择</button>'
         : '<button class="btn btn-small btn-primary" data-select="' + esc(card.kind) + '/' + encodeURIComponent(card.id) + '">选用</button>') +
@@ -508,16 +518,48 @@
     );
   }
 
-  function marketHtml(task, catalog, tab, selections) {
-    var kinds = tab === 'all' ? KIND_ORDER : [tab];
+  function mineCard(item) {
+    var invalidCount = (item.invalid || []).length;
+    var chips = (item.selections || []).map(function (s) {
+      return '<span class="chosen-chip">' + esc(KIND_LABELS[s.kind] || s.kind) + ':' + esc(s.id) + '</span>';
+    }).join(' ');
+    return (
+      '<div class="tpl-card tpl-mine">' +
+      '<div class="tpl-card-head"><span class="tpl-name">' + esc(item.name || '') + '</span>' +
+      (invalidCount ? '<span class="badge badge-warn">含失效项</span>' : '') + '</div>' +
+      '<div class="tpl-kind">我的模板</div>' +
+      '<div class="tpl-kws">' + (chips || '<span class="hint">空组合</span>') + '</div>' +
+      (invalidCount ? '<div class="hint">失效: ' + esc(item.invalid.join(', ')) + '</div>' : '') +
+      '<div class="tpl-actions">' +
+      '<button class="btn btn-small btn-primary" data-use-tpl="' + esc(item.id) + '"' +
+      (invalidCount ? ' disabled' : '') + '>使用</button>' +
+      '<button class="btn btn-small" data-edit-tpl="' + esc(item.id) + '">编辑</button>' +
+      '<button class="btn btn-small btn-danger" data-del-tpl="' + esc(item.id) + '">删除</button>' +
+      '</div>' +
+      '</div>'
+    );
+  }
+
+  function marketHtml(task, catalog, tab, selections, customTemplates) {
+    customTemplates = customTemplates || [];
+    var readonly = task.status !== 'draft';
+    var deckChosen = !!selections.deck;
     var cards = [];
-    kinds.forEach(function (kind) {
-      (catalog[kind] || []).forEach(function (card) {
-        cards.push(templateCard(card, selections[kind] === card.id));
+    if (tab === 'mine') {
+      customTemplates.forEach(function (item) { cards.push(mineCard(item)); });
+    } else {
+      var kinds = tab === 'all' ? KIND_ORDER : [tab];
+      kinds.forEach(function (kind) {
+        (catalog[kind] || []).forEach(function (card) {
+          cards.push(templateCard(card, selections[kind] === card.id, {
+            dim: deckChosen && kind !== 'deck',
+            customize: kind === 'deck' && !readonly,
+          }));
+        });
       });
-    });
-    var tabs = ['all'].concat(KIND_ORDER).map(function (key) {
-      var label = key === 'all' ? '全部' : KIND_LABELS[key];
+    }
+    var tabs = ['all'].concat(KIND_ORDER, ['mine']).map(function (key) {
+      var label = key === 'all' ? '全部' : key === 'mine' ? '我的模板' : KIND_LABELS[key];
       return '<button class="tab' + (tab === key ? ' tab-active' : '') + '" data-tab="' + key + '">' + label + '</button>';
     }).join('');
     var chosen = KIND_ORDER.filter(function (kind) { return selections[kind]; })
@@ -525,7 +567,19 @@
         return '<span class="chosen-chip">' + KIND_LABELS[kind] + ':' + esc(selections[kind]) +
           ' <a href="#" data-clear-kind="' + kind + '">✕</a></span>';
       }).join('');
-    var readonly = task.status !== 'draft';
+    var unselectedLabels = KIND_ORDER
+      .filter(function (kind) { return !selections[kind]; })
+      .map(function (kind) { return KIND_LABELS[kind]; })
+      .join('/');
+    var selectedCount = KIND_ORDER.filter(function (kind) { return selections[kind]; }).length;
+    var comboSummary = selectedCount && unselectedLabels
+      ? '<span class="hint">未选:' + unselectedLabels + '(由 AI 定)</span>'
+      : '';
+    var modeSwitch = readonly ? '' :
+      '<div class="tabs mode-tabs">' +
+      '<button class="tab' + (marketMode === 'ready' ? ' tab-active' : '') + '" data-mode="ready">挑成品一步到位</button>' +
+      '<button class="tab' + (marketMode === 'combo' ? ' tab-active' : '') + '" data-mode="combo">自定义组合</button>' +
+      '</div>';
     return (
       '<section class="panel">' +
       '<div class="task-head">' +
@@ -534,21 +588,36 @@
       '<a class="btn" href="#/task/' + encodeURIComponent(task.task_id) + '">← 返回配置</a>' +
       '</div>' +
       '<p class="hint">版式/成品模板按严格模式生成:模板的母版/版式层是冻结契约,可改的只有槽内容(文字/图片/图表数据)。</p>' +
+      modeSwitch +
+      (deckChosen && tab !== 'mine'
+        ? '<div class="hint">已选成品:品牌/风格/版式默认沿用该成品,另选其他维度将覆盖对应部分。</div>'
+        : '') +
       (readonly ? '' :
         '<div class="market-bar">' +
         '<label class="field-check"><input id="m-free" type="checkbox"' +
         (Object.keys(selections).length ? '' : ' checked') + '><span>自由设计(不使用模板)</span></label>' +
-        '<div class="chosen">' + (chosen || '<span class="hint">尚未选择模板</span>') + '</div>' +
+        '<div class="chosen">' + (chosen || '<span class="hint">尚未选择模板</span>') + comboSummary + '</div>' +
+        (selectedCount ? '<button class="btn" data-save-tpl>存为我的模板</button>' : '') +
         '<button id="m-save" class="btn btn-primary">保存模板选择</button>' +
         '</div>') +
       '<div class="tabs">' + tabs + '</div>' +
       '<div class="tpl-grid">' + (cards.length ? cards.join('') :
-        '<div class="empty">该分类暂无模板</div>') + '</div>' +
+        '<div class="empty">' + (tab === 'mine' ? '还没有自定义模板:在自定义组合里选好后点「存为我的模板」' : '该分类暂无模板') + '</div>') + '</div>' +
       '</section>' +
       '<div id="preview-modal" class="modal-backdrop" hidden><div class="modal">' +
       '<header class="modal-head"><strong id="modal-title"></strong>' +
       '<button class="btn btn-small" id="modal-close">关闭</button></header>' +
       '<div id="modal-body" class="modal-body"></div>' +
+      '</div></div>' +
+      '<div id="save-modal" class="modal-backdrop" hidden><div class="modal">' +
+      '<header class="modal-head"><strong id="save-modal-title">存为我的模板</strong>' +
+      '<button class="btn btn-small" id="save-tpl-cancel">关闭</button></header>' +
+      '<div class="modal-body">' +
+      '<label class="field"><span>模板名称</span>' +
+      '<input type="text" id="save-tpl-name" maxlength="40" placeholder="例如:咨询风汇报组合"></label>' +
+      '<p class="hint">保存当前组合(可含成品/版式/品牌/风格任意维度),使用时一键回填。</p>' +
+      '<div class="modal-actions"><button class="btn btn-primary" id="save-tpl-confirm">保存</button></div>' +
+      '</div>' +
       '</div></div>'
     );
   }
@@ -614,13 +683,76 @@
     if (chooseBtn) chooseBtn.addEventListener('click', onChoose);
   }
 
+  // Market dual-mode is a UI emphasis layer over the same selection model:
+  // 'ready' guides toward a one-pick deck, 'combo' opens the four-kind mixer.
+  var marketMode = 'ready';
+  // {id, name} while the save modal is editing an existing custom template.
+  var marketEditing = null;
+
+  function findCustomTemplate(items, ctId) {
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].id === ctId) return items[i];
+    }
+    return null;
+  }
+
+  function openSaveTemplateModal(taskId, tab, selections) {
+    var modal = $('#save-modal');
+    if (!modal) return;
+    var input = $('#save-tpl-name');
+    $('#save-modal-title').textContent = marketEditing ? '编辑我的模板' : '存为我的模板';
+    input.value = marketEditing ? marketEditing.name : '';
+    modal.hidden = false;
+    input.focus();
+    $('#save-tpl-cancel').onclick = function () { modal.hidden = true; };
+    $('#save-tpl-confirm').onclick = function () {
+      var name = input.value.trim();
+      if (!name) { notify('请输入模板名称', true); return; }
+      var payload = {
+        name: name,
+        selections: KIND_ORDER.filter(function (kind) { return selections[kind]; })
+          .map(function (kind) { return { kind: kind, id: selections[kind] }; })
+      };
+      if (!payload.selections.length) { notify('请先选择至少一个模板', true); return; }
+      saveCustomTemplate(taskId, tab, selections, payload);
+    };
+  }
+
+  function saveCustomTemplate(taskId, tab, selections, payload) {
+    var succeed = function (saved) {
+      marketEditing = { id: saved.id, name: saved.name };
+      $('#save-modal').hidden = true;
+      notify('已保存到我的模板');
+      showMarket(taskId, tab === 'mine' ? 'mine' : tab, selections);
+    };
+    var fail = function (err) { notify('保存失败:' + err.message, true); };
+    if (marketEditing) {
+      api('PUT', '/api/custom-templates/' + encodeURIComponent(marketEditing.id), payload)
+        .then(succeed).catch(fail);
+      return;
+    }
+    api('POST', '/api/custom-templates', payload).then(succeed).catch(function (err) {
+      // Same-name clash: browser double-confirm, then overwrite via PUT.
+      if (err.status === 409 && err.body && err.body.existing_id) {
+        if (!window.confirm('已存在同名模板「' + payload.name + '」,覆盖保存?')) return;
+        marketEditing = { id: err.body.existing_id, name: payload.name };
+        api('PUT', '/api/custom-templates/' + encodeURIComponent(err.body.existing_id), payload)
+          .then(succeed).catch(fail);
+        return;
+      }
+      fail(err);
+    });
+  }
+
   function showMarket(taskId, tab, selectionsArg) {
     Promise.all([
       api('GET', '/api/tasks/' + encodeURIComponent(taskId)),
-      api('GET', '/api/templates')
+      api('GET', '/api/templates'),
+      api('GET', '/api/custom-templates')
     ]).then(function (results) {
       var task = results[0];
       var catalog = results[1];
+      var customTemplates = (results[2] || {}).custom_templates || [];
       setConnState(false);
       var selections = selectionsArg || {};
       if (!Object.keys(selections).length) {
@@ -628,7 +760,7 @@
         (sel.selections || []).forEach(function (item) { selections[item.kind] = item.id; });
       }
       tab = tab || 'all';
-      render(marketHtml(task, catalog, tab, selections));
+      render(marketHtml(task, catalog, tab, selections, customTemplates));
 
       var market = $('.panel');
 
@@ -636,6 +768,21 @@
         var el;
         if ((el = event.target.closest('[data-tab]'))) {
           showMarket(taskId, el.getAttribute('data-tab'), selections);
+          return;
+        }
+        if ((el = event.target.closest('[data-mode]'))) {
+          marketMode = el.getAttribute('data-mode');
+          marketEditing = null;
+          showMarket(taskId, 'all', selections);
+          return;
+        }
+        if ((el = event.target.closest('[data-customize]'))) {
+          var czParts = el.getAttribute('data-customize').split('/');
+          var czKind = czParts.shift();
+          selections[czKind] = decodeURIComponent(czParts.join('/'));
+          marketMode = 'combo';
+          marketEditing = null;
+          showMarket(taskId, 'all', selections);
           return;
         }
         if ((el = event.target.closest('[data-preview]'))) {
@@ -669,6 +816,48 @@
           event.preventDefault();
           delete selections[el.getAttribute('data-clear-kind')];
           showMarket(taskId, tab, selections);
+          return;
+        }
+        if ((el = event.target.closest('[data-save-tpl]'))) {
+          openSaveTemplateModal(taskId, tab, selections);
+          return;
+        }
+        if ((el = event.target.closest('[data-use-tpl]'))) {
+          var useItem = findCustomTemplate(customTemplates, el.getAttribute('data-use-tpl'));
+          if (!useItem) return;
+          if (useItem.invalid && useItem.invalid.length) {
+            notify('模板包含失效项:' + useItem.invalid.join(', ') + ',请先编辑', true);
+            return;
+          }
+          var useSelections = {};
+          (useItem.selections || []).forEach(function (s) { useSelections[s.kind] = s.id; });
+          marketMode = 'combo';
+          marketEditing = null;
+          showMarket(taskId, 'all', useSelections);
+          return;
+        }
+        if ((el = event.target.closest('[data-edit-tpl]'))) {
+          var editItem = findCustomTemplate(customTemplates, el.getAttribute('data-edit-tpl'));
+          if (!editItem) return;
+          var editSelections = {};
+          (editItem.selections || []).forEach(function (s) { editSelections[s.kind] = s.id; });
+          marketMode = 'combo';
+          marketEditing = { id: editItem.id, name: editItem.name };
+          showMarket(taskId, 'all', editSelections);
+          openSaveTemplateModal(taskId, 'all', editSelections);
+          return;
+        }
+        if ((el = event.target.closest('[data-del-tpl]'))) {
+          var delId = el.getAttribute('data-del-tpl');
+          if (window.confirm('确定删除该自定义模板?删除后不可恢复。')) {
+            api('DELETE', '/api/custom-templates/' + encodeURIComponent(delId))
+              .then(function () {
+                notify('已删除');
+                if (marketEditing && marketEditing.id === delId) marketEditing = null;
+                showMarket(taskId, 'mine', selections);
+              })
+              .catch(function (err) { notify('删除失败:' + err.message, true); });
+          }
           return;
         }
       });

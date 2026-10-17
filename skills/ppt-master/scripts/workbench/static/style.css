@@ -282,6 +282,16 @@ textarea { resize: vertical; }
 
 .tpl-selected { border-color: #2563eb; background: #eff6ff; }
 
+/* Deck chosen: the other three kinds ride along with the finished deck. */
+.tpl-dim { opacity: 0.45; filter: saturate(0.4); }
+
+/* Market mode switch (pick-a-deck / custom combination). */
+.mode-tabs { margin-bottom: 10px; border-bottom: none; }
+
+.badge-warn { background: #fef3c7; color: #b45309; }
+
+.tpl-mine .tpl-kws { margin-top: 2px; }
+
 .tpl-card-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 
 .tpl-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
