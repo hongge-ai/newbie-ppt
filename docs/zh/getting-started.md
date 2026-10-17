@@ -23,23 +23,19 @@
 
 | 目录 | 它是什么 | 怎样产生 |
 |---|---|---|
-| **Skill 安装目录** | 包含 `SKILL.md`、`requirements.txt`、工作流与脚本的 PPT Master 包 | 完整仓库 clone 或仓库 ZIP 中是 `skills/ppt-master/`；marketplace/plugin 安装或 skill-only release ZIP 则使用自己的安装或解压位置 |
+| **Skill 安装目录** | 包含 `SKILL.md`、工作流与脚本的 PPT Master 包 | 完整仓库 clone 或仓库 ZIP 中是 `skills/ppt-master/`；marketplace/plugin 安装或 skill-only release ZIP 则使用自己的安装或解压位置 |
 | **工作目录** | 你在 Agent 中打开的、可持久保存且可写的目录 | 完整仓库 clone 或仓库 ZIP 通常使用仓库根目录；skill-only 安装则自行选择，不必是 skill 安装目录 |
 | **活动项目** | 一次生成任务的来源、SVG、报告、备份与导出物所在目录 | Agent 会在 `<工作目录>/projects/<生成的项目名>/` 下初始化，并报告精确路径 |
 
-所有安装方式都需要 Python 3.10+，以及一个已经安装和鉴权、能够读写工作目录并执行 shell 命令的 Agent host。完整仓库 clone 或仓库 ZIP 从仓库根目录安装依赖：
+所有安装方式都需要 Python 3.10+，以及一个已经安装和鉴权、能够读写工作目录并执行 shell 命令的 Agent host。完整仓库 clone 或仓库 ZIP 在仓库根目录执行一键配置——它会引导安装 [uv](https://docs.astral.sh/uv/) 并装齐所有依赖分层：
 
 ```bash
-python3 -m pip install -r requirements.txt
+python skills/ppt-master/scripts/setup_env.py
 ```
 
-Skill-only 安装应先找到同时包含 skill 的 `SKILL.md` 与 `requirements.txt` 的安装或解压目录，再从该路径安装：
+Skill-only 安装不含仓库根的 uv 工程；请在你的工作环境里用 `uv pip` 管理脚本依赖，或直接改用完整仓库下载。
 
-```bash
-python3 -m pip install -r "<installed-skill-dir>/requirements.txt"
-```
-
-使用 `npx skills add hugohe3/ppt-master` 还要求本机有可用的 `npx` 命令，通常由 Node.js/npm 提供；仓库没有规定 Node/npm 的最低版本。Host 自带的 `/plugin install` 不走这条 `npx` 路径。安装完成后，从**工作目录**启动 Agent，不要从 host 管理的 skill 缓存目录启动；执行入口会单独解析已安装 skill。安装方式见[快速开始](../../README_CN.md#快速开始)，运行规范见 [`SKILL.md`](../../skills/ppt-master/SKILL.md)。
+使用 `npx skills add hongge-ai/newbie-ppt` 还要求本机有可用的 `npx` 命令，通常由 Node.js/npm 提供；仓库没有规定 Node/npm 的最低版本。Host 自带的 `/plugin install` 不走这条 `npx` 路径。安装完成后，从**工作目录**启动 Agent，不要从 host 管理的 skill 缓存目录启动；执行入口会单独解析已安装 skill。安装方式见[快速开始](../../README_CN.md#快速开始)，运行规范见 [`SKILL.md`](../../skills/ppt-master/SKILL.md)。
 
 ---
 

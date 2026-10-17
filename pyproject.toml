@@ -1,0 +1,93 @@
+# newbie-ppt (牛鼻 PPT) — dependencies managed by uv
+# =============================================
+#
+# Single source of truth for Python dependencies. Layered: [project.dependencies]
+# is the minimal core for the main workflow (workbench -> generation -> PPTX
+# export); [dependency-groups] adds optional capability by feature.
+# 依赖单一事实源，由 uv 管理：核心依赖走 [project.dependencies]（工作台 →
+# 生成 → 导出主链路的最小集）；按功能划分的可选能力放 [dependency-groups]。
+#
+# Install / 安装方式：
+#   python skills/ppt-master/scripts/setup_env.py          # one-click, full / 一键全量
+#   uv sync --all-groups                                    # full, manual / 手动全量
+#   uv sync                                                 # core only / 仅核心
+#   uv sync --group pdf --group web                         # selective / 按组安装
+#
+# Maintain / 维护（commit 前重新 lock）：
+#   uv add "package>=x.y"            # core
+#   uv add --group pdf "package>=x.y"
+#   uv lock
+
+[project]
+name = "newbie-ppt"
+version = "0.1.0"
+description = "newbie-ppt (牛鼻 PPT) — agent-driven SVG presentation toolkit, forked from hugohe3/ppt-master (MIT)"
+requires-python = ">=3.10"
+dependencies = [
+    # Template registration + spec parsing / 模板注册与设计规格解析
+    "PyYAML>=6.0",
+    # SVG -> PPTX export (native DrawingML) / SVG 转 PPTX 导出
+    "python-pptx>=0.6.21",
+    # PowerPoint-style Merge Shapes materialization / PowerPoint 风格合并形状物化
+    "skia-pathops>=0.9.2",
+    # OpenType shaping + glyph outlines for text operands / 文字 operand 排版与轮廓
+    "uharfbuzz>=0.50.0",
+    # Image processing across the pipeline / 全流程图片处理
+    "Pillow>=9.0.0",
+    # Localhost web UIs: workbench / confirm / spec review / SVG editor
+    # 本地 Web 界面：工作台、确认、规格评审、SVG 编辑器
+    "flask>=3.0.0",
+    # Web fetch + image search + OpenAI-compatible backends
+    # 网页抓取、图片搜索、OpenAI 兼容图像后端
+    "requests>=2.31.0",
+]
+
+[dependency-groups]
+# PDF source import / PDF 源导入 (source_to_md/pdf_to_md.py)
+# License notice: PyMuPDF is AGPL-3.0 (commercial license available from Artifex).
+# Imported only by pdf_to_md.py; install the core-only set to avoid it, and
+# review the AGPL terms before redistributing a bundle that includes it.
+# 许可证说明：PyMuPDF 采用 AGPL-3.0（Artifex 另提供商业许可）。仅 pdf_to_md.py
+# 导入它；只装核心集可完全避开，若要连同依赖一起再分发，请先核对 AGPL 条款。
+pdf = [
+    "PyMuPDF>=1.23.0",
+]
+# Web page import / 网页导入 (source_to_md/web_to_md.py)
+# curl_cffi: TLS fingerprint impersonation for WeChat etc.; falls back to
+# requests when absent / 用于绕过微信等站点的 TLS 指纹屏蔽，缺省回退 requests
+web = [
+    "beautifulsoup4>=4.12.0",
+    "curl_cffi>=0.7.0",
+]
+# Office document import + chart-data workbooks / Office 文档导入与图表工作簿
+# .docx/.html/.epub/.ipynb/.xlsx -> Markdown; XlsxWriter embeds chart data in
+# exported PPTX (falls back to openpyxl, then stdlib)
+office = [
+    "mammoth>=1.6.0",
+    "markdownify>=0.11.6",
+    "ebooklib>=0.18",
+    "nbconvert>=7.0.0",
+    "openpyxl>=3.1.0",
+    "XlsxWriter>=3.0.0",
+]
+# Narration audio + timing calibration / 旁白音频与计时校准、切片等媒体工具
+media = [
+    "edge-tts>=7.2.8",
+    "numpy>=1.20.0",
+]
+# Gemini AI image backend / Gemini AI 图像后端 (IMAGE_BACKEND=gemini)
+ai-image = [
+    "google-genai>=1.0.0",
+]
+
+[tool.uv]
+# Scripts repository, not an installable package / 脚本仓库，非可安装包
+package = false
+
+# Default to the Tsinghua PyPI mirror for China-friendly installs. Override
+# ad hoc with: uv sync --default-index https://pypi.org/simple
+# 默认走清华 PyPI 镜像（国内可用性）；临时切换官方源：
+# uv sync --default-index https://pypi.org/simple
+[[tool.uv.index]]
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+default = true

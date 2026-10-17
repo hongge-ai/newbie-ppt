@@ -45,7 +45,7 @@ logging wrapper. The log does not copy the full console stream.
 Repository update:
 
 ```bash
-python3 scripts/update_repo.py
+uv run python scripts/update_repo.py
 ```
 
 ## Script Index
@@ -63,7 +63,7 @@ python3 scripts/update_repo.py
 | Local workbench | `workbench/server.py` | [docs/workbench.md](./docs/workbench.md) |
 | Image tools | `image_gen.py`, `image_treat.py`, `analyze_images.py`, `gemini_watermark_remover.py` | [docs/image.md](./docs/image.md) |
 | Maintenance smokes | Inline temporary-project commands | [advanced image and motion](./docs/advanced-image-motion-smoke.md); [mask and gradient](./docs/mask-gradient-smoke.md); [multilingual text](./docs/multilingual-text-smoke.md) |
-| Repo maintenance | `update_repo.py` | README install/update section |
+| Repo maintenance | `setup_env.py`, `update_repo.py`, `make_dist.py` | [docs/setup-env.md](./docs/setup-env.md) |
 | Troubleshooting | validation, preview, export, dependency issues | [docs/troubleshooting.md](./docs/troubleshooting.md) |
 
 ## High-Frequency Commands
@@ -427,8 +427,8 @@ profile.
 Repository update:
 
 ```bash
-python3 scripts/update_repo.py
-python3 scripts/update_repo.py --skip-pip
+uv run python scripts/update_repo.py
+uv run python scripts/update_repo.py --skip-deps
 ```
 
 ## Recommendations

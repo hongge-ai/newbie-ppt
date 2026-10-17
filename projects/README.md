@@ -6,9 +6,9 @@ This directory is used for storing in-progress projects.
 
 ```bash
 # Defer the canvas to authoring:
-python3 skills/ppt-master/scripts/project_manager.py init my_project
+uv run python skills/ppt-master/scripts/project_manager.py init my_project
 # Or record an exact registered canvas:
-python3 skills/ppt-master/scripts/project_manager.py init my_widescreen --format ppt169
+uv run python skills/ppt-master/scripts/project_manager.py init my_widescreen --format ppt169
 ```
 
 Pass `--format` only when the canvas exactly matches a registered format. If it

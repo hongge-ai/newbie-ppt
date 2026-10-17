@@ -57,19 +57,21 @@ Newbie PPT (newbie-ppt, a China-focused fork of hugohe3/ppt-master under MIT) tu
 Convenience summary only — route selection starts in [`SKILL.md`](skills/ppt-master/SKILL.md). Image to PPTX always uses [`quick-generate.md`](skills/ppt-master/workflows/profiles/quick-generate.md); Beautify uses it only when Quick is explicit, otherwise [`generate-pptx.md`](skills/ppt-master/workflows/generate-pptx.md).
 
 ```bash
-python3 skills/ppt-master/scripts/source_to_md.py <file_or_URL_or_dir> [...]          # source conversion
-python3 skills/ppt-master/scripts/project_manager.py init <project_name>              # --format only for an exact registered canvas
-python3 skills/ppt-master/scripts/project_manager.py import-sources <project_path> <sources...>
-python3 skills/ppt-master/scripts/project_manager.py validate <project_path>
-python3 skills/ppt-master/scripts/icon_sync.py <project_path> <lib/name> [...]        # missing names -> non-zero = re-pick
-python3 skills/ppt-master/scripts/confirm_ui/server.py <project_path> --daemon        # then --wait-only --wait-stage stage1
-python3 skills/ppt-master/scripts/analyze_images.py <project_path>/images
-python3 skills/ppt-master/scripts/image_gen.py --manifest <project_path>/images/image_prompts.json   # in-pipeline AI images, even for 1
-python3 skills/ppt-master/scripts/svg_editor/server.py <project_path> --live --daemon
-python3 skills/ppt-master/scripts/svg_quality_checker.py <project_path> --canonical-authoring --stage final --json   # Quick adds --quick-generate; --json writes the report the exporter reads, stdout stays the summary
-python3 skills/ppt-master/scripts/pptx_to_svg.py <source.pptx> -o projects/<slug>_<YYYYMMDD> --inheritance-mode both --roundtrip   # Edit Native PPTX
-python3 skills/ppt-master/scripts/svg_to_pptx.py projects/<slug>_<YYYYMMDD> --roundtrip
+uv run python skills/ppt-master/scripts/source_to_md.py <file_or_URL_or_dir> [...]          # source conversion
+uv run python skills/ppt-master/scripts/project_manager.py init <project_name>              # --format only for an exact registered canvas
+uv run python skills/ppt-master/scripts/project_manager.py import-sources <project_path> <sources...>
+uv run python skills/ppt-master/scripts/project_manager.py validate <project_path>
+uv run python skills/ppt-master/scripts/icon_sync.py <project_path> <lib/name> [...]        # missing names -> non-zero = re-pick
+uv run python skills/ppt-master/scripts/confirm_ui/server.py <project_path> --daemon        # then --wait-only --wait-stage stage1
+uv run python skills/ppt-master/scripts/analyze_images.py <project_path>/images
+uv run python skills/ppt-master/scripts/image_gen.py --manifest <project_path>/images/image_prompts.json   # in-pipeline AI images, even for 1
+uv run python skills/ppt-master/scripts/svg_editor/server.py <project_path> --live --daemon
+uv run python skills/ppt-master/scripts/svg_quality_checker.py <project_path> --canonical-authoring --stage final --json   # Quick adds --quick-generate; --json writes the report the exporter reads, stdout stays the summary
+uv run python skills/ppt-master/scripts/pptx_to_svg.py <source.pptx> -o projects/<slug>_<YYYYMMDD> --inheritance-mode both --roundtrip   # Edit Native PPTX
+uv run python skills/ppt-master/scripts/svg_to_pptx.py projects/<slug>_<YYYYMMDD> --roundtrip
 ```
+
+`uv run` executes in the uv-managed repo `.venv`; setup and dependency layers: [`setup-env.md`](skills/ppt-master/scripts/docs/setup-env.md).
 
 Every other command (sound sync, slicing, template materialization and preview, animation config, authoring-view refresh) is listed by the route or stage that owns it and in [`svg-pipeline.md`](skills/ppt-master/scripts/docs/svg-pipeline.md).
 

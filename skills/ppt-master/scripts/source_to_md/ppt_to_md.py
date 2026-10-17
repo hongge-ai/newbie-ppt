@@ -12,7 +12,7 @@ and slide-internal jumps are emitted as ``[text](url)`` / ``[text](#slide-N)``,
 with a shape-level ``click_action`` fallback.
 
 Dependency:
-    pip install python-pptx
+    uv sync  (or: pip install python-pptx)
 
 API stability note:
     Detecting slide-internal jumps (``ppaction://hlinksldjump``) reads
@@ -65,7 +65,7 @@ if not _HELP_REQUESTED:
         from pptx.oxml.ns import qn
         from pptx.text.text import _Run
     except ImportError:
-        print("[ERROR] python-pptx not installed. Run: pip install python-pptx", file=sys.stderr)
+        print("[ERROR] python-pptx not installed. Run: uv sync (or: pip install python-pptx)", file=sys.stderr)
         sys.exit(1)
 
 

@@ -171,6 +171,11 @@ yarn.lock
 .cache/
 *.lock
 .lock
+# uv dependency manifest is tracked / uv 依赖清单需入库
+!uv.lock
+
+# Slim distribution archives written by make_dist.py / make_dist 输出的精简分发包
+/dist/
 
 # Live preview direct-edit history (per-project, regenerated on edit)
 .live_edits.jsonl

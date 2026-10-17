@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """PPT Master - Repository Updater
 
-Pull the latest Git checkout and sync Python dependencies when the effective
-requirements include tree changes.
+Pull the latest Git checkout and sync Python dependencies when the uv
+dependency manifest (pyproject.toml + uv.lock) changes.
 
 Usage:
-    python3 skills/ppt-master/scripts/update_repo.py
-    python3 skills/ppt-master/scripts/update_repo.py --skip-pip
+    uv run python skills/ppt-master/scripts/update_repo.py
+    uv run python skills/ppt-master/scripts/update_repo.py --skip-deps
 
 Examples:
-    python3 skills/ppt-master/scripts/update_repo.py
-    python3 skills/ppt-master/scripts/update_repo.py --skip-pip
+    uv run python skills/ppt-master/scripts/update_repo.py
+    uv run python skills/ppt-master/scripts/update_repo.py --skip-deps
 
 Dependencies:
     None (standard library only)
@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import shlex
 import shutil
 import subprocess
 import sys
@@ -34,23 +33,24 @@ configure_utf8_stdio()
 TOOLS_DIR = Path(__file__).resolve().parent
 SKILL_DIR = TOOLS_DIR.parent
 REPO_ROOT = SKILL_DIR.parent.parent
-REQUIREMENTS_FILE = REPO_ROOT / "requirements.txt"
+DEPENDENCY_FILES = (REPO_ROOT / "pyproject.toml", REPO_ROOT / "uv.lock")
+SETUP_SCRIPT = SKILL_DIR / "scripts" / "setup_env.py"
 
 
 def non_git_checkout_message() -> str:
-    return f"""This copy of PPT Master is not a Git checkout, so it cannot be updated automatically.
+    return f"""This copy of newbie-ppt is not a Git checkout, so it cannot be updated automatically.
 
 Repository path:
   {REPO_ROOT}
 
 If you installed with Download ZIP:
-  1. Download the latest ZIP from GitHub or AtomGit.
+  1. Download the latest ZIP from https://github.com/hongge-ai/newbie-ppt/releases
   2. Unzip it into a new folder.
   3. Copy your old .env and projects/ folder into the new folder.
-  4. Run: pip install -r requirements.txt
+  4. Run: python skills/ppt-master/scripts/setup_env.py
 
 If you want one-command updates next time, install with Git clone:
-  git clone https://github.com/hugohe3/ppt-master.git
+  git clone https://github.com/hongge-ai/newbie-ppt.git
 
 If you installed through a skill marketplace, update or reinstall through the
 same marketplace / skills tool."""
@@ -60,14 +60,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Pull the latest repository changes and sync Python dependencies "
-            "only when the requirements include tree changes."
+            "only when the uv dependency manifest changes."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
-        "--skip-pip",
+        "--skip-deps",
         action="store_true",
-        help="Skip Python dependency sync even if the requirements include tree changed.",
+        help="Skip Python dependency sync even if the dependency manifest changed.",
     )
     return parser.parse_args(argv)
 
@@ -89,75 +89,23 @@ def run_command(args: list[str], *, check: bool = True) -> subprocess.CompletedP
     )
 
 
-def _requirement_includes(path: Path, content: str) -> list[Path]:
-    """Resolve local -r/--requirement includes relative to their owning file."""
-    includes: list[Path] = []
-    for raw_line in content.splitlines():
-        try:
-            tokens = shlex.split(raw_line, comments=True, posix=True)
-        except ValueError:
-            continue
-        if not tokens:
-            continue
-
-        option = tokens[0]
-        include_value: str | None = None
-        if option in {"-r", "--requirement"}:
-            if len(tokens) >= 2:
-                include_value = tokens[1]
-        elif option.startswith("--requirement="):
-            include_value = option.partition("=")[2]
-        elif option.startswith("-r") and len(option) > 2:
-            include_value = option[2:].lstrip("=")
-
-        if not include_value:
-            continue
-        include_path = Path(include_value)
-        if not include_path.is_absolute():
-            include_path = path.parent / include_path
-        includes.append(include_path)
-    return includes
-
-
-def requirements_digest(path: Path) -> str | None:
-    """Hash one requirements file and its recursive local include closure."""
-    if not path.exists():
+def dependencies_digest() -> str | None:
+    """Hash the uv dependency manifest: pyproject.toml + uv.lock."""
+    if not any(path.exists() for path in DEPENDENCY_FILES):
         return None
 
     digest = hashlib.sha256()
-    visited: set[Path] = set()
-
-    def visit(current: Path) -> None:
-        try:
-            resolved = current.resolve()
-        except OSError as exc:
-            raise RuntimeError(
-                f"Unable to resolve requirements file {current}: {exc}"
-            ) from exc
-        if resolved in visited:
-            digest.update(b"repeat\0")
-            return
-        visited.add(resolved)
-
-        if not resolved.is_file():
-            digest.update(b"missing\0")
-            return
-        try:
-            content = resolved.read_bytes()
-        except OSError as exc:
-            raise RuntimeError(
-                f"Unable to read requirements file {resolved}: {exc}"
-            ) from exc
+    for path in DEPENDENCY_FILES:
         digest.update(b"file\0")
+        if not path.is_file():
+            digest.update(b"missing\0")
+            continue
+        try:
+            content = path.read_bytes()
+        except OSError as exc:
+            raise RuntimeError(f"Unable to read dependency manifest {path}: {exc}") from exc
         digest.update(len(content).to_bytes(8, "big"))
         digest.update(content)
-        for included in _requirement_includes(
-            resolved,
-            content.decode("utf-8", errors="replace"),
-        ):
-            visit(included)
-
-    visit(path)
     return digest.hexdigest()
 
 
@@ -189,12 +137,22 @@ def get_head_revision() -> str:
 
 
 def sync_python_dependencies() -> None:
-    if not REQUIREMENTS_FILE.exists():
-        print_status("requirements.txt not found; skipping Python dependency sync.")
+    if not any(path.exists() for path in DEPENDENCY_FILES):
+        print_status("Dependency manifest (pyproject.toml / uv.lock) not found; skipping sync.")
         return
 
-    print_status("Requirements include tree changed. Syncing Python dependencies...")
-    result = run_command([sys.executable, "-m", "pip", "install", "-r", str(REQUIREMENTS_FILE)])
+    uv = shutil.which("uv")
+    if uv is None:
+        print_status(
+            "uv not found on PATH. Bootstrap it first with:\n"
+            f"  python {SETUP_SCRIPT.relative_to(REPO_ROOT).as_posix()}\n"
+            "Skipping Python dependency sync."
+        )
+        return
+
+    print_status("Dependency manifest changed. Syncing Python dependencies with uv...")
+    # --inexact: add/update without pruning optional groups the user installed.
+    result = run_command([uv, "sync", "--inexact"])
     if result.stdout.strip():
         print_status(result.stdout.strip())
     if result.stderr.strip():
@@ -210,7 +168,7 @@ def main(argv: list[str] | None = None) -> int:
         ensure_clean_tracked_worktree()
 
         before_head = get_head_revision()
-        before_requirements = requirements_digest(REQUIREMENTS_FILE)
+        before_dependencies = dependencies_digest()
 
         print_status(f"Repository: {REPO_ROOT}")
         pull_result = run_command(["git", "pull", "--ff-only"])
@@ -220,20 +178,20 @@ def main(argv: list[str] | None = None) -> int:
             print_status(pull_result.stderr.strip())
 
         after_head = get_head_revision()
-        after_requirements = requirements_digest(REQUIREMENTS_FILE)
+        after_dependencies = dependencies_digest()
 
         if before_head == after_head:
             print_status("Repository is already up to date.")
         else:
             print_status(f"Updated from {before_head[:7]} to {after_head[:7]}.")
 
-        if args.skip_pip:
-            print_status("Skipped Python dependency sync (--skip-pip).")
-        elif before_requirements != after_requirements:
+        if args.skip_deps:
+            print_status("Skipped Python dependency sync (--skip-deps).")
+        elif before_dependencies != after_dependencies:
             sync_python_dependencies()
         else:
             print_status(
-                "Requirements include tree unchanged. Skipping Python dependency sync."
+                "Dependency manifest unchanged. Skipping Python dependency sync."
             )
 
         print_status(

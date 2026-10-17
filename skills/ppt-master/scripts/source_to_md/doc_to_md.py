@@ -1037,7 +1037,7 @@ def _convert_docx(
     try:
         import mammoth
     except ImportError:
-        print("[ERROR] mammoth not installed. Run: pip install mammoth")
+        print("[ERROR] mammoth not installed. Run: uv sync --group office (or: pip install mammoth)")
         return ""
 
     media_dir, rel_media_dir = _ensure_media_dir(out_file)
@@ -1231,7 +1231,7 @@ def _process_html_images(html: str, base_dir: Path, media_dir: Path, rel_media_d
     try:
         from bs4 import BeautifulSoup
     except ImportError:
-        print("[ERROR] beautifulsoup4 not installed. Run: pip install beautifulsoup4")
+        print("[ERROR] beautifulsoup4 not installed. Run: uv sync --group web (or: pip install beautifulsoup4)")
         return html
 
     soup = BeautifulSoup(html, "html.parser")
@@ -1256,13 +1256,13 @@ def _convert_html(input_file: Path, out_file: Path) -> str:
     try:
         from markdownify import markdownify
     except ImportError:
-        print("[ERROR] markdownify not installed. Run: pip install markdownify")
+        print("[ERROR] markdownify not installed. Run: uv sync --group office (or: pip install markdownify)")
         return ""
 
     try:
         from bs4 import BeautifulSoup
     except ImportError:
-        print("[ERROR] beautifulsoup4 not installed. Run: pip install beautifulsoup4")
+        print("[ERROR] beautifulsoup4 not installed. Run: uv sync --group web (or: pip install beautifulsoup4)")
         return ""
 
     media_dir, rel_media_dir = _ensure_media_dir(out_file)
@@ -1424,7 +1424,7 @@ def _convert_epub(input_file: Path, out_file: Path) -> str:
         from bs4 import BeautifulSoup
     except ImportError as e:
         print(f"[ERROR] Missing dependency: {e.name}. "
-              f"Run: pip install ebooklib markdownify beautifulsoup4")
+              f"Run: uv sync --group office --group web (or: pip install ebooklib markdownify beautifulsoup4)")
         return ""
 
     media_dir, rel_media_dir = _ensure_media_dir(out_file)
@@ -1495,7 +1495,7 @@ def _convert_ipynb(input_file: Path, out_file: Path) -> str:
         from nbconvert import MarkdownExporter
         from nbconvert.writers import FilesWriter
     except ImportError:
-        print("[ERROR] nbconvert not installed. Run: pip install nbconvert")
+        print("[ERROR] nbconvert not installed. Run: uv sync --group office (or: pip install nbconvert)")
         return ""
 
     # Extract attachments once with notebook-wide names; nbconvert's own

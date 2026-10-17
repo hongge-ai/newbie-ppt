@@ -4,7 +4,7 @@
 
 ---
 
-本指南将手把手教你在 Windows 上安装 PPT Master。按顺序操作，10 分钟内即可跑通第一份 PPT。
+本指南将手把手教你在 Windows 上安装牛鼻 PPT（newbie-ppt）。按顺序操作，10 分钟内即可跑通第一份 PPT。
 
 ---
 
@@ -32,47 +32,41 @@ Python 是唯一的硬性要求。
 
 **方式 A — 下载 ZIP**（最简单）：
 
-1. 打开 [GitHub](https://github.com/hugohe3/ppt-master)（中国大陆也可使用 [AtomGit 镜像](https://atomgit.com/hugohe3/ppt-master)）
+1. 打开 [GitHub](https://github.com/hongge-ai/newbie-ppt)
 2. 点击绿色 **Code** 按钮 → **Download ZIP**
-3. 解压到 `C:\Users\你的用户名\ppt-master`
+3. 解压到 `C:\Users\你的用户名\newbie-ppt`
 
-**方式 B — Git Clone**（需要 [Git](https://git-scm.com/downloads)）。下面两条 clone 命令任选其一：
-
-```powershell
-# GitHub
-git clone https://github.com/hugohe3/ppt-master.git
-```
+**方式 B — Git Clone**（需要 [Git](https://git-scm.com/downloads)）：
 
 ```powershell
-# AtomGit 镜像
-git clone https://atomgit.com/hugohe3/ppt-master.git
+git clone https://github.com/hongge-ai/newbie-ppt.git
 ```
 
 然后进入克隆出的目录：
 
 ```powershell
-cd ppt-master
+cd newbie-ppt
 ```
 
 ---
 
-## 步骤 3 — 安装依赖
+## 步骤 3 — 一键配置
+
+配置脚本会自动引导安装 [uv](https://docs.astral.sh/uv/)（缺失时走 winget）、创建 `.venv` 并装齐全部分层依赖，默认走清华 PyPI 镜像：
 
 ```powershell
-cd C:\Users\你的用户名\ppt-master   # ← 替换为你的实际路径
-pip install -r requirements.txt
+cd C:\Users\你的用户名\newbie-ppt   # ← 替换为你的实际路径
+python skills/ppt-master/scripts/setup_env.py
 ```
 
-> 如果 `pip` 无法识别，用 `python -m pip install -r requirements.txt`。
-
-等待安装完成，最后看到 `Successfully installed ...` 就行。
+等待完成，最后应看到每个依赖组各一行 `[ok] <组名>`。
 
 ---
 
 ## 步骤 4 — 验证安装
 
 ```powershell
-python -c "import pptx; import fitz; print('All core dependencies OK')"
+uv run python -c "import pptx; import fitz; print('All core dependencies OK')"
 ```
 
 ✅ 输出 `All core dependencies OK` → 核心环境没问题。
@@ -83,7 +77,7 @@ python -c "import pptx; import fitz; print('All core dependencies OK')"
 
 ## 步骤 5 — 跑一个最小示例
 
-在支持 Agent 的 AI 工具（Claude Code、Codex、Cursor、VS Code agent 等）中打开 `ppt-master` 目录，在聊天面板输入：
+在支持 Agent 的 AI 工具（Claude Code、Codex、Cursor、VS Code agent 等）中打开 `newbie-ppt` 目录，在聊天面板输入：
 
 ```
 请快速生成一个 3 页测试 PPT，封面 + 内容页 + 封底，主题"Hello World"，不用跟我确认
@@ -101,7 +95,7 @@ python -c "import pptx; import fitz; print('All core dependencies OK')"
 
 ## 步骤 6 — 可选增强（大多数用户可以跳过）
 
-装好 Python 和 `requirements.txt` 后，生成 PPT 的全部功能已经就绪。PPTX 导出直接写入原生 DrawingML 形状，不需要 CairoSVG、GTK 或另一套 SVG 栅格化环境。下面只保留一种**边缘场景的备用工具**——遇到对应需求时再装。
+一键配置跑完后，生成 PPT 的全部功能已经就绪。PPTX 导出直接写入原生 DrawingML 形状，不需要 CairoSVG、GTK 或另一套 SVG 栅格化环境。下面只保留一种**边缘场景的备用工具**——遇到对应需求时再装。
 
 | 增强项 | 只在以下情况才装 | 安装方式 | 验证 |
 |--------|-----------------|---------|------|
@@ -133,33 +127,39 @@ python -c "import pptx; import fitz; print('All core dependencies OK')"
 
 python.org 安装包只装了 `python.exe`，没有 `python3.exe`。**把命令里的 `python3` 换成 `python` 即可**（AI 通常也会自动改用 `python` 继续）。
 
-### `pip install` 报权限错误
+### 依赖安装报权限错误
+
+一键脚本全部通过 uv 装进仓库本地 `.venv`，不需要管理员权限。如果你手动走 `uv pip` 遇到权限错误，可以以管理员身份运行 PowerShell——或者直接回到一键脚本。
+
+### 依赖安装网络问题
+
+一键脚本默认已走清华 PyPI 镜像（固化在 pyproject.toml）。若清华源不可达，可手动临时换源——注意这会**重写 uv.lock**，操作后请还原该文件：
 
 ```powershell
-pip install --user -r requirements.txt
+uv sync --all-groups --default-index https://mirrors.aliyun.com/pypi/simple/
+# 或官方源：
+uv sync --all-groups --default-index https://pypi.org/simple
 ```
 
-或以管理员身份运行 PowerShell。
-
-### `pip install` 网络问题
+需要代理时，先设置再运行脚本：
 
 ```powershell
-# 清华镜像（国内推荐）
-pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
-
-# 代理
-pip install -r requirements.txt --proxy http://your-proxy:port
+$env:HTTPS_PROXY = "http://your-proxy:port"
 ```
 
 ### `ModuleNotFoundError`
 
-`pip` 装到了另一个 Python 环境。用 `python -m pip install -r requirements.txt` 确保对应同一个。
+脚本必须在 uv 管理的环境里运行——在仓库根目录用 `uv run python <脚本>`（一键脚本结束时也会打印这个形式）。裸用指向别的解释器的 `python` 看不到 `.venv`。
 
 ### `import fitz` 失败
 
-1. 升级 pip：`python -m pip install --upgrade pip`
-2. 预编译包：`pip install PyMuPDF --only-binary :all:`
-3. 仍失败 → 安装 [Visual C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
+`pdf` 组默认已安装；如果你用 `--core` 装过、现在需要导入 PDF：
+
+```powershell
+uv sync --group pdf
+```
+
+若安装本身失败，强制用预编译包：`uv pip install PyMuPDF --only-binary :all:`。仍失败 → 安装 [Visual C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)。
 
 ### PowerShell「脚本运行被禁用」
 
@@ -172,5 +172,5 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ## 还是搞不定？
 
 - 📖 [常见问题 (FAQ)](./faq.md)
-- 🐛 [GitHub Issues](https://github.com/hugohe3/ppt-master/issues) — 附上 Python 版本、Windows 版本和完整报错
-- 💬 [GitHub Discussions](https://github.com/hugohe3/ppt-master/discussions)
+- 🐛 [GitHub Issues](https://github.com/hongge-ai/newbie-ppt/issues) — 附上 Python 版本、Windows 版本和完整报错
+- 💬 [GitHub Discussions](https://github.com/hongge-ai/newbie-ppt/discussions)

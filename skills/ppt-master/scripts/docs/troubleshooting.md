@@ -72,16 +72,17 @@ Use `--narration-audio-dir audio` only when you intentionally want lower-level, 
 
 ## Dependency Checklist
 
-Most tools use the standard library. Install extra dependencies only when needed:
+Most tools use the standard library. Dependencies are layered in the root `pyproject.toml` and installed through uv (see [setup-env.md](setup-env.md)):
 
 ```bash
-pip install -r requirements.txt
+python skills/ppt-master/scripts/setup_env.py   # one-click: core + all groups
+uv sync --group <group>                          # add one group later
 ```
 
-Important optional packages:
-- `python-pptx` for PPTX export
-- `edge-tts` for `notes_to_audio.py` recorded narration audio
-- `Pillow` for image utilities
-- `numpy` for watermark removal
-- `PyMuPDF` for PDF conversion (AGPL-3.0; only needed for PDF sources, see conversion.md)
-- `google-genai` for Gemini image generation
+Layers:
+- core (always installed): `PyYAML`, `python-pptx`, `skia-pathops`, `uharfbuzz`, `Pillow`, `flask`, `requests` — workbench, generation, PPTX export
+- `pdf`: `PyMuPDF` for PDF conversion (AGPL-3.0; only needed for PDF sources, see conversion.md)
+- `web`: `beautifulsoup4`, `curl_cffi` for web/WeChat import
+- `office`: `mammoth`, `markdownify`, `ebooklib`, `nbconvert`, `openpyxl`, `XlsxWriter` for document import and chart workbooks
+- `media`: `edge-tts`, `numpy` for narration audio, timing, watermark removal
+- `ai-image`: `google-genai` for Gemini image generation

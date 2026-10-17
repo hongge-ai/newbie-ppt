@@ -37,7 +37,7 @@ if not _HELP_REQUESTED:
     try:
         import fitz  # PyMuPDF
     except ImportError:
-        print("[ERROR] PyMuPDF not installed. Run: pip install PyMuPDF", file=sys.stderr)
+        print("[ERROR] PyMuPDF not installed. Run: uv sync --group pdf (or: pip install PyMuPDF)", file=sys.stderr)
         sys.exit(1)
 
 FONT_BODY_SIZE = 12

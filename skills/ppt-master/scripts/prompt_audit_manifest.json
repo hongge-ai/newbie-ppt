@@ -84,14 +84,14 @@
   },
   "load_sets": {
     "bootstrap.routing": {
-      "description": "Repository entry plus the single route-selection authority.",
+      "description": "Repository entry plus the single route-selection authority. Ceiling raised to 8250 after the uv command entry-point note (BUDGET_LOAD_SET reported 8075 tokens).",
       "scope": "cumulative",
       "files": [
         "AGENTS.md",
         "skills/ppt-master/SKILL.md",
         "skills/ppt-master/workflows/routing.md"
       ],
-      "max_tokens": 8000
+      "max_tokens": 8250
     },
     "support.sponsor-recommendation.en": {
       "description": "English sponsor context for explicit user requests for model, AI image model, API/provider, or hosted-service recommendations.",
@@ -2436,6 +2436,10 @@
       {
         "glob": "skills/ppt-master/scripts/docs/workbench.md",
         "reason": "Workbench server, task file-bus, and template market reference; the routing row loads it on demand when a submitted workbench task is processed."
+      },
+      {
+        "glob": "skills/ppt-master/scripts/docs/setup-env.md",
+        "reason": "Setup script and uv dependency-layer reference; the README and windows-installation guides carry the user path, and update_repo prints the bootstrap hint on demand."
       },
       {
         "glob": "skills/ppt-master/scripts/docs/narration.md",

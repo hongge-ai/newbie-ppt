@@ -327,7 +327,7 @@ def _convert_excel(
         from openpyxl import load_workbook
         from openpyxl.utils import get_column_letter
     except ImportError:
-        print("[ERROR] openpyxl not installed. Run: pip install openpyxl")
+        print("[ERROR] openpyxl not installed. Run: uv sync --group office (or: pip install openpyxl)")
         return ""
 
     workbook = load_workbook(input_file, data_only=True, read_only=False)

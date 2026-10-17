@@ -25,12 +25,12 @@ schema or launcher lifecycle.
 ## `workbench/server.py`
 
 ```bash
-python3 scripts/workbench/server.py                  # foreground, auto-open browser
-python3 scripts/workbench/server.py --port 7071      # exact port, fail when taken
-python3 scripts/workbench/server.py --no-browser     # remote access via port forwarding
-python3 scripts/workbench/server.py --daemon         # background, return once reachable
-python3 scripts/workbench/server.py --timeout 0      # disable idle auto-shutdown
-python3 scripts/workbench/server.py --shutdown       # stop the running instance (idempotent)
+uv run python scripts/workbench/server.py                  # foreground, auto-open browser
+uv run python scripts/workbench/server.py --port 7071      # exact port, fail when taken
+uv run python scripts/workbench/server.py --no-browser     # remote access via port forwarding
+uv run python scripts/workbench/server.py --daemon         # background, return once reachable
+uv run python scripts/workbench/server.py --timeout 0      # disable idle auto-shutdown
+uv run python scripts/workbench/server.py --shutdown       # stop the running instance (idempotent)
 ```
 
 - Repository-level singleton: no project argument. The runtime root is
@@ -252,7 +252,7 @@ feedback card.
 
 Manual checklist, run on a disposable checkout:
 
-1. `python3 scripts/workbench/server.py` opens the browser at the logged URL.
+1. `uv run python scripts/workbench/server.py` opens the browser at the logged URL.
 2. The task list renders; creating a task from a topic jumps to its detail page.
 3. The detail form edits params, uploads a file, and the file appears in the list.
 4. The template market lists all four kinds; a layout preview renders its roster
@@ -264,7 +264,7 @@ Manual checklist, run on a disposable checkout:
    thumbnails, lists the export with a download link, and stars/rating
    feedback lands in feedback.json.
 7. `curl -H "Host: evil.example" http://127.0.0.1:<port>/api/health` returns 403.
-8. `python3 scripts/workbench/server.py --shutdown` returns 0 twice in a row.
+8. `uv run python scripts/workbench/server.py --shutdown` returns 0 twice in a row.
 
 ## Remote access
 

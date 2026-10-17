@@ -121,13 +121,13 @@ Prefer MinerU or another OCR/layout tool when:
 - Multi-column layout parsing is poor
 - Encoding is garbled
 
-Dependency:
+Dependency (the `pdf` dependency group):
 
 ```bash
-pip install PyMuPDF
+uv sync --group pdf
 ```
 
-PyMuPDF is licensed under AGPL-3.0, with a commercial license available from Artifex. It is the only AGPL dependency in this repository and is imported only by this converter, so it can be left uninstalled when no PDF sources are involved. Anyone redistributing PPT Master together with its installed dependencies should review the AGPL terms first.
+PyMuPDF is licensed under AGPL-3.0, with a commercial license available from Artifex. It is the only AGPL dependency in this repository and is imported only by this converter, so the group can be left uninstalled (`setup_env.py --core`) when no PDF sources are involved. Anyone redistributing newbie-ppt together with its installed dependencies should review the AGPL terms first.
 
 ## `source_to_md/doc_to_md.py`
 
@@ -161,7 +161,7 @@ Dependencies:
 
 ```bash
 # Native path — always required
-pip install mammoth markdownify ebooklib nbconvert beautifulsoup4
+uv sync --group office --group web   # or: pip install mammoth markdownify ebooklib nbconvert beautifulsoup4
 
 # Fallback path — only for .doc/.odt/.rtf/.tex/.rst/.org/.typ
 # macOS:   brew install pandoc
@@ -208,7 +208,7 @@ Behavior:
 Dependency:
 
 ```bash
-pip install openpyxl
+uv sync --group office   # or: pip install openpyxl
 ```
 
 CSV/TSV files are already plain-text table sources and do not require this converter.
@@ -245,7 +245,7 @@ Behavior:
 Dependency:
 
 ```bash
-pip install python-pptx
+uv sync   # or: pip install python-pptx
 ```
 
 Legacy `.ppt` is not parsed directly. Resave it as `.pptx` or export it to PDF first.

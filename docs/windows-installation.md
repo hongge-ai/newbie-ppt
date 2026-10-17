@@ -4,7 +4,7 @@
 
 ---
 
-This guide walks you through installing PPT Master on Windows step by step. Follow along and you'll have a working setup in under 10 minutes.
+This guide walks you through installing newbie-ppt on Windows step by step. Follow along and you'll have a working setup in under 10 minutes.
 
 ---
 
@@ -32,47 +32,41 @@ Python is the only hard requirement.
 
 **Option A — Download ZIP** (easiest):
 
-1. Go to [github.com/hugohe3/ppt-master](https://github.com/hugohe3/ppt-master), or use the [AtomGit mirror](https://atomgit.com/hugohe3/ppt-master) in mainland China
+1. Go to [github.com/hongge-ai/newbie-ppt](https://github.com/hongge-ai/newbie-ppt)
 2. Click the green **Code** button → **Download ZIP**
-3. Unzip to `C:\Users\YourName\ppt-master`
+3. Unzip to `C:\Users\YourName\newbie-ppt`
 
-**Option B — Git Clone** (requires [Git](https://git-scm.com/downloads)). Run one of these clone commands:
-
-```powershell
-# GitHub
-git clone https://github.com/hugohe3/ppt-master.git
-```
+**Option B — Git Clone** (requires [Git](https://git-scm.com/downloads)). Run:
 
 ```powershell
-# AtomGit mirror
-git clone https://atomgit.com/hugohe3/ppt-master.git
+git clone https://github.com/hongge-ai/newbie-ppt.git
 ```
 
 Then enter the cloned folder:
 
 ```powershell
-cd ppt-master
+cd newbie-ppt
 ```
 
 ---
 
-## Step 3 — Install Dependencies
+## Step 3 — One-click Setup
+
+The setup script bootstraps [uv](https://docs.astral.sh/uv/) (installing it via winget if missing), creates the `.venv`, and installs all layered dependencies — through the Tsinghua PyPI mirror by default:
 
 ```powershell
-cd C:\Users\YourName\ppt-master   # ← adjust to your actual path
-pip install -r requirements.txt
+cd C:\Users\YourName\newbie-ppt   # ← adjust to your actual path
+python skills/ppt-master/scripts/setup_env.py
 ```
 
-> If `pip` is not recognized, try `python -m pip install -r requirements.txt`.
-
-Wait for it to finish. You should see `Successfully installed ...` at the end.
+Wait for it to finish. You should see one `[ok] <group>` line per dependency group at the end.
 
 ---
 
 ## Step 4 — Verify Your Setup
 
 ```powershell
-python -c "import pptx; import fitz; print('All core dependencies OK')"
+uv run python -c "import pptx; import fitz; print('All core dependencies OK')"
 ```
 
 ✅ Output: `All core dependencies OK` → you're good.
@@ -83,7 +77,7 @@ python -c "import pptx; import fitz; print('All core dependencies OK')"
 
 ## Step 5 — Run a Minimal Example
 
-Open the `ppt-master` folder in an agent-capable AI tool (Claude Code, Codex, Cursor, a VS Code agent, etc.) and type in the chat:
+Open the `newbie-ppt` folder in an agent-capable AI tool (Claude Code, Codex, Cursor, a VS Code agent, etc.) and type in the chat:
 
 ```
 Quickly generate a simple 3-page test PPT with a cover, one content page, and a closing page. Topic: "Hello World". No need to confirm with me.
@@ -101,7 +95,7 @@ That's the check that matters — if the file is there and opens, **you're done.
 
 ## Step 6 — Optional Enhancements (most users can skip this)
 
-With Python and `requirements.txt` installed, you already have everything needed to generate presentations. PPTX export writes native DrawingML shapes, so it does not require CairoSVG, GTK, or a separate SVG rasterization stack. The item below is an **edge-case fallback** — install it only if you hit the specific scenario.
+With the setup script finished, you already have everything needed to generate presentations. PPTX export writes native DrawingML shapes, so it does not require CairoSVG, GTK, or a separate SVG rasterization stack. The item below is an **edge-case fallback** — install it only if you hit the specific scenario.
 
 | Enhancement | Install only if… | How to install | Verify |
 |-------------|-----------------|----------------|--------|
@@ -133,33 +127,39 @@ With Python and `requirements.txt` installed, you already have everything needed
 
 The python.org installer ships `python.exe` but not `python3.exe`. **Just replace `python3` with `python` in the command** (the AI agent usually switches to `python` and continues on its own too).
 
-### `pip install` fails with permission errors
+### Dependency installation fails with permission errors
+
+The setup script routes everything through uv into the repo-local `.venv`, which needs no admin rights. If you went the manual `uv pip` route instead and hit permission errors, run PowerShell as Administrator — or simply return to the one-click script.
+
+### Dependency installation fails due to network issues
+
+The setup script already uses the Tsinghua PyPI mirror by default (pinned in pyproject.toml). If that mirror is unreachable, advanced users can switch index for one manual sync — note this rewrites uv.lock, so revert the file afterward:
 
 ```powershell
-pip install --user -r requirements.txt
+uv sync --all-groups --default-index https://mirrors.aliyun.com/pypi/simple/
+# or the official index:
+uv sync --all-groups --default-index https://pypi.org/simple
 ```
 
-Or run PowerShell as Administrator.
-
-### `pip install` fails due to network issues
+Behind a proxy, set it before running the script:
 
 ```powershell
-# Tsinghua PyPI mirror
-pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
-
-# Proxy
-pip install -r requirements.txt --proxy http://your-proxy:port
+$env:HTTPS_PROXY = "http://your-proxy:port"
 ```
 
 ### `ModuleNotFoundError`
 
-`pip` installed to a different Python. Use `python -m pip install -r requirements.txt` to match.
+Scripts must run inside the uv-managed environment — use `uv run python <script>` from the repo root (the setup script prints this form). A bare `python` pointing at another interpreter won't see the `.venv`.
 
 ### `import fitz` fails
 
-1. Upgrade pip: `python -m pip install --upgrade pip`
-2. Pre-built wheel: `pip install PyMuPDF --only-binary :all:`
-3. Still failing → install [Visual C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
+The `pdf` group is installed by default; if you installed with `--core` and now need PDF import:
+
+```powershell
+uv sync --group pdf
+```
+
+If the install itself fails, force a pre-built wheel: `uv pip install PyMuPDF --only-binary :all:`. Still failing → install [Visual C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/).
 
 ### PowerShell says "running scripts is disabled"
 
@@ -172,5 +172,5 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ## Still stuck?
 
 - 📖 [FAQ](./faq.md)
-- 🐛 [GitHub Issues](https://github.com/hugohe3/ppt-master/issues) — include your Python version, Windows version, and full error message
-- 💬 [GitHub Discussions](https://github.com/hugohe3/ppt-master/discussions)
+- 🐛 [GitHub Issues](https://github.com/hongge-ai/newbie-ppt/issues) — include your Python version, Windows version, and full error message
+- 💬 [GitHub Discussions](https://github.com/hongge-ai/newbie-ppt/discussions)

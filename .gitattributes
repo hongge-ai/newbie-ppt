@@ -1,0 +1,4 @@
+# Slim distribution: `git archive` (make_dist.py) excludes these paths.
+# docs/assets ships with the repository but not with the slim ZIP.
+# 精简分发：make_dist.py 的 git archive 不携带以下路径（docs/assets 仅在完整仓库中）。
+docs/assets/ export-ignore

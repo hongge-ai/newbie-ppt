@@ -334,9 +334,9 @@ def main() -> int:
     except ImportError:
         _safe_print(
             'playwright not installed. Install with:\n'
-            '    pip install playwright\n'
+            '    uv pip install playwright\n'
             '    python3 -m playwright install chromium\n'
-            '(see skills/ppt-master/requirements.txt)'
+            '(optional extra — not part of the pyproject dependency groups)'
         )
         return 3
 

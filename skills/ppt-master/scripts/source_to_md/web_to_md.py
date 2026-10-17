@@ -10,7 +10,7 @@ Usage:
     python scripts/source_to_md/web_to_md.py <url> -o output.md
 
 Dependencies:
-    pip install requests beautifulsoup4
+    uv sync --group web  (or: pip install requests beautifulsoup4)
 
 TLS fingerprint handling:
     Some sites (e.g., WeChat mp.weixin.qq.com) block Python's default 'requests'
@@ -26,7 +26,7 @@ TLS fingerprint handling:
     --allow-private-hosts restores proxy use and unrestricted address resolution.
 
     Install for WeChat / Chinese-portal coverage:
-        pip install curl_cffi
+        uv sync --group web  (or: pip install curl_cffi)
 
     If curl_cffi is unavailable on your platform, the Node.js counterpart
     (scripts/source_to_md/web_to_md.cjs) remains available as a fallback.
@@ -85,7 +85,7 @@ if not _HELP_REQUESTED:
         from urllib3.util import parse_url
     except ImportError:
         print("Error: This script requires 'requests' and 'beautifulsoup4'.", file=sys.stderr)
-        print("Please run: pip install requests beautifulsoup4", file=sys.stderr)
+        print("Please run: uv sync --group web (or: pip install requests beautifulsoup4)", file=sys.stderr)
         sys.exit(1)
 
 # Prefer curl_cffi for TLS-fingerprint impersonation (bypasses JA3 blocking on
@@ -478,7 +478,7 @@ except ImportError:
     PILLOW_AVAILABLE = False
     if not _HELP_REQUESTED:
         print("[WARN] Pillow not installed. WebP images will not be converted to PNG.", file=sys.stderr)
-        print("       Run: pip install Pillow", file=sys.stderr)
+        print("       Run: uv sync (or: pip install Pillow)", file=sys.stderr)
 
 # ============ Config ============
 CONFIG = {

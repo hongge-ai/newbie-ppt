@@ -23,23 +23,19 @@ Before starting the agent, keep these three directories separate:
 
 | Directory | What it is | Where it comes from |
 |---|---|---|
-| **Installed skill directory** | The PPT Master package containing `SKILL.md`, `requirements.txt`, workflows, and scripts | In a full-repository clone or repository ZIP, this is `skills/ppt-master/`; a marketplace/plugin installation or skill-only release ZIP has its own installed or extracted location |
+| **Installed skill directory** | The PPT Master package containing `SKILL.md`, workflows, and scripts | In a full-repository clone or repository ZIP, this is `skills/ppt-master/`; a marketplace/plugin installation or skill-only release ZIP has its own installed or extracted location |
 | **Working folder** | A persistent, writable folder that you open in the agent | For a full-repository clone or repository ZIP, normally the repository root; for skill-only installation, choose your own folder—it does not have to be the installed skill directory |
 | **Active project** | One generation run's sources, authored SVG, reports, backups, and exports | The agent initializes it under `<working-folder>/projects/<generated-project-name>/` and reports the exact path |
 
-Every installation path needs Python 3.10+ and an installed, authenticated agent host that can read and write the working folder and run shell commands. For a full-repository clone or repository ZIP, install dependencies from the repository root:
+Every installation path needs Python 3.10+ and an installed, authenticated agent host that can read and write the working folder and run shell commands. For a full-repository clone or repository ZIP, run the one-click setup from the repository root — it bootstraps [uv](https://docs.astral.sh/uv/) and installs every dependency layer:
 
 ```bash
-python3 -m pip install -r requirements.txt
+python skills/ppt-master/scripts/setup_env.py
 ```
 
-For a skill-only installation, first locate the installed or extracted directory that contains the skill's `SKILL.md` and `requirements.txt`, then install from that path:
+A skill-only installation carries no root uv project; manage its script dependencies with `uv pip` in your working environment, or prefer a full-repository download.
 
-```bash
-python3 -m pip install -r "<installed-skill-dir>/requirements.txt"
-```
-
-The `npx skills add hugohe3/ppt-master` installation path also requires a working `npx` command, normally supplied with Node.js/npm; the repository does not specify a Node/npm minimum version. A host's own `/plugin install` command does not use that `npx` path. After installation, start the agent in the **working folder**, not in the host-managed skill cache. The execution entry point resolves the installed skill separately. Installation choices are listed in [Quick Start](../README.md#quick-start); runtime discipline is defined in [`SKILL.md`](../skills/ppt-master/SKILL.md).
+The `npx skills add hongge-ai/newbie-ppt` installation path also requires a working `npx` command, normally supplied with Node.js/npm; the repository does not specify a Node/npm minimum version. A host's own `/plugin install` command does not use that `npx` path. After installation, start the agent in the **working folder**, not in the host-managed skill cache. The execution entry point resolves the installed skill separately. Installation choices are listed in [Quick Start](../README.md#quick-start); runtime discipline is defined in [`SKILL.md`](../skills/ppt-master/SKILL.md).
 
 ---
 

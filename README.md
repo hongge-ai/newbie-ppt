@@ -172,7 +172,7 @@ Knowing how to use Python and AI agents will matter more and more, and this proj
 
 ### 1. Prerequisites
 
-**All you need to install is [Python](https://www.python.org/downloads/) 3.10+.** Everything else comes with one line — `pip install -r requirements.txt` — after you download the project in Step 3.
+**All you need to install is [Python](https://www.python.org/downloads/) 3.10+.** Everything else — [uv](https://docs.astral.sh/uv/), the Python environment, all dependencies — is set up by one command in Step 3, against the Tsinghua PyPI mirror by default.
 
 <details>
 <summary><strong>Windows</strong> — see the dedicated <a href="./docs/windows-installation.md">step-by-step guide</a> ⚠️</summary>
@@ -235,48 +235,48 @@ Never used one of these? Don't worry — in this project they play exactly one r
 **Option A — Git clone** (recommended; requires [Git](https://git-scm.com/downloads) installed): the preferred path, since a clone can pull the latest version at any time.
 
 ```bash
-git clone https://github.com/hugohe3/ppt-master.git
-cd ppt-master
+git clone https://github.com/hongge-ai/newbie-ppt.git
+cd newbie-ppt
 ```
 
-Then install dependencies:
+Then set everything up (uv, `.venv`, layered dependencies):
 
 ```bash
-pip install -r requirements.txt
+python skills/ppt-master/scripts/setup_env.py
 ```
 
-**Option B — Download ZIP** (no Git required; best for a quick trial): click **Code → Download ZIP** on the [GitHub page](https://github.com/hugohe3/ppt-master), then unzip, and install dependencies with `pip install -r requirements.txt`. A ZIP has no Git history, so it can't `git pull` — see Updating Later. If that download is too large or fails, grab the skill-only package `ppt-master-skill-*.zip` (~56 MB, fully functional but without the bundled example decks) from the [Releases](https://github.com/hugohe3/ppt-master/releases) page instead.
+**Option B — Download ZIP** (no Git required; best for a quick trial): click **Code → Download ZIP** on the [GitHub page](https://github.com/hongge-ai/newbie-ppt), then unzip and run the same `python skills/ppt-master/scripts/setup_env.py`. A ZIP has no Git history, so it can't `git pull` — see Updating Later. If that download is too large or fails, grab the slim package `newbie-ppt-slim-*.zip` from the [Releases](https://github.com/hongge-ai/newbie-ppt/releases) page instead — same content minus Git history and heavy docs assets.
 
 #### Updating Later
 
 **Git clone installs:**
 
 ```bash
-python3 skills/ppt-master/scripts/update_repo.py
+uv run python skills/ppt-master/scripts/update_repo.py
 ```
 
-The script pulls the latest version and syncs Python dependencies when `requirements.txt` changes.
+The script pulls the latest version and syncs Python dependencies (`uv sync --inexact`) when `pyproject.toml` / `uv.lock` change.
 
 **Download ZIP installs:**
 
-ZIP folders do not include Git history, so they cannot run `git pull`. To update, download the latest ZIP, unzip it into a new folder, copy your old `.env` and `projects/` folder into the new folder, then run:
+ZIP folders do not include Git history, so they cannot run `git pull`. To update, download the latest ZIP or slim package, unzip it into a new folder, copy your old `.env` and `projects/` folder into the new folder, then run:
 
 ```bash
-pip install -r requirements.txt
+python skills/ppt-master/scripts/setup_env.py
 ```
 
 > **Option C — Skill marketplace**: the repo ships `.claude-plugin/marketplace.json`, so it can be installed through the [Claude Code plugin marketplace](https://code.claude.com/docs/en/plugin-marketplaces) ecosystem:
 >
 > ```bash
 > # Cross-agent CLI (Claude Code, Cursor, Codex, etc.)
-> npx skills add hugohe3/ppt-master
+> npx skills add hongge-ai/newbie-ppt
 >
 > # Or inside Claude Code
-> /plugin marketplace add hugohe3/ppt-master
+> /plugin marketplace add hongge-ai/newbie-ppt
 > /plugin install ppt-master@ppt-master
 > ```
 >
-> Both install paths above only fetch the skill files (not the full repo); you still need to `pip install -r requirements.txt` from the installed location for the post-processing scripts to run.
+> Both install paths above only fetch the skill files — not the full repo with its uv project — so set up dependencies from a full download as in Option A/B, or manage them manually with `uv pip` in the installed location.
 
 ### 4. Create
 
@@ -388,7 +388,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for how to get involved.
 
 See [third-party icon notices](./skills/ppt-master/templates/icons/THIRD_PARTY_NOTICES.md) for pinned versions, licenses, attribution, compatibility overlays, and trademark boundaries.
 
-The optional PDF converter depends on [PyMuPDF](https://pymupdf.readthedocs.io/), which is licensed under AGPL-3.0 rather than MIT; it is only needed for PDF sources. See [conversion.md](./skills/ppt-master/scripts/docs/conversion.md) before redistributing a bundle that includes it.
+The optional `pdf` dependency group installs [PyMuPDF](https://pymupdf.readthedocs.io/), which is licensed under AGPL-3.0 rather than MIT; it is only needed for PDF sources — run `setup_env.py --core` to avoid it entirely, and see [conversion.md](./skills/ppt-master/scripts/docs/conversion.md) before redistributing a bundle that includes it.
 
 ## Related Tools
 

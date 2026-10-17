@@ -171,7 +171,7 @@
 
 ### 1. 前置条件
 
-**只需安装 [Python](https://www.python.org/downloads/) 3.10+。** 其余依赖在第 3 步下载好项目后，用一行 `pip install -r requirements.txt` 装齐。
+**只需安装 [Python](https://www.python.org/downloads/) 3.10+。** 其余的 [uv](https://docs.astral.sh/uv/)、Python 环境和全部依赖，都由第 3 步的一条命令装齐，默认走清华 PyPI 镜像。
 
 <details>
 <summary><strong>Windows</strong> — 请看专门的<a href="./docs/zh/windows-installation.md">手把手安装指南</a> ⚠️</summary>
@@ -234,54 +234,51 @@ PPT Master 在**任何具备 agent 能力**（可读写文件、执行命令、�
 **方式 A — Git clone**（推荐；需先安装 [Git](https://git-scm.com/downloads)）：首选这种方式，因为 clone 可以随时拉取最新版本。
 
 ```bash
-# GitHub
-git clone https://github.com/hugohe3/ppt-master.git
-# AtomGit（中国大陆地区网速更快）
-git clone https://atomgit.com/hugohe3/ppt-master.git
-cd ppt-master
+git clone https://github.com/hongge-ai/newbie-ppt.git
+cd newbie-ppt
 ```
 
-然后安装依赖：
+然后一键配置（uv、`.venv`、分层依赖）：
 
 ```bash
-pip install -r requirements.txt
+python skills/ppt-master/scripts/setup_env.py
 ```
 
 **方式 B — 下载 ZIP**（无需安装 Git，适合快速体验）：
-[GitHub](https://github.com/hugohe3/ppt-master) → **Code → Download ZIP** · [AtomGit](https://atomgit.com/hugohe3/ppt-master) → **克隆/下载 → 下载ZIP**（中国大陆地区访问 GitHub 下载不便时用这个，网速更快）；解压后同样用 `pip install -r requirements.txt` 装依赖。ZIP 没有 Git 历史，不能自动 `git pull`（更新见下）。
+[GitHub](https://github.com/hongge-ai/newbie-ppt) → **Code → Download ZIP**；解压后同样执行 `python skills/ppt-master/scripts/setup_env.py`。ZIP 没有 Git 历史，不能自动 `git pull`（更新见下）。
 
-如果完整仓库下载失败、或嫌体积太大，可以改到 [Releases](https://github.com/hugohe3/ppt-master/releases) 页面下载纯技能包 `ppt-master-skill-*.zip`（约 56 MB，功能完整，但不含内置示例 deck）。
+如果完整仓库下载失败、或嫌体积太大，可以改到 [Releases](https://github.com/hongge-ai/newbie-ppt/releases) 页面下载精简包 `newbie-ppt-slim-*.zip`——内容相同，但不含 Git 历史与体积较大的文档素材。
 
 #### 日常更新
 
 **Git clone 安装：**
 
 ```bash
-python3 skills/ppt-master/scripts/update_repo.py
+uv run python skills/ppt-master/scripts/update_repo.py
 ```
 
-脚本会拉取最新版；如果 `requirements.txt` 有变化，会自动同步 Python 依赖。
+脚本会拉取最新版；`pyproject.toml` / `uv.lock` 有变化时自动 `uv sync --inexact` 同步依赖。
 
 **下载 ZIP 安装：**
 
-ZIP 目录没有 Git 历史，不能自动 `git pull`。更新时请重新下载最新版 ZIP，解压到新目录，然后把旧目录里的 `.env` 和 `projects/` 复制过去，再执行：
+ZIP 目录没有 Git 历史，不能自动 `git pull`。更新时请重新下载最新版 ZIP 或精简包，解压到新目录，然后把旧目录里的 `.env` 和 `projects/` 复制过去，再执行：
 
 ```bash
-pip install -r requirements.txt
+python skills/ppt-master/scripts/setup_env.py
 ```
 
 > **方式 C — Skill marketplace**：仓库已添加 `.claude-plugin/marketplace.json` 元数据，可通过 [Claude Code plugin marketplace](https://code.claude.com/docs/en/plugin-marketplaces) 生态一行安装：
 >
 > ```bash
 > # 跨 agent CLI（Claude Code、Cursor、Codex 等）
-> npx skills add hugohe3/ppt-master
+> npx skills add hongge-ai/newbie-ppt
 >
 > # 或在 Claude Code 内
-> /plugin marketplace add hugohe3/ppt-master
+> /plugin marketplace add hongge-ai/newbie-ppt
 > /plugin install ppt-master@ppt-master
 > ```
 >
-> 上述两种安装方式都只会拉取 skill 文件本身（不含完整仓库），后处理脚本仍需在安装目录跑 `pip install -r requirements.txt`。
+> 上述两种安装方式都只会拉取 skill 文件本身（不含完整仓库的 uv 工程），依赖请按方式 A/B 从完整下载安装，或在安装目录用 `uv pip` 手动管理。
 
 ### 4. 开始创作
 
@@ -392,7 +389,7 @@ PPT Master 会优先读取当前进程环境变量，然后按顺序读取第一
 
 固定版本、许可证、署名、兼容层与商标边界详见[第三方图标说明](./skills/ppt-master/templates/icons/THIRD_PARTY_NOTICES.md)。
 
-可选的 PDF 转换器依赖 [PyMuPDF](https://pymupdf.readthedocs.io/)，其许可证为 AGPL-3.0 而非 MIT，仅处理 PDF 源时才需要安装。若要连同依赖一起再分发，请先阅读 [conversion.md](./skills/ppt-master/scripts/docs/conversion.md) 中的说明。
+可选依赖组 `pdf` 会安装 [PyMuPDF](https://pymupdf.readthedocs.io/)，其许可证为 AGPL-3.0 而非 MIT，仅导入 PDF 源时才需要——用 `setup_env.py --core` 可完全避开；若要连同依赖一起再分发，请先阅读 [conversion.md](./skills/ppt-master/scripts/docs/conversion.md) 中的说明。
 
 ## 相关工具
 
