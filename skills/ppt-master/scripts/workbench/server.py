@@ -90,6 +90,12 @@ SERVER_LOG_NAME = 'server.log'
 # Task registry shape. Task ids are pure ASCII (generated); user text lives
 # only inside task.json values so Chinese titles never become path segments.
 TASK_ID_RE = re.compile(r't\d{8}-\d{6}-[0-9a-f]{4}\Z')
+# Saved custom templates ("我的模板") follow the same generated-id discipline:
+# one JSON file per record under .workbench/custom_templates/, name is data.
+CUSTOM_TEMPLATES_DIR_NAME = 'custom_templates'
+CUSTOM_TEMPLATE_ID_RE = re.compile(r'ct\d{8}-\d{6}-[0-9a-f]{4}\Z')
+CUSTOM_TEMPLATE_SCHEMA_VERSION = 1
+CUSTOM_TEMPLATE_NAME_MAX = 40
 PROFILE_VALUES = {'quick', 'default'}
 IMAGE_POLICY_VALUES = {'auto', 'none', 'web', 'ai'}
 PAGE_COUNT_MIN = 1
@@ -144,6 +150,11 @@ def _workbench_dir(projects_root: Path) -> Path:
 def _tasks_dir(projects_root: Path) -> Path:
     """Return the task registry directory for a projects root."""
     return _workbench_dir(projects_root) / TASKS_DIR_NAME
+
+
+def _custom_templates_dir(projects_root: Path) -> Path:
+    """Return the saved custom-template directory for a projects root."""
+    return _workbench_dir(projects_root) / CUSTOM_TEMPLATES_DIR_NAME
 
 
 def _read_json_object(path: Path, retries: int = 2, delay: float = 0.08) -> dict:
@@ -217,6 +228,11 @@ def _new_task_id() -> str:
     return f't{datetime.now().strftime("%Y%m%d-%H%M%S")}-{secrets.token_hex(2)}'
 
 
+def _new_custom_template_id() -> str:
+    """Generate a fresh ASCII custom-template id."""
+    return f'ct{datetime.now().strftime("%Y%m%d-%H%M%S")}-{secrets.token_hex(2)}'
+
+
 def _task_dir_path(projects_root: Path, task_id: str) -> Path:
     """Return one task's directory; callers validate the id shape first."""
     return _tasks_dir(projects_root) / task_id
@@ -262,6 +278,124 @@ def _safe_template_id(template_id: object) -> bool:
         isinstance(template_id, str)
         and _SAFE_TEMPLATE_ID_RE.fullmatch(template_id) is not None
     )
+
+
+def _custom_template_file_path(projects_root: Path, ct_id: str) -> Path:
+    """Return one custom template's JSON path; callers validate the id first."""
+    return _custom_templates_dir(projects_root) / f'{ct_id}.json'
+
+
+def _custom_template_selection_pairs(record: dict) -> list[dict]:
+    """Return the stored (kind, id) pairs of a custom-template record."""
+    return [
+        {'kind': item.get('kind'), 'id': item.get('id')}
+        for item in record.get('selections', [])
+        if isinstance(item, dict)
+    ]
+
+
+def _custom_template_invalid(record: dict) -> list[str]:
+    """List selections whose id is no longer a key in its kind's index."""
+    invalid = []
+    for item in _custom_template_selection_pairs(record):
+        kind = item.get('kind')
+        template_id = item.get('id')
+        if (
+            kind not in TEMPLATE_KINDS
+            or not _safe_template_id(template_id)
+            or _template_index_entry(kind, template_id) is None
+        ):
+            invalid.append(f'{kind}/{template_id}')
+    return invalid
+
+
+def _custom_template_summary(record: dict) -> str:
+    """One-line combination summary for market cards."""
+    return ' + '.join(
+        f'{item["kind"]}/{item["id"]}'
+        for item in _custom_template_selection_pairs(record)
+    )
+
+
+def _custom_template_payload(record: dict) -> dict:
+    """API card for one saved custom template."""
+    return {
+        'id': record.get('id'),
+        'name': record.get('name'),
+        'summary': _custom_template_summary(record),
+        'selections': _custom_template_selection_pairs(record),
+        'invalid': _custom_template_invalid(record),
+        'created_at': record.get('created_at'),
+        'updated_at': record.get('updated_at'),
+    }
+
+
+def _load_custom_templates(projects_root: Path) -> list[dict]:
+    """Read every saved custom-template record, newest update first.
+
+    Unreadable or malformed files are skipped: the registry must keep serving
+    even when one record was damaged externally.
+    """
+    directory = _custom_templates_dir(projects_root)
+    records = []
+    if not directory.is_dir():
+        return records
+    try:
+        entries = sorted(directory.iterdir())
+    except OSError:
+        return records
+    for entry in entries:
+        if entry.suffix != '.json':
+            continue
+        if CUSTOM_TEMPLATE_ID_RE.fullmatch(entry.stem) is None:
+            continue
+        try:
+            record = _read_json_object(entry, retries=0)
+        except (OSError, json.JSONDecodeError, ValueError):
+            continue
+        record.setdefault('id', entry.stem)
+        records.append(record)
+    records.sort(key=lambda item: str(item.get('updated_at') or ''), reverse=True)
+    return records
+
+
+def _find_custom_template_by_name(records: list[dict], name: str) -> Optional[dict]:
+    """Return the record using exactly this name, if any."""
+    for record in records:
+        if record.get('name') == name:
+            return record
+    return None
+
+
+def _validate_custom_template_fields(
+    records: list[dict],
+    name: object,
+    selections: object,
+    exclude_id: Optional[str],
+) -> tuple[Optional[str], Optional[str], Optional[list], Optional[dict]]:
+    """Validate name + selections for create/update.
+
+    Returns (name, error, resolved_selections, name_clash). ``name_clash`` is
+    the colliding record when the name is already taken by another record.
+    """
+    if not isinstance(name, str):
+        return None, 'name must be a string', None, None
+    name = name.strip()
+    if not name:
+        return None, 'name must be non-empty', None, None
+    if len(name) > CUSTOM_TEMPLATE_NAME_MAX:
+        return None, f'name must be at most {CUSTOM_TEMPLATE_NAME_MAX} characters', None, None
+    clash = _find_custom_template_by_name(records, name)
+    if clash is not None and clash.get('id') != exclude_id:
+        return name, None, None, clash
+    if selections is None:
+        return name, None, None, None
+    resolved, error = _resolve_library_selections(selections)
+    if error:
+        return name, error, None, None
+    if not resolved:
+        return name, 'at least one selection is required', None, None
+    return name, None, resolved, None
 
 
 def _default_task(task_id: str, topic: str, display_title: Optional[str]) -> dict:
@@ -333,40 +467,35 @@ def _apply_params_patch(params: dict, patch: object) -> Optional[str]:
     return None
 
 
-def _apply_template_selection(task: dict, selection: object) -> Optional[str]:
-    """Validate and store one template selection update.
+def _resolve_library_selections(raw_selections: object) -> tuple[Optional[list], Optional[str]]:
+    """Resolve (kind, id) pairs against the library indexes.
 
-    Selections are accepted as (kind, id) pairs only; the server resolves each
-    workspace_root from the registered library indexes so a browser can never
-    submit an arbitrary path.
+    Selections are accepted as (kind, id) pairs only; each workspace_root is
+    resolved server-side from the registered indexes so a browser can never
+    submit an arbitrary path. Shared by task selection updates and custom-
+    template saves. Returns (resolved_entries, error_message).
     """
-    if not isinstance(selection, dict):
-        return 'template_selection must be a JSON object'
-    mode = selection.get('mode')
-    if mode not in ('free_design', 'templates'):
-        return 'template_selection.mode must be free_design or templates'
-    raw_selections = selection.get('selections', [])
     if not isinstance(raw_selections, list):
-        return 'template_selection.selections must be a list'
+        return None, 'selections must be a list'
     resolved = []
     kinds_seen = set()
     for item in raw_selections:
         if not isinstance(item, dict):
-            return 'each selection must be a JSON object'
+            return None, 'each selection must be a JSON object'
         kind = item.get('kind')
         template_id = item.get('id')
         if kind not in TEMPLATE_KINDS:
-            return f'unknown template kind: {kind}'
+            return None, f'unknown template kind: {kind}'
         if not _safe_template_id(template_id):
-            return f'invalid template id: {template_id!r}'
+            return None, f'invalid template id: {template_id!r}'
         if kind in kinds_seen:
-            return f'at most one {kind} selection is allowed'
+            return None, f'at most one {kind} selection is allowed'
         try:
             index = _load_template_index(kind)
         except (OSError, json.JSONDecodeError, ValueError) as exc:
-            return f'cannot read {kind} index: {exc}'
+            return None, f'cannot read {kind} index: {exc}'
         if template_id not in index:
-            return f'unknown {kind} template id: {template_id}'
+            return None, f'unknown {kind} template id: {template_id}'
         kind_dir, _index_name = _TEMPLATE_LIBRARY_CONFIG[kind]
         resolved.append({
             'source': 'library',
@@ -375,6 +504,19 @@ def _apply_template_selection(task: dict, selection: object) -> Optional[str]:
             'workspace_root': str(_templates_dir() / kind_dir / template_id),
         })
         kinds_seen.add(kind)
+    return resolved, None
+
+
+def _apply_template_selection(task: dict, selection: object) -> Optional[str]:
+    """Validate and store one template selection update."""
+    if not isinstance(selection, dict):
+        return 'template_selection must be a JSON object'
+    mode = selection.get('mode')
+    if mode not in ('free_design', 'templates'):
+        return 'template_selection.mode must be free_design or templates'
+    resolved, error = _resolve_library_selections(selection.get('selections', []))
+    if error:
+        return f'template_selection.{error}'
     if mode == 'templates' and not resolved:
         return 'templates mode requires at least one selection'
     if mode == 'free_design' and resolved:
@@ -1192,6 +1334,103 @@ def create_app(
         if not workspace_root.is_dir():
             return jsonify({'error': 'unknown template'}), 404
         return send_from_directory(workspace_root, filename)
+
+    @app.route('/api/custom-templates', methods=['GET'])
+    def list_custom_templates():
+        """List saved custom templates (combination presets), newest first."""
+        records = _load_custom_templates(projects_path)
+        resp = jsonify({'custom_templates': [
+            _custom_template_payload(record) for record in records
+        ]})
+        resp.headers['Cache-Control'] = 'no-store'
+        return resp
+
+    @app.route('/api/custom-templates', methods=['POST'])
+    def create_custom_template():
+        """Save a new custom template from (kind, id) selection pairs."""
+        data = request.get_json(silent=True) or {}
+        records = _load_custom_templates(projects_path)
+        name, error, resolved, clash = _validate_custom_template_fields(
+            records, data.get('name'), data.get('selections'), None,
+        )
+        if clash is not None:
+            return jsonify({
+                'error': 'name already exists',
+                'existing_id': clash.get('id'),
+            }), 409
+        if error:
+            return jsonify({'error': error}), 400
+        if not resolved:
+            return jsonify({'error': 'selections is required'}), 400
+        now = _now_iso()
+        record = {
+            'schema_version': CUSTOM_TEMPLATE_SCHEMA_VERSION,
+            'id': _new_custom_template_id(),
+            'name': name,
+            'selections': [
+                {'kind': item['kind'], 'id': item['id']} for item in resolved
+            ],
+            'indexes_sha256': _indexes_sha256(),
+            'created_at': now,
+            'updated_at': now,
+        }
+        _write_json_atomic(
+            _custom_template_file_path(projects_path, record['id']), record,
+        )
+        return jsonify(_custom_template_payload(record)), 201
+
+    @app.route('/api/custom-templates/<ct_id>', methods=['PUT'])
+    def update_custom_template(ct_id: str):
+        """Rename and/or re-pick one saved custom template."""
+        if CUSTOM_TEMPLATE_ID_RE.fullmatch(ct_id) is None:
+            return jsonify({'error': 'unknown custom template'}), 404
+        path = _custom_template_file_path(projects_path, ct_id)
+        if not path.is_file():
+            return jsonify({'error': 'unknown custom template'}), 404
+        record = _read_json_object(path)
+        data = request.get_json(silent=True) or {}
+        records = _load_custom_templates(projects_path)
+        new_name = record.get('name') if 'name' not in data else data.get('name')
+        selections = (
+            record.get('selections') if 'selections' not in data
+            else data.get('selections')
+        )
+        name, error, resolved, clash = _validate_custom_template_fields(
+            records, new_name, selections, exclude_id=ct_id,
+        )
+        if clash is not None:
+            return jsonify({
+                'error': 'name already exists',
+                'existing_id': clash.get('id'),
+            }), 409
+        if error:
+            return jsonify({'error': error}), 400
+        record['name'] = name
+        if resolved:
+            record['selections'] = [
+                {'kind': item['kind'], 'id': item['id']} for item in resolved
+            ]
+        record['updated_at'] = _now_iso()
+        _write_json_atomic(path, record)
+        return jsonify(_custom_template_payload(record))
+
+    @app.route('/api/custom-templates/<ct_id>', methods=['DELETE'])
+    def delete_custom_template(ct_id: str):
+        """Delete one saved custom template."""
+        if CUSTOM_TEMPLATE_ID_RE.fullmatch(ct_id) is None:
+            return jsonify({'error': 'unknown custom template'}), 404
+        path = _custom_template_file_path(projects_path, ct_id)
+        if not path.is_file():
+            return jsonify({'error': 'unknown custom template'}), 404
+        for attempt in range(5):
+            try:
+                path.unlink()
+                return jsonify({'deleted': ct_id})
+            except PermissionError:
+                if attempt == 4:
+                    raise
+                time.sleep(0.06)
+        return jsonify({'error': 'unable to delete'}), 500
 
     def _project_dir_or_abort(task: dict):
         """Return the task's project Path or a 409 response tuple."""
