@@ -1,14 +1,14 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
-  "name": "ppt-master",
+  "name": "newbie-ppt",
   "description": "Generate natively editable PPTX from PDF / DOCX / URL / Markdown.",
   "author": {
-    "name": "Hugo He",
-    "email": "heyug3@gmail.com",
-    "url": "https://www.hehugo.com/"
+    "name": "hongge-ai",
+    "email": "690832239@qq.com",
+    "url": "https://github.com/hongge-ai"
   },
-  "homepage": "https://github.com/hugohe3/ppt-master",
-  "repository": "https://github.com/hugohe3/ppt-master",
+  "homepage": "https://github.com/hongge-ai/newbie-ppt",
+  "repository": "https://github.com/hongge-ai/newbie-ppt",
   "license": "MIT",
   "keywords": [
     "pptx",
@@ -19,7 +19,8 @@
     "ai",
     "skill",
     "office",
-    "document-conversion"
+    "document-conversion",
+    "newbie-ppt"
   ],
   "skills": "./"
 }

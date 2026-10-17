@@ -58,8 +58,8 @@ It depends on how you installed PPT Master:
 
 | Install method | Update method |
 |---|---|
-| Git clone | Run `python3 skills/ppt-master/scripts/update_repo.py` inside the `ppt-master` folder |
-| Download ZIP | Download the latest ZIP, unzip it into a new folder, copy your old `.env` and `projects/` folder into the new folder, then run `pip install -r requirements.txt` |
+| Git clone | Run `uv run python skills/ppt-master/scripts/update_repo.py` inside the `newbie-ppt` folder |
+| Download ZIP | Download the latest ZIP or slim package, unzip it into a new folder, copy your old `.env` and `projects/` folder into the new folder, then run `python skills/ppt-master/scripts/setup_env.py` |
 | Skill marketplace | Reinstall or update through the matching marketplace / skills tool |
 
 For long-term use, Git clone is recommended. ZIP is fine for a quick trial, but it has no Git history and cannot run `git pull`.
@@ -67,7 +67,7 @@ For long-term use, Git clone is recommended. ZIP is fine for a quick trial, but 
 If you are not sure which install method you used, ask the AI to run this from the project folder:
 
 ```bash
-python3 skills/ppt-master/scripts/update_repo.py
+uv run python skills/ppt-master/scripts/update_repo.py
 ```
 
 If the folder is not a Git clone, the script will tell you how to migrate a ZIP install.
@@ -76,20 +76,20 @@ If the folder is not a Git clone, the script will tell you how to migrate a ZIP 
 
 Yes. The full repository is large (Git history plus bundled example decks and their assets), and that size is baked into the history — it can't be trimmed without breaking the many existing forks. If you only want the skill and not the full repo, use a lightweight path instead:
 
-- **Marketplace CLI**: `npx skills add hugohe3/ppt-master` or Claude Code's `/plugin install` fetch the skill files only (see the [Set Up section of the README](../README.md#3-set-up)).
-- **Manual download**: grab `ppt-master-skill-*.zip` from the [Releases](https://github.com/hugohe3/ppt-master/releases) page — the skill files only (~56 MB), no full-repo clone.
+- **Marketplace CLI**: `npx skills add hongge-ai/newbie-ppt` or Claude Code's `/plugin install newbie-ppt@newbie-ppt` fetch the skill files only (see the [Set Up section of the README](../README.md#3-set-up)).
+- **Manual download**: grab the slim package `newbie-ppt-slim-*.zip` from the [Releases](https://github.com/hongge-ai/newbie-ppt/releases) page — no Git history and no heavy docs assets.
 
-For either skill-only path, locate the installed skill directory that contains `SKILL.md` and `requirements.txt`, then run `python3 -m pip install -r "<installed-skill-dir>/requirements.txt"` so the post-processing scripts work.
+Skill-only installs carry no root uv project, so set up the Python dependencies from a full download as in the README's Set Up section, or manage them manually with `uv pip` in your working environment.
 
 Neither path carries a `.git` directory, so `git describe` cannot report the version. The installed release is recorded in the `metadata.version` field of the skill's own `SKILL.md` frontmatter.
 
-For users in mainland China who cannot reach GitHub reliably, the complete repository is also mirrored on [AtomGit](https://atomgit.com/hugohe3/ppt-master); clone it or download its ZIP there.
+For users in mainland China, the repository pins the Tsinghua PyPI mirror in `pyproject.toml`, so the one-click setup needs no extra network configuration.
 
 ## Q: I installed from a skill marketplace. What prerequisites and working directory do I need?
 
-All installation paths require Python 3.10+ and an installed, authenticated agent host that can read and write files and run shell commands. The `npx skills add hugohe3/ppt-master` path additionally requires a working `npx` command, normally supplied with Node.js/npm; the repository does not declare a Node/npm minimum version. A host's own `/plugin install` command does not use that `npx` path.
+All installation paths require Python 3.10+ and an installed, authenticated agent host that can read and write files and run shell commands. The `npx skills add hongge-ai/newbie-ppt` path additionally requires a working `npx` command, normally supplied with Node.js/npm; the repository does not declare a Node/npm minimum version. A host's own `/plugin install` command does not use that `npx` path.
 
-The installed skill directory and your working folder are different roles. Install Python dependencies from the directory that contains the installed skill's `SKILL.md` and `requirements.txt`, but start the agent in a separate persistent, writable working folder of your choice. The agent creates that folder's `projects/` directory as needed; you do not need to run it from the host-managed skill cache. See [Getting Started: Set up the installation and working folders](./getting-started.md#set-up-the-installation-and-working-folders) and the skill's [execution entry point](../skills/ppt-master/SKILL.md).
+The installed skill directory and your working folder are different roles. Manage the Python dependencies from a full-repository download (its root carries the uv project), but start the agent in a separate persistent, writable working folder of your choice. The agent creates that folder's `projects/` directory as needed; you do not need to run it from the host-managed skill cache. See [Getting Started: Set up the installation and working folders](./getting-started.md#set-up-the-installation-and-working-folders) and the skill's [execution entry point](../skills/ppt-master/SKILL.md).
 
 ## Q: How can I run the same minimal installation check on macOS or Linux?
 

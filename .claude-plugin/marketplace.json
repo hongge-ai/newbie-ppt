@@ -1,31 +1,31 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
-  "name": "ppt-master",
+  "name": "newbie-ppt",
   "owner": {
-    "name": "Hugo He",
-    "email": "heyug3@gmail.com",
-    "url": "https://github.com/hugohe3"
+    "name": "hongge-ai",
+    "email": "690832239@qq.com",
+    "url": "https://github.com/hongge-ai"
   },
   "metadata": {
-    "description": "PPT Master skill — AI generates natively editable PPTX from any document",
-    "version": "6.7.0"
+    "description": "newbie-ppt（牛鼻 PPT）skill — AI generates natively editable PPTX from any document; China-friendly uv setup",
+    "version": "0.1.0"
   },
   "plugins": [
     {
-      "name": "ppt-master",
+      "name": "newbie-ppt",
       "source": {
         "source": "git-subdir",
-        "url": "https://github.com/hugohe3/ppt-master.git",
+        "url": "https://github.com/hongge-ai/newbie-ppt.git",
         "path": "skills"
       },
-      "description": "Generate natively editable PPTX from PDF / DOCX / URL / Markdown — real DrawingML shapes, text boxes, charts, and animations. Note: run `pip install -r requirements.txt` inside the installed plugin directory for the Python post-processing scripts to work.",
+      "description": "Generate natively editable PPTX from PDF / DOCX / URL / Markdown — real DrawingML shapes, text boxes, charts, and animations. Note: the full repository with its uv project is required for the Python post-processing scripts; run setup per the newbie-ppt README.",
       "author": {
-        "name": "Hugo He",
-        "email": "heyug3@gmail.com",
-        "url": "https://www.hehugo.com/"
+        "name": "hongge-ai",
+        "email": "690832239@qq.com",
+        "url": "https://github.com/hongge-ai"
       },
-      "homepage": "https://github.com/hugohe3/ppt-master",
-      "repository": "https://github.com/hugohe3/ppt-master",
+      "homepage": "https://github.com/hongge-ai/newbie-ppt",
+      "repository": "https://github.com/hongge-ai/newbie-ppt",
       "license": "MIT",
       "category": "productivity",
       "keywords": [
@@ -37,7 +37,8 @@
         "ai",
         "skill",
         "office",
-        "document-conversion"
+        "document-conversion",
+        "newbie-ppt"
       ]
     }
   ]

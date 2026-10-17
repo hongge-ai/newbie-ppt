@@ -273,7 +273,7 @@ python skills/ppt-master/scripts/setup_env.py
 >
 > # Or inside Claude Code
 > /plugin marketplace add hongge-ai/newbie-ppt
-> /plugin install ppt-master@ppt-master
+> /plugin install newbie-ppt@newbie-ppt
 > ```
 >
 > Both install paths above only fetch the skill files — not the full repo with its uv project — so set up dependencies from a full download as in Option A/B, or manage them manually with `uv pip` in the installed location.

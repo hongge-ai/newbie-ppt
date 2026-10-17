@@ -275,7 +275,7 @@ python skills/ppt-master/scripts/setup_env.py
 >
 > # 或在 Claude Code 内
 > /plugin marketplace add hongge-ai/newbie-ppt
-> /plugin install ppt-master@ppt-master
+> /plugin install newbie-ppt@newbie-ppt
 > ```
 >
 > 上述两种安装方式都只会拉取 skill 文件本身（不含完整仓库的 uv 工程），依赖请按方式 A/B 从完整下载安装，或在安装目录用 `uv pip` 手动管理。
