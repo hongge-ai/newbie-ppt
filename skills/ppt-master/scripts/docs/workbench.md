@@ -99,6 +99,13 @@ substitutes `{{TOKEN}}` placeholders with sample text, and rewrites deck
 no page prototypes; their previews render the parsed design_spec frontmatter
 plus a primary-color swatch.
 
+Layout and deck selections generate in strict mode: the template's
+Master/Layout layers are a frozen contract (fixed atom ids/geometry/metadata,
+slot ids/types/bounds/bindings, fonts and colors on those layers), and only
+slot content — visible text values, slotted images, chart/table data — is
+editable. The market header and the layout/deck preview modal state this
+disclosure in UI copy.
+
 ## Task File Bus
 
 One directory per task under `projects/.workbench/tasks/<task_id>/`:
@@ -257,6 +264,8 @@ Manual checklist, run on a disposable checkout:
 3. The detail form edits params, uploads a file, and the file appears in the list.
 4. The template market lists all four kinds; a layout preview renders its roster
    pages with sample token text; the 中国电信 deck preview shows its images.
+   The market header and layout/deck preview state the strict-mode frozen-
+   contract disclosure (only slot content is editable).
 5. Selecting one template per kind, saving, and submitting shows the copyable
    agent hint; afterwards the page is a read-only summary.
 6. With a hand-attached fake project (task.json `project_dir` plus a few

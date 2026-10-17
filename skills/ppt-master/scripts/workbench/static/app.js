@@ -533,6 +533,7 @@
       '<div class="task-sub">任务 ' + esc(task.task_id) + (readonly ? ' · 已提交,以下为只读' : '') + '</div></div>' +
       '<a class="btn" href="#/task/' + encodeURIComponent(task.task_id) + '">← 返回配置</a>' +
       '</div>' +
+      '<p class="hint">版式/成品模板按严格模式生成:模板的母版/版式层是冻结契约,可改的只有槽内容(文字/图片/图表数据)。</p>' +
       (readonly ? '' :
         '<div class="market-bar">' +
         '<label class="field-check"><input id="m-free" type="checkbox"' +
@@ -568,7 +569,10 @@
     if (payload.summary) html += '<p class="tpl-summary">' + esc(payload.summary) + '</p>';
     if (fmRows) html += '<table class="kv-table">' + fmRows + '</table>';
     if (payload.roster && payload.roster.length) {
-      html += '<p class="hint">共 ' + payload.roster.length + ' 页模板,占位符已替换为示例内容。</p>' +
+      html += '<p class="hint">共 ' + payload.roster.length + ' 页模板,占位符已替换为示例内容。' +
+        (payload.kind === 'layout' || payload.kind === 'deck'
+          ? ' 选用后按严格模式生成:母版/版式层为冻结契约,可改的只有槽内容(文字/图片/图表数据)。'
+          : '') + '</p>' +
         '<div class="roster-grid" id="roster-grid">' +
         payload.roster.map(function (item) {
           return '<figure class="roster-item"><figcaption>' + esc(item.name) + '</figcaption>' +
