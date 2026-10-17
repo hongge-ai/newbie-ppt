@@ -78,6 +78,10 @@ uv run python scripts/workbench/server.py --shutdown       # stop the running in
 | GET `/api/tasks/<id>/exports/<name>` | One exported PPTX download (`.pptx` whitelist, attachment) |
 | GET `/api/tasks/<id>/images/<path>` | One project image asset so inline page previews resolve |
 | GET/POST `/api/tasks/<id>/feedback` | Read / write `feedback.json` (allowed at any status) |
+| GET `/api/custom-templates` | `{custom_templates: [...]}` newest-first; each card carries `id`, `name`, `summary`, `selections` (`{kind, id}` pairs), `invalid` (ids no longer in the official indexes), timestamps |
+| POST `/api/custom-templates` | `{name, selections}` → `201` card; name ≤ 40 chars unique (`409 {existing_id}`), selections validated against the library indexes (400) |
+| PUT `/api/custom-templates/<ct_id>` | Rename and/or re-pick (self-name allowed; rename onto another name → 409) |
+| DELETE `/api/custom-templates/<ct_id>` | Remove one saved custom template |
 
 The server binds `127.0.0.1` only and rejects foreign `Host`/`Origin`
 headers with 403, matching the other local preview servers.
@@ -105,6 +109,25 @@ slot ids/types/bounds/bindings, fonts and colors on those layers), and only
 slot content — visible text values, slotted images, chart/table data — is
 editable. The market header and the layout/deck preview modal state this
 disclosure in UI copy.
+
+### Custom templates (我的模板)
+
+A saved custom template is a **combination preset**: `{name, selections[]}`
+of plain library `(kind, id)` pairs, stored as one JSON record per
+generated `ct…` id under `projects/.workbench/custom_templates/`. Names are
+data, never path segments — same discipline as the task registry. The
+market UI offers a dual-mode switch (挑成品一步到位 / 自定义组合; a chosen
+deck desaturates the other three kinds with an override notice, and the
+combination bar lists unselected kinds as AI-decided), a 存为我的模板 flow
+with a naming modal plus browser confirms for overwrite and delete, and a
+我的模板 tab whose 使用 button is blocked when a saved id has left the
+official indexes (the stale ids are listed).
+
+Expansion is deliberately client-side: 使用/编辑 writes the saved pairs back
+into the ordinary market selection state, and saving to a task goes through
+the same `PATCH /api/tasks/<id>` `template_selection` path — custom templates
+never appear in `task.json`. The agent consumption contract (step 4 of the
+seven-step runbook below) is therefore unchanged.
 
 ## Task File Bus
 
@@ -268,12 +291,17 @@ Manual checklist, run on a disposable checkout:
    contract disclosure (only slot content is editable).
 5. Selecting one template per kind, saving, and submitting shows the copyable
    agent hint; afterwards the page is a read-only summary.
-6. With a hand-attached fake project (task.json `project_dir` plus a few
+6. Market v2: the mode switch renders; choosing a deck dims the other kinds
+   with the override notice; 自定义组合 shows the unselected-kinds summary;
+   存为我的模板 → naming modal → card appears under 我的模板; overwrite-save
+   and delete each ask a browser confirm; a record with a hand-removed id
+   lists 失效 and blocks 使用.
+7. With a hand-attached fake project (task.json `project_dir` plus a few
    svg_output/*.svg and one exports/*.pptx), the progress page renders page
    thumbnails, lists the export with a download link, and stars/rating
    feedback lands in feedback.json.
-7. `curl -H "Host: evil.example" http://127.0.0.1:<port>/api/health` returns 403.
-8. `uv run python scripts/workbench/server.py --shutdown` returns 0 twice in a row.
+8. `curl -H "Host: evil.example" http://127.0.0.1:<port>/api/health` returns 403.
+9. `uv run python scripts/workbench/server.py --shutdown` returns 0 twice in a row.
 
 ## Remote access
 
