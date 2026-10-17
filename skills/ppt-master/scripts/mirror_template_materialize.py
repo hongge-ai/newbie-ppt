@@ -37,7 +37,11 @@ from xml.etree import ElementTree as ET
 from zipfile import BadZipFile, ZipFile
 
 from compact_svg_coordinates import compact_svg_tree, format_coordinate
-from compact_svg_styles import compact_svg_style_tree
+from compact_svg_styles import (
+    ROOT_TYPOGRAPHY_ATTRIBUTES,
+    compact_svg_style_tree,
+    relocalize_root_typography,
+)
 from console_encoding import configure_utf8_stdio
 from extract_svg_assets import (
     ASSET_ROLE_ATTRIBUTE,
@@ -134,16 +138,7 @@ _INHERITED_PRESENTATION_ATTRIBUTES = frozenset({
     "text-decoration",
     "word-spacing",
 })
-_ROOT_TYPOGRAPHY_ATTRIBUTES = (
-    "font-family",
-    "font-size",
-    "font-style",
-    "font-weight",
-    "letter-spacing",
-    "text-anchor",
-    "text-decoration",
-    "word-spacing",
-)
+_ROOT_TYPOGRAPHY_ATTRIBUTES = ROOT_TYPOGRAPHY_ATTRIBUTES
 _TEXT_PRESENTATION_ATTRIBUTES = frozenset(_ROOT_TYPOGRAPHY_ATTRIBUTES)
 _TEXT_PRESENTATION_CONTAINERS = frozenset({
     "a",
@@ -3158,19 +3153,7 @@ def materialize_mirror_template(
         compact_svg_style_tree(root)
         # Compaction may hoist a Slide-specific font to the shared SVG root.
         # Localize it again so Master/Layout resources have stable inheritance.
-        parents = {child: parent for parent in root.iter() for child in parent}
-        for text in root.iter(f"{{{SVG_NS}}}text"):
-            for name in _ROOT_TYPOGRAPHY_ATTRIBUTES:
-                ancestor = text
-                while ancestor is not None:
-                    value = _paint_value(ancestor, name)
-                    if value is not None:
-                        if ancestor is root:
-                            text.set(name, value)
-                        break
-                    ancestor = parents.get(ancestor)
-        for name in _ROOT_TYPOGRAPHY_ATTRIBUTES:
-            root.attrib.pop(name, None)
+        relocalize_root_typography(root)
         _refresh_preset_preview_hashes(root)
         _refresh_fresh_native_fallback_hashes(root)
         try:

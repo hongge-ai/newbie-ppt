@@ -41,6 +41,18 @@ configure_utf8_stdio()
 SVG_NS = "http://www.w3.org/2000/svg"
 XLINK_NS = "http://www.w3.org/1999/xlink"
 INHERITABLE_ATTRIBUTES = tuple(INHERITABLE_ATTRS)
+# Typography that compaction may hoist to the SVG root and that must stay
+# slide-local on structure-tagged trees (see relocalize_root_typography).
+ROOT_TYPOGRAPHY_ATTRIBUTES = (
+    "font-family",
+    "font-size",
+    "font-style",
+    "font-weight",
+    "letter-spacing",
+    "text-anchor",
+    "text-decoration",
+    "word-spacing",
+)
 _DEFINITION_SUBTREES = frozenset({
     "clipPath",
     "defs",
@@ -84,6 +96,8 @@ class StyleCompactionStats:
     shadowed_attributes_removed: int = 0
     redundant_attributes_removed: int = 0
     redundant_style_declarations_removed: int = 0
+    root_typography_relocalized: int = 0
+    root_font_unified: int = 0
 
     @property
     def changed_declarations(self) -> int:
@@ -95,6 +109,8 @@ class StyleCompactionStats:
             + self.shadowed_attributes_removed
             + self.redundant_attributes_removed
             + self.redundant_style_declarations_removed
+            + self.root_typography_relocalized
+            + self.root_font_unified
         )
 
     def merge(self, other: "StyleCompactionStats") -> None:
@@ -111,6 +127,10 @@ class StyleCompactionStats:
         self.redundant_style_declarations_removed += (
             other.redundant_style_declarations_removed
         )
+        self.root_typography_relocalized += (
+            other.root_typography_relocalized
+        )
+        self.root_font_unified += other.root_font_unified
 
     def as_dict(self) -> dict[str, int]:
         return {
@@ -127,6 +147,8 @@ class StyleCompactionStats:
             "redundant_style_declarations_removed": (
                 self.redundant_style_declarations_removed
             ),
+            "root_typography_relocalized": self.root_typography_relocalized,
+            "root_font_unified": self.root_font_unified,
             "changed_declarations": self.changed_declarations,
         }
 
@@ -281,43 +303,58 @@ def _normalize_root_font_family(
     if root.get("font-family") is not None:
         return
 
-    parents = {
+    parents = _parent_map(root)
+
+    text_elements = _visible_text_elements(root)
+    if not text_elements:
+        return
+    families = _effective_text_families(root, parents)
+    if any(family is None or not family.strip() for family in families):
+        return
+    root.set("font-family", _most_common_family(families))
+    stats.root_font_defaults += 1
+
+
+def _parent_map(root: ET.Element) -> dict[ET.Element, ET.Element]:
+    return {
         child: parent
         for parent in root.iter()
         for child in parent
     }
 
+
+def _visible_text_elements(root: ET.Element) -> list[ET.Element]:
     # Include definition text conservatively. A local <use> can make it
     # visible, and promoting a font while ignoring that text could change its
     # inherited rendering. Unused definitions are pruned by import projection;
     # legacy migration prefers no promotion over a visual change.
-    text_elements = [
+    return [
         element
         for element in root.iter()
         if _local_name(element.tag) == "text"
         and "".join(element.itertext()).strip()
     ]
-    if not text_elements:
-        return
+
+
+def _effective_text_families(
+    root: ET.Element,
+    parents: dict[ET.Element, ET.Element] | None = None,
+) -> list[str | None]:
+    if parents is None:
+        parents = _parent_map(root)
     cache: dict[tuple[int, str], str | None] = {}
-    families = [
-        _effective_value(
-            element,
-            "font-family",
-            parents,
-            cache,
-        )
-        for element in text_elements
+    return [
+        _effective_value(element, "font-family", parents, cache)
+        for element in _visible_text_elements(root)
     ]
-    if any(family is None or not family.strip() for family in families):
-        return
+
+
+def _most_common_family(families: list[str | None]) -> str:
     counts = Counter(str(family) for family in families)
-    common = min(
+    return min(
         counts,
         key=lambda family: (-counts[family], len(family), family),
     )
-    root.set("font-family", common)
-    stats.root_font_defaults += 1
 
 
 def _normalize_container_inherited_styles(
@@ -483,8 +520,19 @@ def _remove_redundant_inherited_styles(
         _remove_redundant_inherited_styles(child, effective, stats)
 
 
-def compact_svg_style_tree(root: ET.Element) -> StyleCompactionStats:
-    """Compact inherited declarations without changing effective SVG styles."""
+def compact_svg_style_tree(
+    root: ET.Element,
+    root_font_family: str | None = None,
+) -> StyleCompactionStats:
+    """Compact inherited declarations without changing effective SVG styles.
+
+    ``root_font_family`` optionally carries a deck-level font for
+    structure-tagged trees: per-page compaction alone can hoist different
+    most-common fonts onto pages that share one Master, and the shared
+    Master/Layout signature covers root attributes, so the pages diverge.
+    The directory CLI computes the per-Master hint; single callers that pass
+    nothing keep the plain per-page behavior.
+    """
     if _local_name(root.tag) != "svg":
         raise ValueError("Style compaction requires an SVG root element")
     stats = StyleCompactionStats()
@@ -492,7 +540,103 @@ def compact_svg_style_tree(root: ET.Element) -> StyleCompactionStats:
     _normalize_root_font_family(root, stats)
     _promote_common_group_defaults(root, stats)
     _remove_redundant_inherited_styles(root, {}, stats)
+    if root_font_family is not None and tree_has_structure_markers(root):
+        _unify_root_font_family(root, root_font_family, stats)
     return stats
+
+
+_STRUCTURE_MASTER_KEYS = ("data-pptx-master", "data-pptx-master-key")
+
+
+def _master_key(root: ET.Element) -> str | None:
+    for name in _STRUCTURE_MASTER_KEYS:
+        value = root.get(name)
+        if value:
+            return value
+    return None
+
+
+def tree_has_structure_markers(root: ET.Element) -> bool:
+    """True when any element in the tree carries a data-pptx-* attribute."""
+    for element in root.iter():
+        for name in element.attrib:
+            if name.startswith("data-pptx-"):
+                return True
+    return False
+
+
+def _unify_root_font_family(
+    root: ET.Element,
+    family: str,
+    stats: StyleCompactionStats,
+) -> None:
+    """Set one deck-level root font on a structure-tagged tree.
+
+    Bake the page's current effective typography into its text elements
+    first (no rendering change), then set the shared font as the root default
+    so every page of the Master group carries an identical root. Skipped
+    when any visible text resolves to no family at all — same conservative
+    bail-out as plain promotion.
+    """
+    families = _effective_text_families(root)
+    if not families or any(
+        family is None or not family.strip() for family in families
+    ):
+        return
+    relocalize_root_typography(root, stats)
+    root.set("font-family", family)
+    stats.root_font_unified += 1
+
+
+def _raw_paint_value(element: ET.Element, name: str) -> str | None:
+    """Resolve a painted value from attr or style, case-preserving: font
+    names are matched case-sensitively by downstream theme-font resolution."""
+    value = element.get(name)
+    if value is not None:
+        return value.strip()
+    declarations = _style_declarations(element.get("style"))
+    if declarations is None:
+        return None
+    return _style_values(declarations).get(name)
+
+
+def relocalize_root_typography(
+    root: ET.Element,
+    stats: StyleCompactionStats | None = None,
+) -> None:
+    """Move root typography attributes back onto each <text> element.
+
+    Compaction can hoist a slide-specific font to the shared SVG root. The
+    shared Master/Layout signature covers root inheritance attributes, so a
+    hoisted value would make slides that reuse one Master diverge. Writing the
+    hoisted value onto each text element that inherits it from the root — and
+    only from the root — keeps inheritance slide-local without changing any
+    effective rendering.
+    """
+    parents = {
+        child: parent
+        for parent in root.iter()
+        for child in parent
+    }
+    for element in root.iter():
+        if _local_name(element.tag) != "text":
+            continue
+        for name in ROOT_TYPOGRAPHY_ATTRIBUTES:
+            ancestor = element
+            while ancestor is not None:
+                value = _raw_paint_value(ancestor, name)
+                if value is not None:
+                    if ancestor is root:
+                        element.set(name, value)
+                    break
+                ancestor = parents.get(ancestor)
+    removed = [
+        name
+        for name in ROOT_TYPOGRAPHY_ATTRIBUTES
+        if root.attrib.pop(name, None) is not None
+    ]
+    if stats is not None and removed:
+        stats.root_typography_relocalized += 1
 
 
 def _svg_files(input_path: Path) -> list[Path]:
@@ -504,15 +648,50 @@ def _svg_files(input_path: Path) -> list[Path]:
     )
 
 
+def _deck_root_font_hints(svg_files: list[Path]) -> dict[str, str]:
+    """Compute one shared root font per data-pptx Master group.
+
+    Directory compaction processes each page independently; pages that reuse
+    one Master would otherwise hoist different most-common fonts and diverge
+    in the shared Master/Layout signature. The hint is the most common
+    effective family across every group page (pages with unresolved families
+    contribute nothing, matching plain promotion's conservative bail-out).
+    """
+    group_families: dict[str, list[str]] = {}
+    for path in svg_files:
+        try:
+            root = ET.fromstring(path.read_bytes())
+        except ET.ParseError:
+            continue
+        if not tree_has_structure_markers(root):
+            continue
+        key = _master_key(root)
+        if key is None:
+            continue
+        families = _effective_text_families(root)
+        if any(family is None or not family.strip() for family in families):
+            continue
+        group_families.setdefault(key, []).extend(families)
+    return {
+        key: _most_common_family(families)
+        for key, families in group_families.items()
+        if families
+    }
+
+
 def _compact_svg_bytes(
     path: Path,
+    root_fonts: dict[str, str] | None = None,
 ) -> tuple[bytes, StyleCompactionStats]:
     original = path.read_bytes()
     parser = ET.XMLParser(
         target=ET.TreeBuilder(insert_comments=True, insert_pis=True),
     )
     root = ET.fromstring(original, parser=parser)
-    stats = compact_svg_style_tree(root)
+    hint: str | None = None
+    if root_fonts and tree_has_structure_markers(root):
+        hint = root_fonts.get(_master_key(root) or "")
+    stats = compact_svg_style_tree(root, root_font_family=hint)
     if stats.changed_declarations == 0:
         return original, stats
     ET.register_namespace("", SVG_NS)
@@ -610,8 +789,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     prepared: list[tuple[Path, bytes, StyleCompactionStats]] = []
     total = StyleCompactionStats()
     try:
+        root_fonts = _deck_root_font_hints(svg_files)
         for path in svg_files:
-            payload, stats = _compact_svg_bytes(path)
+            payload, stats = _compact_svg_bytes(path, root_fonts)
             prepared.append((path, payload, stats))
             total.merge(stats)
     except (OSError, ET.ParseError, ValueError) as exc:

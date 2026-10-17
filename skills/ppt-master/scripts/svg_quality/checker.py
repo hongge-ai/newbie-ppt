@@ -2547,7 +2547,9 @@ class SVGQualityChecker:
             f"Noncanonical compact authoring: {error} "
             f"(advisory; normalize with {normalizer(error)}, "
             "re-stamp pages that carry Chart/Table fallbacks, and rerun the "
-            "final gate, or leave the explicit form)"
+            "final gate, or leave the explicit form; directory compaction "
+            "unifies the root font per data-pptx Master group, so pages that "
+            "reuse one Master keep identical shared atoms)"
             for error in errors
         )
 
