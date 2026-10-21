@@ -327,19 +327,6 @@ class TemplateFlowBatch3Tests(unittest.TestCase):
                 self.assertEqual((project / 'images' / 'photo.png').exists(), propagate)
                 self.assertTrue((project / 'sources' / 'reference_files' / 'photo.png').exists())
 
-    def test_e_quick_ignores_installed_unused_prototypes(self) -> None:
-        pages = self.root / 'svg_output'
-        pages.mkdir()
-        templates = self.root / 'templates'
-        templates.mkdir()
-        page = pages / '01_body.svg'
-        page.write_text(_structured_page('body'), encoding='utf-8')
-        (templates / 'unused.svg').write_text('invalid unused prototype', encoding='utf-8')
-        checker = SVGQualityChecker(quick_generate=True)
-        checker._check_pptx_structure_contract(pages, [page])
-        self.assertEqual(checker._pptx_structure_issues, [])
-        self.assertEqual(checker._structured_native_slots, [])
-
     def test_c_capacity_is_font_sensitive_and_read_only(self) -> None:
         from svg_quality.slot_capacity import slot_capacity_report
 

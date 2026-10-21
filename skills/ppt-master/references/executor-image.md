@@ -1,10 +1,10 @@
-> Default Generate also loads [`executor-base.md`](./executor-base.md); Quick loads this branch with its own §2 anchors.
+> Generate also loads [`executor-base.md`](./executor-base.md).
 
 # Executor Image Branch
 
 Conditional Executor authority for image status handling, placement, crop behavior, and template-bundled images.
 
-**Trigger**: any image in §VIII, the lock, Quick's active-context resource decisions, or a selected template.
+**Trigger**: any image in §VIII, the lock, or a selected template.
 
 **Contract — status handling** (enum and lifecycle in [`svg-image-embedding.md`](svg-image-embedding.md), reference syntax there too). Executor consumes only prepared assets; derivatives already exist and native treatments are SVG work.
 
@@ -13,7 +13,7 @@ Conditional Executor authority for image status handling, placement, crop behavi
 | `Existing` (user-provided) | Reference from `../images/`; a manifest-backed file also loads [`executor-web-image.md`](./executor-web-image.md) |
 | `Generated` (Image_Generator) | Reference from `../images/`; a manifest-backed file also loads [`executor-web-image.md`](./executor-web-image.md) |
 | `Sourced` (Image_Searcher) | Reference from `../images/`; read `image_sources.json` for attribution — load [`executor-web-image.md`](./executor-web-image.md) |
-| `Needs-Manual` | Default uses a placeholder until Step 7; Quick blocks every required row, file presence notwithstanding |
+| `Needs-Manual` | A placeholder may stand in until Step 7; every required row in this status blocks export, file presence notwithstanding |
 | `Placeholder` | Dashed `<rect stroke-dasharray="8,4" …/>` plus description text |
 
 **Template-bundled images**: [`apply-template-workspace.md`](../workflows/stages/apply-template-workspace.md) copies them into project `images/`; every page, including `mirror`, rebases the same bytes to exact `../images/<name>` (a transport rewrite, not a visual edit). Never keep a bare or source-template href.

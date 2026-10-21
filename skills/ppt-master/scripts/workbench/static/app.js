@@ -116,7 +116,6 @@
   function taskCard(task) {
     var title = task.display_title || task.topic || task.task_id;
     var meta = [];
-    if (task.profile) meta.push(optionLabel(optionsCache && optionsCache.profiles, task.profile));
     if (task.created_at) meta.push(task.created_at);
     return (
       '<a class="task-card" href="#/task/' + encodeURIComponent(task.task_id) + '">' +
@@ -157,7 +156,6 @@
       '<div class="field-row">' +
       '<label class="field"><span>任务标题(可选)</span>' +
       '<input id="create-title" type="text" maxlength="200" placeholder="展示在任务列表里"></label>' +
-      '<label class="field"><span>生成方式</span><select id="create-profile"></select></label>' +
       '</div>' +
       '<button type="submit" class="btn btn-primary">创建并配置</button>' +
       '</form>' +
@@ -168,12 +166,7 @@
       '</section>'
     );
 
-    loadOptions().then(function (options) {
-      var select = $('#create-profile');
-      if (!select) return;
-      select.innerHTML = (options.profiles || []).map(function (item) {
-        return '<option value="' + esc(item.value) + '">' + esc(item.label) + '</option>';
-      }).join('');
+    loadOptions().then(function () {
       refreshTaskList();
     });
 
@@ -183,8 +176,7 @@
       if (!topic) { notify('请填写主题', true); return; }
       api('POST', '/api/tasks', {
         topic: topic,
-        display_title: $('#create-title').value.trim() || null,
-        params: { profile: $('#create-profile').value }
+        display_title: $('#create-title').value.trim() || null
       }).then(function (data) {
         location.hash = '#/task/' + encodeURIComponent(data.task_id);
       }).catch(function (err) { notify('创建失败:' + err.message, true); });
@@ -245,8 +237,6 @@
       '<section class="panel">' +
       '<h3>生成参数</h3>' +
       '<div class="field-row">' +
-      '<label class="field"><span>生成方式</span>' +
-      '<select id="f-profile">' + selectOptions(options.profiles, p.profile) + '</select></label>' +
       '<label class="field"><span>画幅</span>' +
       '<select id="f-canvas">' + selectOptions(options.canvas, p.canvas) + '</select></label>' +
       '</div>' +
@@ -298,7 +288,6 @@
         extra: $('#f-extra').value.trim()
       },
       params: {
-        profile: $('#f-profile').value,
         canvas: $('#f-canvas').value || null,
         page_count: pageCountRaw === 'null' || pageCountRaw === '' ? null : parseInt(pageCountRaw, 10),
         primary_language: $('#f-language').value,
@@ -389,7 +378,6 @@
     var r = task.requirements || {};
     var rows = [
       ['状态', statusLabel(task.status)],
-      ['生成方式', optionLabel(optionsCache && optionsCache.profiles, p.profile)],
       ['画幅', optionLabel(optionsCache && optionsCache.canvas, p.canvas)],
       ['页数', p.page_count == null ? '由 AI 决定' : String(p.page_count)],
       ['语言', optionLabel(optionsCache && optionsCache.languages, p.primary_language)],

@@ -4,7 +4,7 @@ description: Generate source-intake stage that fills factual gaps and records ad
 
 # Topic Research Stage
 
-> Factual preparation inside the active Generate profile's source intake: Default hands its output to Strategist, Quick's main agent consumes it. Run immediately for topic-only input, or after supplied material is converted and read when it leaves planning-critical factual gaps. Output is exactly a research supplement plus stable fact provenance for project import. The facts JSON is provenance, not a page-download queue: `import-sources` imports the pair without fetching `source_url` values; a page may be fetched later only through the bounded image fallback below. This stage makes no deck image selection and performs no image search or generation.
+> Factual preparation inside the active Generate profile's source intake: its output hands off to Strategist. Run immediately for topic-only input, or after supplied material is converted and read when it leaves planning-critical factual gaps. Output is exactly a research supplement plus stable fact provenance for project import. The facts JSON is provenance, not a page-download queue: `import-sources` imports the pair without fetching `source_url` values; a page may be fetched later only through the bounded image fallback below. This stage makes no deck image selection and performs no image search or generation.
 
 ## When to Run
 
@@ -30,10 +30,10 @@ description: Generate source-intake stage that fills factual gaps and records ad
 | Research gaps | Only facts needed to support the outcome |
 | External-source boundary | External enrichment allowed; supplied facts remain authoritative |
 | Output language | Match user input |
-| Audience / communication intent | Use what is explicit; Default leaves confirmation to Strategist, Quick resolves routine gaps in context |
+| Audience / communication intent | Use what is explicit; leave confirmation to Strategist |
 | Research stem `<research_slug>` | `<topic_slug>_research`, or another unused snake_case stem rather than overwriting |
 
-Default bundles only genuinely missing scope or research-boundary decisions into one clarifier; Quick applies the defaults and continues, stopping only when a required permission or safety boundary cannot be inferred responsibly. Do not repeat the full-pipeline confirmation here.
+Bundle only genuinely missing scope or research-boundary decisions into one clarifier; apply sensible defaults and continue, stopping only when a required permission or safety boundary cannot be inferred responsibly. Do not repeat the full-pipeline confirmation here.
 
 ---
 
@@ -90,7 +90,7 @@ After project initialization, import the pair with the user sources; the facts J
 python3 ${SKILL_DIR}/scripts/project_manager.py import-sources projects/<project_name> [<source_paths...>] projects/<research_slug>.md projects/<research_slug>.facts.json
 ```
 
-If planning later exposes a required gap, return here and repair the pair before continuing; Strategist or Quick never consumes a newly fetched claim without updating it. The imported pair is the compact evidence-facing content authority, not a locked contract: Default's Strategist reads both files completely before confirmation; Quick's agent does the same before its content, design, and resource decisions.
+If planning later exposes a required gap, return here and repair the pair before continuing; Strategist never consumes a newly fetched claim without updating it. The imported pair is the compact evidence-facing content authority, not a locked contract: Strategist reads both files completely before confirmation, content, design, and resource decisions.
 
 **Single-page image fallback**: only after normal web-image providers, ranked thumbnail pages, and materially different queries fail may an image owner with visual capability select one relevant `source_url` from the facts JSON and fetch that one page package with `python3 ${SKILL_DIR}/scripts/source_to_md/web_to_md.py "<source_url>" -o <project_path>/sources/<source_slug>.md`, review the companion `<source_slug>_files/` package, and copy only accepted images into `<project_path>/images/` — never pass the URL to `import-sources`, which would promote every companion image into the pool. Fetch another page only after the current package has no usable image; without vision, retain `Needs-Manual`.
 
@@ -101,5 +101,5 @@ If planning later exposes a required gap, return here and repair the pair before
 - [x] Fact provenance: `projects/<research_slug>.facts.json` (N external facts)
 - [x] Artifact contract validated: `## Research Brief`, no Markdown source list, `ppt-master.fact-provenance.v1`, unique sequential IDs, Markdown/JSON agreement
 - [x] Adopted webpage URLs: N unique `source_url` values; no webpage auto-imported, no image copied into the runtime pool
-- [ ] **Next**: Default returns to [`generate-pptx`](../generate-pptx.md) Step 2; Quick returns to [`quick-generate`](../profiles/quick-generate.md) §2. Import the sources plus research pair, then fully read the imported pair before planning or direct SVG authoring
+- [ ] **Next**: return to [`generate-pptx`](../generate-pptx.md) Step 2. Import the sources plus research pair, then fully read the imported pair before planning or SVG authoring
 ```

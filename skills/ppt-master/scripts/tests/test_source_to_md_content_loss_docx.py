@@ -2,7 +2,8 @@
 """PPT Master - DOCX content preservation regressions.
 
 Usage: python3 -m unittest tests.test_source_to_md_content_loss_docx
-Dependencies: python-docx, mammoth
+Dependencies: mammoth; the DOCX fixture cases additionally need python-docx
+and skip when it is unavailable.
 """
 
 import base64
@@ -18,10 +19,16 @@ from contextlib import redirect_stdout
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
-from docx import Document
-from docx.oxml import parse_xml
-from docx.oxml.ns import nsdecls
-from docx.opc.constants import RELATIONSHIP_TYPE as RT
+try:
+    from docx import Document
+    from docx.oxml import parse_xml
+    from docx.oxml.ns import nsdecls
+    from docx.opc.constants import RELATIONSHIP_TYPE as RT
+
+    DOCX_AVAILABLE = True
+except ImportError:  # pragma: no cover - environment-dependent skip
+    Document = parse_xml = nsdecls = RT = None
+    DOCX_AVAILABLE = False
 
 SCRIPTS_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SCRIPTS_DIR))
@@ -135,7 +142,7 @@ class NotebookContentLossTests(unittest.TestCase):
                     self.assertEqual(len(manifest), 2)
                 manager = ProjectManager(base_dir=root / "projects")
                 with redirect_stdout(io.StringIO()):
-                    project = Path(manager.init_project("notebooks", quick_generate=True))
+                    project = Path(manager.init_project("notebooks"))
                     summary = manager.import_sources(str(project), list(map(str, markdown_paths)), copy=True)
                 self.assertEqual(summary["skipped"], [])
                 self.assertEqual(len(summary["assets"]), 2)
@@ -151,6 +158,7 @@ class NotebookContentLossTests(unittest.TestCase):
                                  set(expected))
 
 
+@unittest.skipUnless(DOCX_AVAILABLE, "python-docx unavailable")
 class DocxContentLossTests(unittest.TestCase):
     def _convert(self, document, patch_archive=None):
         with tempfile.TemporaryDirectory() as tmp:

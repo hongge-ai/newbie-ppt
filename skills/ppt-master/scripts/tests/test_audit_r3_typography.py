@@ -280,7 +280,7 @@ class IncrementalCalibrationTests(unittest.TestCase):
     def _read_calibration(self, project: Path) -> dict:
         return json.loads((project / "validation" / "text_calibration.json").read_text(encoding="utf-8"))
 
-    def test_quick_and_default_keep_prior_role_weight_samples_and_rates(self) -> None:
+    def test_role_weight_samples_and_rates_stay_stable(self) -> None:
         for default in (False, True):
             with self.subTest(default=default), tempfile.TemporaryDirectory() as tmp:
                 project = Path(tmp)

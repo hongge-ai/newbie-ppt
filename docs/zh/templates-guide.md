@@ -52,11 +52,11 @@ Default Generate 把模板选择放进 **Stage 1**，与沟通契约
 模板模式展示已注册 Brand/Style/Layout/Deck 与本次提供的 root；只提供一个
 root 时会预选，多 root 仍只作为未选候选。系统不会根据主题替用户推断具体模板。
 
-> **快速模式例外：** Quick 不会打开这个页面。请求中的精确 root 会被直接
+> **精确 root：** 请求中的精确 root 会预填 Stage 1，并被直接
 > 校验并使用，每个 kind 最多一份；Layout 与 Deck 可以共存，结构由 Layout
 > 优先提供。多 kind root
 > 会原子地贡献其全部 spec。没有精确 root 就直接自由设计，裸模板名仍不会
-> 被解析。Quick 是无锁而不是无结构：自由设计和仅 Brand/Style 的输出保持
+> 被解析。自由设计和仅 Brand/Style 的输出保持
 > flat；一旦由 Layout/Deck 提供结构，创作 SVG 与导出的 PPTX 都保留显式
 > Master/Layout/slot 元数据。
 
@@ -92,7 +92,7 @@ Layout 提供结构，否则由 Deck 提供。指定地址最多选一个，并�
 更强理由时，默认按参照型使用。参照型是在读完整套 SVG 后允许重新设计；增强型
 冻结已有非 slot 对象、允许修改 slot，并且只新增；替换型只更换信息载体，
 其余内容保持不动。这些只是常见意图表达，不是固定选项。任何只针对某一原型的
-规则都必须写出精确 SVG 文件名。Quick
+规则都必须写出精确 SVG 文件名。
 也形成并冻结同样的一段方案，只是保留在当前上下文，不写确认页、Design Spec
 或 lock。
 

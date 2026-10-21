@@ -6,7 +6,7 @@
 ## 快速开始
 
 ```bash
-# 仓库根目录执行（需要本机已有可用的 Python 3.10+）
+# 仓库根目录执行（需要本机已有可用的 Python 3.14）
 python skills/ppt-master/scripts/setup_env.py
 ```
 
@@ -15,7 +15,7 @@ uv 会在仓库根目录维护 `.venv`，后续统一用 `uv run python ...` 调
 
 ## 前置条件
 
-- Python 3.10+（python.org 安装时勾选 "Add python.exe to PATH"；Windows 若只装了
+- Python 3.14（python.org 安装时勾选 "Add python.exe to PATH"；Windows 若只装了
   Microsoft Store 的 python 占位程序，本脚本会静默失败，请先装真正的 Python）
 - git（仅仓库更新时需要）
 - uv 不需要预装：脚本会按「PATH → winget（Windows）/ 官方安装脚本（macOS、Linux）

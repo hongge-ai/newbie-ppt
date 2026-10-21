@@ -7,7 +7,8 @@ Usage:
     python3 -m unittest discover -s skills/ppt-master/scripts/tests -p test_audit_r3_sources.py
 
 Dependencies:
-    requests, beautifulsoup4, mammoth, PyMuPDF
+    requests, beautifulsoup4, mammoth, PyMuPDF; the DOCX fixture case also
+    needs python-docx and skips when it is unavailable.
 """
 
 from __future__ import annotations
@@ -350,7 +351,6 @@ class ArchivedProjectImportTests(unittest.TestCase):
         *,
         initialized: bool,
         preserved: bool,
-        quick_generate: bool = False,
         move: bool = False,
         copy: bool = False,
     ) -> None:
@@ -361,12 +361,11 @@ class ArchivedProjectImportTests(unittest.TestCase):
             (projects / "README.md").write_text("# Projects\n", encoding="utf-8")
             manager = project_cli.ProjectManager(base_dir=projects)
             with contextlib.redirect_stdout(io.StringIO()):
-                target = Path(manager.init_project("new_project", quick_generate=True))
+                target = Path(manager.init_project("new_project"))
                 if initialized:
                     old = Path(manager.init_project(
                         "old_project",
                         base_dir=str(projects / relative),
-                        quick_generate=quick_generate,
                     ))
                     source_dir = old / "sources" / "nested"
                 else:
@@ -387,14 +386,12 @@ class ArchivedProjectImportTests(unittest.TestCase):
 
     def test_initialized_projects_copy_sources_by_default(self) -> None:
         for relative in ("", "archive/2026-09"):
-            for quick_generate in (False, True):
-                with self.subTest(relative=relative, quick_generate=quick_generate):
-                    self._assert_import_behavior(
-                        relative,
-                        initialized=True,
-                        preserved=True,
-                        quick_generate=quick_generate,
-                    )
+            with self.subTest(relative=relative):
+                self._assert_import_behavior(
+                    relative,
+                    initialized=True,
+                    preserved=True,
+                )
 
     def test_project_source_explicit_move_and_copy(self) -> None:
         for relative in ("", "archive/2026-09"):
@@ -422,7 +419,7 @@ class SameStemProjectImportTests(unittest.TestCase):
 
     def _project(self, name="target") -> Path:
         with contextlib.redirect_stdout(io.StringIO()):
-            return Path(self.manager.init_project(name, quick_generate=True))
+            return Path(self.manager.init_project(name))
 
     def _workbooks(self, root: Path) -> list[Path]:
         from openpyxl import Workbook
@@ -479,7 +476,10 @@ class SameStemProjectImportTests(unittest.TestCase):
                     self.assertEqual(source.read_bytes(), originals[source])
 
     def test_document_and_presentation_assets_and_intake_keep_each_source(self) -> None:
-        from docx import Document
+        try:
+            from docx import Document
+        except ImportError:
+            self.skipTest("python-docx unavailable")
         from PIL import Image
         from pptx import Presentation
         from pptx.util import Inches
@@ -557,7 +557,7 @@ class SameStemProjectImportTests(unittest.TestCase):
                     presentation.save(source)
                     sources.append(source)
                 project = self._project(f"companion_{explicit}")
-                (project / "sources").mkdir()
+                (project / "sources").mkdir(exist_ok=True)
                 markdown = (inputs if explicit else project / "sources") / "deck.md"
                 markdown.write_text("# Authoritative Markdown\n", encoding="utf-8")
                 summary = self._import(project, [*sources, markdown] if explicit else sources)
@@ -599,7 +599,7 @@ class SameStemProjectImportTests(unittest.TestCase):
     def test_markdown_existing_before_import_is_reused(self) -> None:
         sources = self._workbooks(self.root / "existing")
         project = self._project()
-        (project / "sources").mkdir()
+        (project / "sources").mkdir(exist_ok=True)
         markdown = project / "sources/budget.md"
         markdown.write_text("# Previous conversion\n", encoding="utf-8")
         summary = self._import(project, sources)
@@ -611,7 +611,7 @@ class SameStemProjectImportTests(unittest.TestCase):
     def test_generated_suffix_avoids_existing_markdown_and_source_names(self) -> None:
         sources = self._workbooks(self.root / "suffixes")
         project = self._project()
-        (project / "sources").mkdir()
+        (project / "sources").mkdir(exist_ok=True)
         existing = project / "sources/budget_2.md"
         existing.write_text("# Unrelated existing source\n", encoding="utf-8")
         occupied = project / "sources/budget_3.xlsm"

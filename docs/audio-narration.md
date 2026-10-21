@@ -22,7 +22,7 @@ PPT Master can turn the speaker notes into per-slide narration via [`edge-tts`](
 
 1. **Speaker notes are written as pure spoken narration.** PPT Master's notes spec deliberately produces TTS-friendly prose — no bracketed stage markers, no `Key points:` / `Duration:` meta-lines — so what is read aloud is exactly what's on the page.
 2. **AI picks the voice for you.** When you ask for narration, the AI checks the deck's primary language (`zh-CN` / `en-US` / `ja-JP` / `ko-KR` / …), pulls the selected provider's voice catalog (only Edge and ElevenLabs expose one; for MiniMax, Qwen, and CosyVoice it works from a voice ID you supply or the provider's documented system voices), and recommends 3–6 candidates with a one-line tone description for each (e.g. "steady male voice for financial reporting"). It also recommends a speaking rate or provider defaults based on notes density.
-3. **Settings resolve once.** Default Generate and Edit Native PPTX ask once for provider, voice, rate, embedding, and optional video export. Quick uses explicit values and automatically resolves unspecified provider, voice, rate, and embedding choices; video remains off unless direct video delivery was requested.
+3. **Settings resolve once.** Generate and Edit Native PPTX ask once for provider, voice, rate, embedding, and optional video export.
 4. **Generation runs.** Edge, ElevenLabs, MiniMax, and timestamp-capable CosyVoice voices write each page's audio and SRT from provider timing returned by the same synthesis; Qwen and explicit CosyVoice audio-only mode write audio only. A complete run atomically writes `audio/manifest.json` for provenance. For Generate PPTX with narration-cue synchronization, page-local SRT and canonical custom animation let the AI map current SVG content groups to numbered SRT cues and derive click-free `narration_animations.json`; narration-independent custom motion keeps canonical timing, while no animation sidecar inherits the base export's resolved motion. It then re-exports the deck with audio attached and, when page-local SRT exists, merges it using timing values read from that final PPTX. Automatic video delivery continues through PowerPoint's native encoder and, when cues exist, the verified sound mix. An explicitly selected slideshow capture instead records PowerPoint's real-time full-screen picture and system audio, skips that mixer, and aligns any delivery SRT against the accepted capture. Long-audio import and automatic long-audio splitting are not supported.
 
 Subtitles remain external artifacts: PPT Master does not embed them into the PPTX or burn them into the MP4. Automatic video export delegates to installed Windows PowerPoint; it is not a separate renderer.
@@ -33,7 +33,7 @@ The shared stage is documented in [`workflows/stages/generate-audio.md`](../skil
 
 | Command | Purpose |
 |---|---|
-| `--recorded-narration audio` | Prepare PowerPoint's recorded timings and narrations. Requires complete per-slide audio and writes page auto-advance timings. Use this for narrated/video export. The re-export is saved as `exports/<name>_<timestamp>_narrated.pptx`. |
+| `--recorded-narration audio` | Prepare PowerPoint's recorded timings and narrations. Requires complete per-slide audio plus `ffprobe` on `PATH` to read durations, and writes page auto-advance timings. Use this for narrated/video export. The re-export is saved as `exports/<name>_<timestamp>_narrated.pptx`. |
 | `--narration-audio-dir audio` | Lower-level audio embedding. Embeds matched files and allows partial coverage. Use this for testing or manual PowerPoint finishing. Exports get the same `_narrated` name suffix. |
 | `--narration-start-floor 0.8` | Optional minimum seconds from the start of the destination-page transition to narration. The default is `0.8`; `0` means start as soon as the transition completes. |
 | `--narration-padding 0.5` | Optional silent hold after narration finishes and before the slide advances. The default is `0.5`. |
@@ -136,7 +136,7 @@ python3 skills/ppt-master/scripts/svg_to_pptx.py <project_path> \
   --narration-start-floor 0.8 --narration-padding 0.5 \
   --inherit-motion-from "<base_postflight_report>"
 
-# Quick Generate appends --quick-generate --with-notes to the selected command.
+# Append --with-notes to the selected command.
 # For the native-export mix branch with resolved sound cues, also append
 # --conversion-trace <final_narrated_trace>. Slideshow capture does not need
 # that trace for sound delivery.

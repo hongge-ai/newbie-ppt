@@ -22,7 +22,7 @@ PPT Master 可以把演讲者备注转成逐页音频旁白（默认基于 [`edg
 
 1. **备注本身就是为 TTS 写的口播稿**。PPT Master 的 notes 规范刻意产出适合朗读的散文——没有 `[过渡]` / `[停顿]` 这种舞台标记，也没有 `要点：` / `时长：` 这种 meta 行——念出来的内容就是页面上的内容。
 2. **AI 替你选音色**。当你提出生成旁白时，AI 根据 deck 的主语言（`zh-CN` / `en-US` / `ja-JP` / `ko-KR` / …），拉取所选服务商的音色目录（仅 Edge、ElevenLabs 提供；MiniMax、Qwen、CosyVoice 则使用你提供的音色 ID 或文档中的系统音色），挑出 3–6 个候选，并用当前聊天语言为每个写一句调性说明（如“稳重男声·适合财报”）。它还会基于 notes 信息密度推荐语速或沿用服务商默认值。
-3. **配置一次确定**。Default Generate 和 Edit Native PPTX 会一次确认服务商、音色、语速、是否嵌入 PPTX，以及是否继续导出视频。Quick 直接采用明确值，并自动补齐未指定的服务商、音色、语速和嵌入方式；只有明确要求直接交付视频时才开启视频导出。
+3. **配置一次确定**。Generate 和 Edit Native PPTX 会一次确认服务商、音色、语速、是否嵌入 PPTX，以及是否继续导出视频。
 4. **执行**。Edge、ElevenLabs、MiniMax，以及支持时间戳的 CosyVoice 音色，会依据同一次合成返回的服务商计时，把每页音频和 SRT 一起写入 `audio/`；Qwen 和显式 CosyVoice 纯音频模式只写音频。完整生成成功后会原子写入 `audio/manifest.json` 记录来源。对于选择旁白 cue 同步的 Generate PPTX，逐页 SRT 与规范自定义动画会让 AI 将当前 SVG 内容组映射到编号后的 SRT cue，并派生无点击的 `narration_animations.json`；与旁白无关的自定义动画保留规范计时，没有动画 sidecar 时则继承基础导出的已解析 motion。随后再导出带音频的 PPTX；存在逐页 SRT 时，才从该 PPTX 读回实际计时并合并。自动视频交付继续调用 PowerPoint 原生编码器，存在 cue 时再完成验收后的混音；显式选择实时放映录制时，则捕获 PowerPoint 实际全屏画面与系统音频、跳过混音，并将交付字幕对齐到验收后的录屏。不支持长音频导入或自动拆分。
 
 字幕保持为外部 SRT 文件：PPT Master 不把字幕嵌入 PPTX，也不烧录进 MP4。自动视频导出委托给本机 Windows PowerPoint，并不是另一套渲染器。
@@ -33,7 +33,7 @@ PPT Master 可以把演讲者备注转成逐页音频旁白（默认基于 [`edg
 
 | 命令 | 用途 |
 |---|---|
-| `--recorded-narration audio` | 准备 PowerPoint 的"录制的计时和旁白"。要求每页都有音频，并写入页面自动推进时间。用于旁白视频导出。重导出文件保存为 `exports/<name>_<timestamp>_narrated.pptx`。 |
+| `--recorded-narration audio` | 准备 PowerPoint 的"录制的计时和旁白"。要求每页都有音频，且 `PATH` 中有可用的 `ffprobe` 读取时长，并写入页面自动推进时间。用于旁白视频导出。重导出文件保存为 `exports/<name>_<timestamp>_narrated.pptx`。 |
 | `--narration-audio-dir audio` | 底层音频嵌入能力。只嵌入匹配到的文件，允许部分页面有音频。用于测试或后续手工整理。导出文件同样带 `_narrated` 后缀。 |
 | `--narration-start-floor 0.8` | 可选的页前参数：从目标页转场开始计，到旁白启动的最短秒数。默认 `0.8`；设为 `0` 表示转场结束后立即开始。 |
 | `--narration-padding 0.5` | 可选的页尾参数：旁白结束后、页面推进前的静默停留秒数。默认 `0.5`。 |
@@ -134,7 +134,7 @@ python3 skills/ppt-master/scripts/svg_to_pptx.py <project_path> \
   --narration-start-floor 0.8 --narration-padding 0.5 \
   --inherit-motion-from "<base_postflight_report>"
 
-# Quick Generate 在所选命令后追加 --quick-generate --with-notes。
+# 在所选命令后追加 --with-notes。
 # 原生导出混音分支存在已解析音效 cue 时，还需在所选导出命令中追加
 # --conversion-trace <final_narrated_trace>；实时放映录制不依赖该 trace 交付声音。
 

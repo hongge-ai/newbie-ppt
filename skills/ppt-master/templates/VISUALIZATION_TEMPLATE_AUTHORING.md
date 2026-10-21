@@ -13,9 +13,9 @@ page-local Visualization 模板库；模板负责数据编码或单元格关系�
 
 **硬规则——Structure 是一种方法，不是目录**：定性顺序、层级、角色、
 分区和关系由 [`executor-structure.md`](../references/executor-structure.md) 在当前页面
-现场构形，不登记固定 `structure/<key>`、SVG roster 或 index。Default 和 Quick 都先
-判断页面真实信息模型；需要定性拓扑时都必须采用这套 Structure 方法。删除 catalog
-只删除固定示例，不删除 Quick 或 Default 的 Structure 能力。
+现场构形，不登记固定 `structure/<key>`、SVG roster 或 index。规划与执行都先
+判断页面真实信息模型；需要定性拓扑时必须采用这套 Structure 方法。删除 catalog
+只删除固定示例，不删除 Structure 能力。
 
 **硬规则——Visualization 不是 Layout**：Chart/Table 模板和运行时 Structure
 都不拥有 `data-pptx-master`、`data-pptx-layout`、`data-pptx-layer` 或
@@ -59,7 +59,7 @@ family 与信息模型：Chart 的数值映射、Table 的行 × 列事实网格
 仍来自使用它的项目，而不是模板的示例审美。
 
 **硬规则——灵活的项目引用**：Executor 选中的 `family/key` 仍只是
-灵活的页内引用。Default 的 §IX 或 Quick 的页面决策拥有最终结构；
+灵活的页内引用。§IX 拥有最终结构；
 选中引用不会锁死页面的可视化类型、几何、分组数、项目数或组合方式，Executor
 可按已确认的页面意图适配、重组或替换。项目若实际采用某一信息模型，必须保持
 其真实数据与关系准确；仅有引用本身不构成页面结构权威。
@@ -354,8 +354,8 @@ Structure 不再有固定 SVG roster、index 或 canonical key。
 **硬规则——拓扑由现场生成，不从目录召回**：从来源 deck 吸收的是 Shape
 grammar 和构形思维，而不是页面示例清单。先还原顺序、层级、分组、分区、连接、
 交叠等真实关系，再由 `executor-structure.md` 使用区域、节点、主轴、连接、标签与
-装饰等角色现场组合。Default 在 §IX 描述该关系，Quick 在当前上下文作同一判断；
-两条路径都不依赖 `structure/<key>` 或固定 SVG，不能因 Quick 跳过 §VII/lock 就跳过
+装饰等角色现场组合。§IX 描述该关系；
+该判断不依赖 `structure/<key>` 或固定 SVG，不因跳过 §VII 而跳过
 Structure 载体判断。
 
 **已批准的图表容量迁移**：

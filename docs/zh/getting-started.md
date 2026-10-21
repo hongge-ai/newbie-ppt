@@ -27,7 +27,7 @@
 | **工作目录** | 你在 Agent 中打开的、可持久保存且可写的目录 | 完整仓库 clone 或仓库 ZIP 通常使用仓库根目录；skill-only 安装则自行选择，不必是 skill 安装目录 |
 | **活动项目** | 一次生成任务的来源、SVG、报告、备份与导出物所在目录 | Agent 会在 `<工作目录>/projects/<生成的项目名>/` 下初始化，并报告精确路径 |
 
-所有安装方式都需要 Python 3.10+，以及一个已经安装和鉴权、能够读写工作目录并执行 shell 命令的 Agent host。完整仓库 clone 或仓库 ZIP 在仓库根目录执行一键配置——它会引导安装 [uv](https://docs.astral.sh/uv/) 并装齐所有依赖分层：
+所有安装方式都需要 Python 3.14，以及一个已经安装和鉴权、能够读写工作目录并执行 shell 命令的 Agent host。完整仓库 clone 或仓库 ZIP 在仓库根目录执行一键配置——它会引导安装 [uv](https://docs.astral.sh/uv/) 并装齐所有依赖分层：
 
 ```bash
 python skills/ppt-master/scripts/setup_env.py
@@ -84,42 +84,16 @@ Default Generate 把模板选择放在 Stage 1，与沟通契约同屏确认；�
 准备好上面的环境和工作目录后，整个流程就三步：
 
 1. **把 Agent 可读取的源材料交给它**——PDF、DOCX、Markdown、网址，或直接粘贴的文字都可以。放在 `<工作目录>/inputs/` 之类的目录即可，不需要先手工创建最终的 `projects/<name>/`。
-2. **在对话里告诉 AI** 要把什么做成 deck。[Default Generate Step 2](../../skills/ppt-master/workflows/generate-pptx.md)或[Quick 初始化](../../skills/ppt-master/workflows/profiles/quick-generate.md)会在工作目录的 `projects/` 下创建活动项目，并报告精确项目路径。存在文件型材料时才导入；直接粘贴的文字保留在对话上下文，不需要导入。Default 随后进入 Stage 1，同时确认沟通契约与自由设计/模板使用；Quick 会跳过这些确认阶段。Default 只附上一个精确工作区 root 时，页面可默认进入模板模式并预选该路径：
+2. **在对话里告诉 AI** 要把什么做成 deck。[Generate Step 2](../../skills/ppt-master/workflows/generate-pptx.md)会在工作目录的 `projects/` 下创建活动项目，并报告精确项目路径。存在文件型材料时才导入；直接粘贴的文字保留在对话上下文，不需要导入。随后进入 Stage 1，同时确认沟通契约与自由设计/模板使用。附上一个精确工作区 root 时，页面可默认进入模板模式并预选该路径：
    ```
    你：用 <报告文件路径.pdf> 做一份 PPT
    你：把这份内容做成 PPT：<粘贴你的文字>
    ```
 3. **拿回可编辑的 `.pptx`**。除非显式指定其他输出路径，文件位于 `<活动项目>/exports/<项目名>_<时间戳>.pptx`。完整仓库 clone 或仓库 ZIP 通常对应 `<仓库根目录>/projects/<生成的项目名>/exports/...`；skill-only 安装则对应 `<工作目录>/projects/<生成的项目名>/exports/...`。应以 Agent 报告的活动项目精确路径为准，不要到仓库根目录查找一个没有项目上下文的 `exports/`。
 
-这些术语不是需要你另建的目录。**Stage 1** 会确认沟通契约，即用途、受众、阅读场景、画布/格式，以及自由设计/模板选择。**工作区根目录**是可选的 Brand、Style、Layout 或 Deck 可复用包的根目录，不是活动项目。AI 安装所选工作区后，**Stage 2** 再确认页数、视觉系统、模板应用方式与生产选项。之后内容分析、排版、配图、SVG 生成与导出都由 AI 完成。不想走交互确认，见下方[快速模式](#快速模式)。
+这些术语不是需要你另建的目录。**Stage 1** 会确认沟通契约，即用途、受众、阅读场景、画布/格式，以及自由设计/模板选择。**工作区根目录**是可选的 Brand、Style、Layout 或 Deck 可复用包的根目录，不是活动项目。AI 安装所选工作区后，**Stage 2** 再确认页数、视觉系统、模板应用方式与生产选项。之后内容分析、排版、配图、SVG 生成与导出都由 AI 完成。
 
 ---
-
-## 快速模式
-
-默认流程会先进行 Stage 1 的沟通/模板合并确认，再进入最终 Stage 2。不想经过这些交互，就显式要求**快速生成**：
-
-```
-你：用 sources/report.pdf 快速生成一份 PPT,不用跟我确认
-你：这份内容直接做成 PPT,跳过确认,8 页左右,深色商务风
-```
-
-**你明确提的照做,你没提的 AI 直接定,不再回来问你。** 第二个例子里的页数和风格照样生效——快速模式省掉的是来回确认,不是你的话语权。Quick 不会真正生成 Default 的三套方向，而是直接执行 Default 会推荐的方向：自由设计时选整体适配度最高者，已安装模板时选最充分表达模板上下文的可行方向。什么都不提，才是全部交给 AI 决定。
-
-快速模式不会打开 Confirm UI 的模板选择页。每个 kind 最多给出一个精确的
-Brand / Style / Layout / Deck 工作区 root，它会直接校验、安装并使用；没有
-给出精确 root，就直接自由设计。只写模板名或风格词仍然只是设计说明。
-Quick 保持无锁流程，但不丢失模板能力：自由设计及仅 Brand / Style 的输出
-保持 flat；一旦提供 Layout / Deck 工作区，创作 SVG 中的显式 Master /
-Layout / slot 元数据会保留，并编译成可复用原生结构。P01 前，agent 会读取
-全部已安装模板 SVG，并在当前上下文冻结一段自然语言应用方案；不创建确认页
-或 spec 工件。
-
-它不跳过能力：来源转换、事实缺口研究、共享美学规范、图片 / 图标准备，以及原生形状 / 图表 / 表格创作仍按需运行。结构性公式直接写成 PowerPoint 原生 marker，不再作为图片素材准备。显式选择的 manual 素材或其他不可替代的文件依赖缺失时，Quick 会阻塞并索取文件；自动 AI 生成或其必需切片路径耗尽时，Quick 会移除失败任务与过期 manifest 条目，改用原生可编辑文字 / SVG 或已经备好的非 AI 素材，继续本次运行，并在最终交接中披露替代结果。
-
-快速模式是一次性生成,不是缩短后的可续接流程。它不产生 Strategist 记录、`design_spec.md`、`spec_lock.md` 或替代性的页面计划;内容、设计和资源决策只存在于 AI 的当前上下文。交付前一旦丢失该上下文,就重新运行 Quick。资源 manifest、质量报告、postflight 与冷 Python 审计日志可以保留,但无法还原 AI 为什么这样设计。该 profile 省掉的是交互和持久规划,不是 PPT 能力或预期质量标准。
-
-完整说明 → [快速模式 profile](../../skills/ppt-master/workflows/profiles/quick-generate.md)
 
 ---
 

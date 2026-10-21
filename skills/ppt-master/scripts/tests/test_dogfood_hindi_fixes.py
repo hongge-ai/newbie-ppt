@@ -1,4 +1,4 @@
-"""Regressions from the Chandrayaan-3 Hindi Quick deck dogfood (2026-09-12)."""
+"""Regressions from the Chandrayaan-3 Hindi deck dogfood (2026-09-12)."""
 
 from __future__ import annotations
 

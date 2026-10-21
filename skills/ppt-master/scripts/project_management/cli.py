@@ -3,7 +3,7 @@
 
 Usage:
     python3 scripts/project_manager.py init <project_name> [--format <registered_format>]
-        [--dir <path>] [--quick-generate]
+        [--dir <path>]
     python3 scripts/project_manager.py import-sources <project_path> <source1> [<source2> ...] [--move | --copy]
     python3 scripts/project_manager.py scaffold-spec <project_path>
     python3 scripts/project_manager.py scaffold-lock <project_path>
@@ -102,7 +102,7 @@ IMAGE_ASSET_SUFFIXES = BITMAP_IMAGE_SUFFIXES | {
 }
 DEFERRED_CANVAS_MESSAGE = (
     "Canvas is determined during authoring and recorded in spec_lock.md "
-    "(Default) or the first SVG (Quick)."
+    "for the project."
 )
 
 
@@ -275,8 +275,6 @@ class ProjectManager:
         project_name: str,
         canvas_format: str | None = None,
         base_dir: str | None = None,
-        *,
-        quick_generate: bool = False,
     ) -> str:
         base_path = Path(base_dir) if base_dir else self.base_dir
 
@@ -331,53 +329,48 @@ class ProjectManager:
             raise FileExistsError(f"Project directory already exists: {project_path}")
 
         project_dirs = (
-            ("svg_output",)
-            if quick_generate
-            else (
-                "svg_output",
-                "svg_final",
-                "images",
-                "icons",
-                "notes",
-                "templates",
-                "live_preview",
-                SOURCE_DIRNAME,
-                "analysis",
-                "validation",
-                "exports",
-            )
+            "svg_output",
+            "svg_final",
+            "images",
+            "icons",
+            "notes",
+            "templates",
+            "live_preview",
+            SOURCE_DIRNAME,
+            "analysis",
+            "validation",
+            "exports",
         )
         for rel_path in project_dirs:
             (project_path / rel_path).mkdir(parents=True, exist_ok=True)
 
-        if not quick_generate:
-            canvas_summary = (
-                f"- Canvas format: {normalized_format}\n"
-                if normalized_format is not None
-                else f"- {DEFERRED_CANVAS_MESSAGE}\n"
-            )
-            readme_path = project_path / "README.md"
-            readme_path.write_text(
-                (
-                    f"# {project_name}\n\n"
-                    f"{canvas_summary}"
-                    f"- Created: {date_str}\n\n"
-                    "## Directories\n\n"
-                    "- `svg_output/`: raw SVG output\n"
-                    "- `svg_final/`: self-contained SVG visual preview; may be inserted manually as an SVG image, but PowerPoint Convert to Shape is unsupported\n"
-                    "- `images/`: runtime image pool; converter assets keep their original short filenames when possible\n"
-                    "- `icons/`: project icon set — selected library icons copied in (via icon_sync.py) plus any custom icons you add; embedded from here at export\n"
-                    "- `notes/`: speaker notes\n"
-                    "- `templates/`: project templates\n"
-                    "- `live_preview/`: browser preview runtime files and history (lock.json, server.log, edits.jsonl, annotations.jsonl)\n"
-                    "- `sources/`: source materials and normalized markdown\n"
-                    "- `analysis/`: machine-extracted intermediate analysis (PPTX intake, image_analysis.csv) — the pipeline's canonical must-read source/asset facts\n"
-                    "- `validation/`: cold workflow audit log, SVG quality reports, and PPTX postflight audit reports\n"
-                    "- `exports/`: final native DrawingML pptx deliverables only (timestamped); `_native_charts_tables.pptx` name with `--native-charts-and-tables`, `_narrated.pptx` name when narration audio is embedded\n"
-                    "- `backup/<timestamp>/`: svg_output/ archive (always written in default-flow mode; safe to delete old timestamps)\n"
-                ),
-                encoding="utf-8",
-            )
+        canvas_summary = (
+            f"- Canvas format: {normalized_format}\n"
+            if normalized_format is not None
+            else f"- {DEFERRED_CANVAS_MESSAGE}\n"
+        )
+        readme_path = project_path / "README.md"
+        readme_path.write_text(
+            (
+                f"# {project_name}\n\n"
+                f"{canvas_summary}"
+                f"- Created: {date_str}\n\n"
+                "## Directories\n\n"
+                "- `svg_output/`: raw SVG output\n"
+                "- `svg_final/`: self-contained SVG visual preview; may be inserted manually as an SVG image, but PowerPoint Convert to Shape is unsupported\n"
+                "- `images/`: runtime image pool; converter assets keep their original short filenames when possible\n"
+                "- `icons/`: project icon set — selected library icons copied in (via icon_sync.py) plus any custom icons you add; embedded from here at export\n"
+                "- `notes/`: speaker notes\n"
+                "- `templates/`: project templates\n"
+                "- `live_preview/`: browser preview runtime files and history (lock.json, server.log, edits.jsonl, annotations.jsonl)\n"
+                "- `sources/`: source materials and normalized markdown\n"
+                "- `analysis/`: machine-extracted intermediate analysis (PPTX intake, image_analysis.csv) — the pipeline's canonical must-read source/asset facts\n"
+                "- `validation/`: cold workflow audit log, SVG quality reports, and PPTX postflight audit reports\n"
+                "- `exports/`: final native DrawingML pptx deliverables only (timestamped); `_native_charts_tables.pptx` name with `--native-charts-and-tables`, `_narrated.pptx` name when narration audio is embedded\n"
+                "- `backup/<timestamp>/`: svg_output/ archive (always written in default-flow mode; safe to delete old timestamps)\n"
+            ),
+            encoding="utf-8",
+        )
 
         print(f"Project created: {project_path}")
         if normalized_format is None:
@@ -1260,14 +1253,6 @@ def build_parser() -> argparse.ArgumentParser:
         help="Registered canvas format; omit to determine the canvas during authoring",
     )
     init.add_argument("--dir", default=None, help="Base directory for the project")
-    init.add_argument(
-        "--quick-generate",
-        action="store_true",
-        help=(
-            "Create svg_output plus the validation workflow audit log and "
-            "omit README.md"
-        ),
-    )
 
     import_sources = subparsers.add_parser(
         "import-sources",
@@ -1348,19 +1333,12 @@ def main(argv: list[str] | None = None) -> int:
                 args.project_name,
                 args.format,
                 base_dir=args.dir,
-                quick_generate=args.quick_generate,
             )
             print(f"[OK] Project initialized: {project_path}")
             print("Next:")
-            if args.quick_generate:
-                print("1. Generate SVG files into svg_output/")
-                print("2. Run the Quick Generate final checker and exporter")
-                profile = "quick"
-            else:
-                print("1. Put source files into sources/ (or use import-sources)")
-                print("2. Save your design spec to the project root")
-                print("3. Generate SVG files into svg_output/")
-                profile = "default"
+            print("1. Put source files into sources/ (or use import-sources)")
+            print("2. Save your design spec to the project root")
+            print("3. Generate SVG files into svg_output/")
             try:
                 canvas_note = (
                     f"; canvas={args.format}"
@@ -1369,8 +1347,7 @@ def main(argv: list[str] | None = None) -> int:
                 )
                 append_note(
                     project_path,
-                    f"Project initialized: profile={profile}{canvas_note}; "
-                    f"path={project_path}",
+                    f"Project initialized: path={project_path}{canvas_note}",
                 )
             except OSError as exc:
                 print(

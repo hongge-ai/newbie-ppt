@@ -12,7 +12,7 @@ This guide walks you through installing newbie-ppt on Windows step by step. Foll
 
 Python is the only hard requirement.
 
-1. Go to **[python.org/downloads](https://www.python.org/downloads/)** and download the latest **Python 3.10+** installer.
+1. Go to **[python.org/downloads](https://www.python.org/downloads/)** and download the latest **Python 3.14** installer.
 
 2. **⚠️ CRITICAL: Check "Add python.exe to PATH"** during installation — this is the single most common mistake on Windows. Skipping this will break every step that follows.
 
@@ -22,9 +22,9 @@ Python is the only hard requirement.
    python --version
    ```
 
-   You should see `Python 3.12.x` or similar. If you see "Python was not found" or it opens the Microsoft Store, see [Troubleshooting](#python-was-not-found-or-opens-microsoft-store) below.
+   You should see `Python 3.14.x` or similar. If you see "Python was not found" or it opens the Microsoft Store, see [Troubleshooting](#python-was-not-found-or-opens-microsoft-store) below.
 
-> **💡 Tip**: Python installed via Anaconda or Miniconda works too — just make sure `python --version` shows 3.10+.
+> **💡 Tip**: Python installed via Anaconda or Miniconda works too — just make sure `python --version` shows 3.14.x.
 
 ---
 
@@ -80,16 +80,16 @@ uv run python -c "import pptx; import fitz; print('All core dependencies OK')"
 Open the `newbie-ppt` folder in an agent-capable AI tool (Claude Code, Codex, Cursor, a VS Code agent, etc.) and type in the chat:
 
 ```
-Quickly generate a simple 3-page test PPT with a cover, one content page, and a closing page. Topic: "Hello World". No need to confirm with me.
+Turn this into a simple 3-page test PPT with a cover, one content page, and a closing page. Topic: "Hello World".
 ```
 
-Asking for **quick generation** is what keeps this smoke test short: the AI skips the Strategist analysis and the design-confirmation round trips and goes straight to authoring and export. The default flow confirms the design spec with you first, which is what you want for a real deck but slow when all you are checking is that the environment works. Full guide → [Quick mode](./getting-started.md#quick-mode).
+Confirm the three-page design spec when Stage 1 and Stage 2 ask, then the AI authors and exports. The point of this smoke test is that project initialization, SVG authoring, validation, and export all work end to end.
 
 When it finishes, you should see:
 
 - A native DrawingML `.pptx` under `exports/`, generated from `svg_output/`, that opens in PowerPoint and remains editable element by element.
 
-That's the check that matters — if the file is there and opens, **you're done.** Note that quick generation skips `finalize_svg.py`, so there is no `svg_final/` preview directory; the default flow produces one, containing self-contained visual-preview SVGs. They may be inserted manually as SVG pictures, but manual "Convert to Shape" is outside the supported contract.
+That's the check that matters — if the file is there and opens, **you're done.** The run also produces `svg_final/`, containing self-contained visual-preview SVGs. They may be inserted manually as SVG pictures, but manual "Convert to Shape" is outside the supported contract.
 
 ---
 

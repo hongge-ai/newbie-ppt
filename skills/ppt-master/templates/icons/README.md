@@ -1,6 +1,6 @@
 # SVG Icon Library
 
-**12,027 SVG icons** across five libraries, embedded directly into generated SVG. Default Strategist or the Quick main agent chooses at most one primary library from the four stylistic ones; the brand-logo library (`simple-icons`) is prepared as needed for real brands, alone or alongside it, and is never a separate Confirm UI choice. Upstream versions, licenses, attribution, and trademark boundaries: [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).
+**12,027 SVG icons** across five libraries, embedded directly into generated SVG. Strategist chooses at most one primary library from the four stylistic ones; the brand-logo library (`simple-icons`) is prepared as needed for real brands, alone or alongside it, and is never a separate Confirm UI choice. Upstream versions, licenses, attribution, and trademark boundaries: [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).
 
 | Library | Style | Count | viewBox | Prefix |
 |---------|-------|-------|---------|--------|

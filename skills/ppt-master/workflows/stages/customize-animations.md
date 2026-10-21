@@ -4,7 +4,7 @@ description: Optional post-processing stage for per-slide and per-object animati
 
 # Customize Animations Stage
 
-> Optional Generate-PPTX post-processing stage for per-slide or per-object motion. Run when `<project_path>/animations.json` exists, the user explicitly asks for slide-specific motion, object order, effects, timing, or reveals, or the effective Custom Animations outcome in `design_spec.md §I` is enabled. Deck-wide transitions, auto-advance, and deck-wide per-element settings without page-specific motion or a sidecar use [`animations.md`](../../references/animations.md) directly. Quick may activate either path from the request/deck in active context without a Design Spec or interaction. The sidecar grammar is documented in [`pptx-animations.md`](../../scripts/docs/pptx-animations.md).
+> Optional Generate-PPTX post-processing stage for per-slide or per-object motion. Run when `<project_path>/animations.json` exists, the user explicitly asks for slide-specific motion, object order, effects, timing, or reveals, or the effective Custom Animations outcome in `design_spec.md §I` is enabled. Deck-wide transitions, auto-advance, and deck-wide per-element settings without page-specific motion or a sidecar use [`animations.md`](../../references/animations.md) directly. The sidecar grammar is documented in [`pptx-animations.md`](../../scripts/docs/pptx-animations.md).
 
 ## When to Run
 
@@ -37,7 +37,7 @@ Before editing `animations.json`, read every semantic file that exists — `desi
 | Stage activated with a sidecar and new §IX suggestions, no replacement request | Validate first; preserve valid choreography, adjust only affected units |
 | Sidecar with no new instruction | Validate and preserve unchanged; repair an invalid sidecar/group reference before export |
 | Roster changed (page inserted, dropped, or renumbered) | Rename keys with the pages, re-point each Morph `from` to the new preceding page, and move a preview group's endpoint with its page; then validate |
-| Ambiguous request | Default asks regenerate-or-modify; Quick decides from the request, SVG, and sidecar |
+| Ambiguous request | Ask regenerate-or-modify |
 
 Unless an all-motion disable bypasses it, validate an existing sidecar first: `python3 ${SKILL_DIR}/scripts/animation_config.py validate <project_path>`.
 
@@ -70,7 +70,7 @@ Unless an all-motion disable bypasses it, validate an existing sidecar first: `p
 
 **Forbidden — group-list-first choreography**: choosing effects or order from `list-groups` before the audit; keeping a coarse wrapper because it has an `id`; splitting one idea into shapes or lines to raise the count; merging unrelated ideas to lower it; adding animation `data-*` attributes to SVG. There is no target group count.
 
-After any regrouping, rerun the final gate (`svg_quality_checker.py <project_path> --canonical-authoring --stage final --json`; Quick inserts `--quick-generate` before `--stage`), then list the post-regroup anchors with `animation_config.py list-groups <project_path>` (one line per slide, chrome groups excluded and named at the end of the line — an id equal to, or holding a `-`/`_` token from, `bg` / `background` / `header` / `footer` / `decor` / `decoration(s)` / `chrome` / `nav` / `watermark` / `logo` / `pagenumber` / `pagenum` / `slidenumber` / `slidenum` / `rule`, so `takeaway-rule` is chrome by name; a `*-header` or `*-footer` group that holds the page's largest text is the title block, not chrome, and stays listed). That list is the only source of slide and group keys for §3–§4. For chrome defaults, explicit sidecar overrides, and structural exclusions, see [`animations.md`](../../references/animations.md) §5. If a starting file is useful, `animation_config.py scaffold <project_path>` after regrouping creates a neutral scaffold (default object effect `none`, groups as empty `{}` placeholders) — creating it selects nothing, and it need not be read in full.
+After any regrouping, rerun the final gate (`svg_quality_checker.py <project_path> --canonical-authoring --stage final --json`), then list the post-regroup anchors with `animation_config.py list-groups <project_path>` (one line per slide, chrome groups excluded and named at the end of the line — an id equal to, or holding a `-`/`_` token from, `bg` / `background` / `header` / `footer` / `decor` / `decoration(s)` / `chrome` / `nav` / `watermark` / `logo` / `pagenumber` / `pagenum` / `slidenumber` / `slidenum` / `rule`, so `takeaway-rule` is chrome by name; a `*-header` or `*-footer` group that holds the page's largest text is the title block, not chrome, and stays listed). That list is the only source of slide and group keys for §3–§4. For chrome defaults, explicit sidecar overrides, and structural exclusions, see [`animations.md`](../../references/animations.md) §5. If a starting file is useful, `animation_config.py scaffold <project_path>` after regrouping creates a neutral scaffold (default object effect `none`, groups as empty `{}` placeholders) — creating it selects nothing, and it need not be read in full.
 
 ---
 
@@ -104,7 +104,7 @@ Only after visual transition, lifecycle, effect, order, and timing are complete,
 
 ## 5. Validate and Return to Generate Export
 
-When `animations.json` was created or changed after §1, run `python3 ${SKILL_DIR}/scripts/animation_config.py validate <project_path>`, then return to the owning export path — Default [`generate-pptx.md`](../generate-pptx.md) Step 7.1; Quick [`quick-generate.md`](../profiles/quick-generate.md) §4 — both of which read the sidecar automatically. If §2 changed `svg_output/`, complete the owning route's final SVG rerun before returning; never finalize or export from this stage.
+When `animations.json` was created or changed after §1, run `python3 ${SKILL_DIR}/scripts/animation_config.py validate <project_path>`, then return to the owning export path — [`generate-pptx.md`](../generate-pptx.md) Step 7.1 — which reads the sidecar automatically. If §2 changed `svg_output/`, complete the owning route's final SVG rerun before returning; never finalize or export from this stage.
 
 **Validation**: every invalid field, target, or Morph pair fails rather than falling back ([`pptx-animations.md`](../../scripts/docs/pptx-animations.md) §6). A passing sidecar and read-back prove the PPTX configuration, not an exported MP4 audio track.
 

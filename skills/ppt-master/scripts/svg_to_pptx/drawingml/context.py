@@ -132,7 +132,7 @@ class ConvertContext:
     # to context-safe DrawingML scheme slots while local colors stay concrete.
     theme_color_spec: ThemeColorSpec | None = None
     # Canonical BCP-47 content language from spec_lock.md. ``None`` preserves
-    # the legacy per-run script heuristic for older projects and lockless quick generation.
+    # the legacy per-run script heuristic for older projects.
     primary_language: str | None = None
     # Reuse media relationships when the same image fills multiple text runs.
     text_image_fill_cache: dict[tuple[str, str], str] = field(default_factory=dict)

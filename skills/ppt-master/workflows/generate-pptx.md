@@ -4,7 +4,7 @@ description: Default Generate PPTX authority for source intake, planning, SVG au
 
 # Generate PPTX Route
 
-> Load only after [`routing.md`](./routing.md) selects Default Generate or its Beautify profile. This file owns that runtime's Step 1–7 sequence, gates, role switching, and mandatory commands. Explicit Quick loads [`quick-generate.md`](./profiles/quick-generate.md) instead; Beautify enters here only when it does not explicitly select Quick.
+> Load only after [`routing.md`](./routing.md) selects Generate PPTX. This file owns that route's Step 1–7 sequence, gates, role switching, and mandatory commands; the Image to PPTX and Beautify profiles refine specific steps without replacing them.
 
 **Hard rule — runtime paths**: expand every linked or abbreviated package path from the entry-time `SKILL_DIR` anchor inside each tool call; never change CWD or inherit a prior shell working directory.
 
@@ -71,7 +71,7 @@ python3 ${SKILL_DIR}/scripts/project_manager.py import-sources <project_path> <s
 
 ### Step 3: Template Candidate Preparation
 
-Internal preparation for every Default run — no page, question, receipt, selection, or installation; read only the frontmatter an exact root needs for kind and canvas. Quick skips this Step.
+Internal preparation for every Generate run — no page, question, receipt, selection, or installation; read only the frontmatter an exact root needs for kind and canvas.
 
 Candidates follow [`routing.md`](./routing.md) §7: registered roots from the four indexes plus every exact root supplied for this run. Raw PPTX is source material, not a candidate — raw PPTX plus new content is [`edit-native-pptx`](./edit-native-pptx.md), and a reusable workspace comes from [`create-template`](./create-template.md).
 

@@ -23,6 +23,7 @@ import os
 import stat
 import tempfile
 import threading
+import time
 import uuid
 from contextlib import contextmanager
 from dataclasses import asdict
@@ -95,7 +96,14 @@ def atomic_write(path: Path, data: bytes) -> None:
             os.fsync(handle.fileno())
         if path.exists():
             temporary.chmod(stat.S_IMODE(path.stat().st_mode))
-        os.replace(temporary, path)
+        for attempt in range(5):
+            try:
+                os.replace(temporary, path)
+                break
+            except PermissionError:
+                if attempt == 4:
+                    raise
+                time.sleep(0.05 * (attempt + 1))
     finally:
         temporary.unlink(missing_ok=True)
 

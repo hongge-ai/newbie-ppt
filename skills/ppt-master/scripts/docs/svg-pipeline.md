@@ -455,11 +455,11 @@ for operation, first, second, expected_error in rejections:
 
 run_tool(
     "svg_quality_checker.py", project,
-    "--quick-generate", "--format", "ppt169",
+    "--format", "ppt169",
     "--stage", "final", "--json",
 )
 pptx = project / "boolean-smoke.pptx"
-run_tool("svg_to_pptx.py", project, "--quick-generate", "-o", pptx)
+run_tool("svg_to_pptx.py", project, "-o", pptx)
 with zipfile.ZipFile(pptx) as archive:
     slides = [
         name
@@ -801,7 +801,7 @@ Convert project SVGs into PPTX. EMF/WMF images referenced from `svg_output/` are
 
 Each exported object is named after `data-pptx-shape-name`, else its SVG `id` (or `data-name`), else a positional `Group N` / `TextBox N`; forced-Morph `!!` names still win. The PowerPoint Selection and Animation panes therefore read like the source SVG.
 
-The deck language — the lock's `primary_language`, else the first page's root `<svg lang="...">` (Quick's channel), else `--primary-language TAG` — tags base-template default text (new text boxes, master and layout placeholders) and docProps; a right-to-left language also makes those defaults right-to-left and right-aligned, and the theme's script font for that language (`Arab`, `Hebr`, `Thai`, `Deva`, ...) points at the locked face, which a lockless roster takes from its pages. A run of Latin letters inside a non-Latin deck is tagged `en-US`; the tag is per run, so an English phrase sharing one run with CJK text (`中文 · English` in a single `<text>` with one style) takes the deck language — give it its own `<tspan>` with a distinct attribute when spell-check and hyphenation should treat it as English.
+The deck language — the lock's `primary_language`, else the first page's root `<svg lang="...">` (the page-declared channel), else `--primary-language TAG` — tags base-template default text (new text boxes, master and layout placeholders) and docProps; a right-to-left language also makes those defaults right-to-left and right-aligned, and the theme's script font for that language (`Arab`, `Hebr`, `Thai`, `Deva`, ...) points at the locked face, which a lockless roster takes from its pages. A run of Latin letters inside a non-Latin deck is tagged `en-US`; the tag is per run, so an English phrase sharing one run with CJK text (`中文 · English` in a single `<text>` with one style) takes the deck language — give it its own `<tspan>` with a distinct attribute when spell-check and hyphenation should treat it as English.
 
 Native formulas use the two markers owned by
 [`native-formula.md`](../../references/native-formula.md). A standalone block
@@ -865,35 +865,16 @@ warning and uses `flat`; no SVG regeneration is required. A missing `spec_lock.m
 an explicit legacy/unknown mode, or a requested `structured` export without an
 explicit current structured contract remains blocking.
 
-Explicit direct generation may use the
-[`quick-generate`](../../workflows/profiles/quick-generate.md) profile after the
-current agent has converted/read sources, researched identified factual gaps,
-prepared the required images, icons, and resource manifests as needed, and
-retained any source LaTeX for direct native-marker authoring. That profile skips Strategist, Confirm UI, `design_spec.md`, and
-`spec_lock.md`; it does not skip the resources required by the authored pages.
-After the complete SVG roster exists, run its lockless final checker, then
-export:
-
-```bash
-python3 scripts/svg_quality_checker.py <project_path> \
-  --quick-generate --canonical-authoring --stage final --json
-python3 scripts/svg_to_pptx.py <project_path> --quick-generate
-```
-
-This direct-export flag takes `svg_output/` as its authored page source, resolves
-valid project-local resources referenced by those pages, infers one consistent
-canvas, and does not read or require `spec_lock.md`. It infers one all-page PPTX
-structure mode from the authored SVGs: no structure metadata creates clean flat
-package scaffolding; any structure metadata requires every page to satisfy the
-complete Master/Layout/slot contract and creates structured output. A mixed or
-partial roster fails closed. Notes, motion, narration, native objects, conversion
-trace, and other ordinary exporter capabilities remain available; notes,
-custom object animation, and narration start off in Quick and may be enabled
-when needed. The exporter refuses a missing, blocking, non-final, or stale
-Quick final report before PPTX creation. Default-path output retains the normal
-postflight report and `backup/` snapshot; explicit `-o` retains the ordinary
-no-backup behavior. Existing source, analysis, image/icon, and resource-manifest
-artifacts remain untouched; formula source stays inside its authored SVG marker.
+The release export takes `svg_output/` as its authored page source, resolves
+valid project-local resources referenced by those pages, and reads
+`pptx_structure.mode` plus the canvas from `spec_lock.md`. Notes, motion,
+narration, native objects, conversion trace, and other ordinary exporter
+capabilities remain available. The exporter refuses a missing, blocking,
+non-final, or stale final report before PPTX creation. Release output retains the
+normal postflight report and `backup/` snapshot; explicit `-o` retains the
+ordinary no-backup behavior. Existing source, analysis, image/icon, and
+resource-manifest artifacts remain untouched; formula source stays inside its
+authored SVG marker.
 
 For generated-project narration, follow the
 [`generate-audio`](../../workflows/stages/generate-audio.md) stage. It owns voice
@@ -905,7 +886,7 @@ Behavior:
   - `validation/<project_name>_<timestamp>.report.json` — package postflight, quality-gate linkage, unresolved resource audit, and published part counts
   - `backup/<timestamp>/svg_output/` — copy of authored SVG source for re-export without re-running the LLM
 - `exports/` contains only final PPTX deliverables; machine-readable quality and postflight reports belong in `validation/`.
-- The default Generate flow always runs `finalize_svg.py` before export. This directory is the self-contained SVG visual preview; it is not packaged as a second PPTX. Quick-generate deliberately skips it.
+- The Generate flow always runs `finalize_svg.py` before export. This directory is the self-contained SVG visual preview; it is not packaged as a second PPTX.
 - In both Generate profiles, explicit `-o/--output` changes the native PPTX destination and skips `backup/`; the postflight report still uses the output stem under the project `validation/` directory.
 - A custom `-s/--source` also skips `backup/`: that directory remains the caller-owned SVG source and is never copied under a misleading `backup/<timestamp>/svg_output/` name. Default or explicit `-s output` export retains the normal SVG backup behavior.
 - Postflight reruns ZIP integrity and published Slide count. Internal relationships,
@@ -926,7 +907,7 @@ Behavior:
   - `--reflow-text`: eligible same-size lines become flowing prose that PowerPoint may rewrap; a font-size change, list marker, or accepted larger gap remains a paragraph boundary. Legacy `--merge-paragraphs` aliases this mode.
   - `--no-merge`: each dy-stacked line becomes an independent frame with its own placement.
   - Detection is conservative: mixed-layout `<text>` falls back to per-line frames. Use `--reflow-text` only for resizable body copy and `--no-merge` only for independent line objects or absolute line positions.
-- Native release export reads `svg_output/`; `-s <directory>` selects another project-relative SVG source. `-s final` remains an explicit diagnostic comparison against post-processed SVGs and does not change artifact ownership. `--enable-dangerous-nonconforming-svg-export` is a separate, explicitly requested flat compatibility path for either the default or selected source; it forces flat structure, restores no imported source object, and cannot combine with `--roundtrip` or `--quick-generate`.
+- Native release export reads `svg_output/`; `-s <directory>` selects another project-relative SVG source. `-s final` remains an explicit diagnostic comparison against post-processed SVGs and does not change artifact ownership. `--enable-dangerous-nonconforming-svg-export` is a separate, explicitly requested flat compatibility path for either the default or selected source; it forces flat structure, restores no imported source object, and cannot combine with `--roundtrip`.
 - `--roundtrip` accepts only `authoring-svg-flat/` and the source/contracts emitted by `pptx_to_svg.py --roundtrip`; predecessor root sidecars and alternate `-s` inputs fail. It restores unchanged refs from `analysis/roundtrip-svg/`, preserves unchanged Slide XML/relationships and source resources byte-for-byte, rebuilds a page whose authoring changed, and rebuilds every output page that references a changed resource. Closed unchanged chart packages recover exactly; editing their fallback disables stale replacement. Optional root `page_plan.json` uses the versioned deck-plan contract above; the no-plan path remains the identity export. Motion fields are compared independently with the import baseline: omitted slide `transition` preserves source motion even when importer defaults say `none`, while changed `defaults.animation` participates in animation replacement. Effect-only changes preserve source `advClick` / `advTm`; explicit advance settings or narration timings replace them. Explicit `-t <effect>` without `--transition-duration` on a source without transitions uses the default duration.
 - `svg_final/` may be opened directly or inserted into PowerPoint as an SVG picture. PowerPoint's manual Convert-to-Shape operation is outside the compatibility contract.
 - On every SVG-authoring route, each file in `svg_output/` is the complete visible
@@ -936,19 +917,19 @@ Behavior:
   inputs and package-level processing.
 - For PPTX template-import workspaces, use `-s svg-flat` when you need a visual round-trip check. The layered `svg/` tree is the machine-readable template source and intentionally does not inline inherited master / layout decoration into each slide.
 - Native mode is strict about unsupported visual SVG elements: if a visual element cannot be represented or safely preserved, export fails with the SVG file, element tag, and position instead of silently dropping content. Dangerous compatibility export first applies the registry in `svg_compatibility.py`; it currently lowers a filter on an otherwise attribute-free one-child group whose child is a supported native filter target. The complete strict preflight then runs normally; every remaining contract, resource, conversion, relationship, or package error still blocks export.
-- Default export omitting `--pptx-structure` reads `spec_lock.md`. Free-design, brand-only, and `template_reuse_scope: style` releases declare `mode: flat`, omit Master/Layout mappings and SVG structure metadata, and materialize one clean project-owned Master plus one Blank Layout from the current lock. Deck/layout templates use `mode: structured` only for `template_reuse_scope: mirror|layout`, with explicit registered `pptx_masters` / `pptx_layouts` sets and one `page_pptx_layouts` assignment per page. Only Layouts listed in `pptx_layouts` register; this may be a subset of installed prototypes. Every page assignment must reference that set. An unused prototype registers only when explicitly listed; Quick without a lock registers only Layouts used by its pages. The checker uses the same dependency set for typed chart/table export hints.
+- Default export omitting `--pptx-structure` reads `spec_lock.md`. Free-design, brand-only, and `template_reuse_scope: style` releases declare `mode: flat`, omit Master/Layout mappings and SVG structure metadata, and materialize one clean project-owned Master plus one Blank Layout from the current lock. Deck/layout templates use `mode: structured` only for `template_reuse_scope: mirror|layout`, with explicit registered `pptx_masters` / `pptx_layouts` sets and one `page_pptx_layouts` assignment per page. Only Layouts listed in `pptx_layouts` register; this may be a subset of installed prototypes. Every page assignment must reference that set. An unused prototype registers only when explicitly listed. The checker uses the same dependency set for typed chart/table export hints.
 - On structured template routes, every page root repeats Master/Layout keys and picker names. Master/Layout fixed visuals are direct semantic atoms. Ordinary layer `<g>` elements are invalid; one validated compact authored-preset `<g>` emitted by `preset_shape_svg.py` is the sole group exception because it compiles to one native shape.
 - Every visible direct root `<g>` except a compact helper-authored preset atom requires root-coordinate `data-pptx-bounds`; nested bounds are ignored. The text-free preset atom remains top-level when standalone, uses `data-pptx-frame`, and never carries bounds. Frame/native metadata never replaces bounds on any other group; placeholder bounds also define the slot frame. Checker fails ordinary direct-root module pairs whose intersection exceeds `1px` on both axes; complete structured slots, registered structural-role groups, and wholly off-canvas Morph staging groups are excluded, while ordinary Slide-local groups remain checked on structured pages. Checker compares root bounds with `viewBox`, estimable descendant text—including the canonical direct first line plus later positioned tspan form—with its module using DrawingML wrapping headroom, and every estimable visible text carrier directly with the root `viewBox` before that headroom. Images, shapes, paths, `<use>`, effects, and object frames are excluded from module containment. Per side, ≤`1px` is ignored; module overflow ≤`5%` warns and >`5%` fails, while larger page text overflow always fails. Bounds never clip/reflow; unestimable visible text warns. A wholly off-canvas direct-root Morph endpoint may opt out of page containment with `data-pptx-morph-staging="true"`; it still needs valid module bounds, retained Morph uses an explicit pair, and partial overflow remains blocking.
 - Missing required root bounds fails on final pages/templates and under `--template-mode`; references warn until adapted.
 - On structured template routes, each normal slot is a direct root `<g id>` with semantic type, positive design-zone bounds, and exactly one compatible carrier. Composite `object` slots use explicit proxy binding; zero-slot Layouts are valid. Flat pages keep all SVG objects Slide-local.
 - Flat export maps locked typography/colors into a clean project-owned theme/Master, removes stock content placeholders and unused built-in Layouts, retains only the standard date/footer/slide-number capability hooks, and keeps one Blank Layout without promoting Slide content. Structured export additionally creates one reusable Layout per declared key and reopens the package to verify the full Presentation → Master → Layout → Slide graph, fixed-object order, placeholder identities/bounds, carrier bindings, hidden proxies, and zero-slot Layouts.
-- Template `page_layouts` remains input provenance. Strict preserves the prototype contract; adaptive keeps its Master; new Layouts require Default plan/lock or Quick's frozen Template Application. Construction cannot allocate or mutate Layout identity downstream.
+- Template `page_layouts` remains input provenance. Strict preserves the prototype contract; adaptive keeps its Master; new Layouts require the plan/lock. Construction cannot allocate or mutate Layout identity downstream.
 - Legacy structured/template contracts using `baseline`, `template`, `preserve`, `layout_strategy`, `data-pptx-layout-kind`, `distilled`/`utility`, direct atomic placeholders, or incomplete Master identity are rejected with a pointer to [`create-template`](../../workflows/create-template.md). Create a new workspace and generate new structured SVG pages; do not upgrade the existing project in place. Explicit flat free-design/brand-only projects intentionally omit Master identity.
 - Native output uses content-hash media filenames, so identical images are reused and different images cannot overwrite each other by sharing a basename.
 - `[Content_Types].xml` is generated from the actual media extensions written into the PPTX. Unknown media extensions fail unless Python's `mimetypes` can identify them.
 - Native export writes to a temporary file first and publishes the requested PPTX only after conversion succeeds. A failed conversion does not replace the main output file.
 - `--conversion-trace` without a path writes `validation/<output_stem>.trace.json`. `--conversion-trace <path>` respects the explicit destination; relative paths are resolved from the project root, so `exports/<name>.trace.json` remains available when intentionally requested.
-- Formal default and `--quick-generate` release export compute the exact SVG source fingerprint and refuse a missing, unreadable, unsupported, non-final, blocking, stale, or unverifiable final quality report before PPTX creation. A project without `validation/svg_quality_report.json` exits nonzero with the `not-provided` gate status; run the final checker against its current `svg_output/` first. An explicit non-`output` `--source` remains outside this release gate. Dangerous compatibility export also stays outside it even when reading the default `svg_output/`: it automatically writes a conversion trace, marks postflight `passed-with-warnings`, and records its normalization count; it never claims that the source passed the normal authoring quality gate.
+- Release export computes the exact SVG source fingerprint and refuse a missing, unreadable, unsupported, non-final, blocking, stale, or unverifiable final quality report before PPTX creation. A project without `validation/svg_quality_report.json` exits nonzero with the `not-provided` gate status; run the final checker against its current `svg_output/` first. An explicit non-`output` `--source` remains outside this release gate. Dangerous compatibility export also stays outside it even when reading the default `svg_output/`: it automatically writes a conversion trace, marks postflight `passed-with-warnings`, and records its normalization count; it never claims that the source passed the normal authoring quality gate.
 - The final quality report carries an informational `carrier_receipt` aggregate plus each page's `files[].info.carrier_receipt`: actual text/image/icon counts, SVG geometry, native preset names, marker use, native Chart/Table/Formula markers, largest image-frame share, and effect use. `effects.inline_emphasis_runs` counts `<tspan>` elements inside `<text>` with no `x`/`y`/`dx`/`dy` that set `fill`, `font-weight`, `font-size`, `font-style`, `text-decoration`, or `letter-spacing`; `effects.gradient_uses` counts visible fill/stroke references that resolve to same-document linear/radial gradients; `effects.filter_uses` counts visible filter references that resolve to same-document filters; and `effects.text_effects` counts visible `<text>`/`<tspan>` elements with gradient/pattern paint, a filter, or a non-`none` stroke. Content inside `defs`, `clipPath`, `mask`, `pattern`, `marker`, or `symbol` is excluded. The terminal prints only the compact aggregate. These facts never affect exit status, create coverage quotas, or score design; the active Generate profile compares them with its retained page decisions before export.
 - After publication, native export writes `validation/<output_stem>.report.json`. The report distinguishes authored Slides from internal Layout definitions, reruns ZIP integrity and published Slide-count checks, records slide/layout/master/notes part counts, labels relationship/structured/transition/animation validation as enforced at build time, links the final SVG quality report only when its SHA-256 source fingerprint matches the exact export inputs, and surfaces stale/unverified gates, unresolved template tokens, generic-only font stacks, and external image references. A matching final quality report with introduced warnings yields `passed-with-warnings` and a `quality_introduced_warnings=<N>` receipt instead of a clean `passed` claim.
 - By default, a successful command also prints a compact receipt instead of requiring a report read: `[POSTFLIGHT] status=<...> quality_gate=<...> slides=<N> warning_categories=<N>`, followed by one compact line per warning category and the `[PPTX]` / `[REPORT]` paths. Resource-warning lines carry counts; a non-passing quality gate carries its status. Routine agents use this receipt and do not load either complete validation JSON into model context. Full reports remain cold audit artifacts; failure investigation and explicit audits extract only the required fields. `--quiet` keeps suppressing successful-run output.
@@ -957,7 +938,7 @@ Behavior:
   overflow-hidden viewport; preview-safe shape clips target the inner image in
   viewBox coordinates, while legacy imported wrapper clips remain compatible.
   Both map to native picture crop/geometry when possible.
-- The default Generate flow embeds speaker notes automatically unless `--no-notes` is used; Quick Generate defaults them off and enables them with `--with-notes`
+- The Generate flow embeds speaker notes automatically unless `--no-notes` is used; `--with-notes` forces them on
 - Recorded narration is opt-in:
   - `notes_to_audio.py` uses `edge-tts` by default, or a configured cloud TTS provider (`elevenlabs`, `minimax`, `qwen`, `cosyvoice`), and generates one audio file per slide into `audio/`
   - Narration text is read strictly from the matching `notes/*.md` file; the script only skips Markdown heading lines (`# ...`) and does not summarize, rewrite, or filter delivery notes
@@ -1007,7 +988,7 @@ pip install python-pptx
 
 Checker and exporter behavior behind [`pptx-structure-interface.md`](../../references/pptx-structure-interface.md) §2.
 
-**Master text styles**: the effective `title` anchor maps to every `a:defRPr@sz` in Master `p:titleStyle`. Level 1 in `p:bodyStyle` and `p:otherStyle` uses the `body` anchor; levels 2–9 descend deterministically from `15/16` through `8/16` of that size, rounded to 0.5 pt and floored at the smaller of 8 pt or the body size. Only `p:txStyles//a:defRPr@sz` changes; indentation, bullets, margins, paragraph settings, and direct run sizes on generated slides are untouched. Default reads the anchors from `spec_lock.md`; missing `title` / `body` rows fail flat or structured export. Structured Quick infers anchors from semantic slot carriers with deterministic fallbacks; flat Quick keeps stock defaults.
+**Master text styles**: the effective `title` anchor maps to every `a:defRPr@sz` in Master `p:titleStyle`. Level 1 in `p:bodyStyle` and `p:otherStyle` uses the `body` anchor; levels 2–9 descend deterministically from `15/16` through `8/16` of that size, rounded to 0.5 pt and floored at the smaller of 8 pt or the body size. Only `p:txStyles//a:defRPr@sz` changes; indentation, bullets, margins, paragraph settings, and direct run sizes on generated slides are untouched. Anchors are read from `spec_lock.md`; missing `title` / `body` rows fail flat or structured export.
 
 | Master style | Effective source | XML field changed |
 |---|---|---|
@@ -1135,8 +1116,7 @@ existing fixed advances for monospaced faces.
   tracked role or a display-size line is sized per string with `measure
   --letter-spacing`. `--outline` adds the longest §IX planned
   line per role — the planned wording only; a line rewritten while authoring
-  is re-estimated with the rates. Quick projects have no Design Spec, so
-  the column stays empty there and the table says so. The checker's overflow
+  is re-estimated with the rates. The checker's overflow
   diagnostic prints that line's average px per character, which is not a
   reusable rate. A lock role without its own
   `<role>_family` resolves to `title_family` when the role name contains

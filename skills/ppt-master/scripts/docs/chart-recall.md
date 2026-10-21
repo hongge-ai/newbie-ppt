@@ -19,7 +19,7 @@ the shared resolver recognizes it as a Structure intent without an SVG path.
 The wrapper retains the original string in its historical `valid` list and adds
 a `resolved` item with `family`, `key`, and `kind`; a Structure intent omits
 `reference` and `path`. New planning describes qualitative relationships in §IX
-or Quick active context; it does not write a Structure catalog key.
+in the plan; it does not write a Structure catalog key.
 
 Do not use this wrapper in new planning prompts. See
 [`visualization-recall.md`](./visualization-recall.md) for the canonical

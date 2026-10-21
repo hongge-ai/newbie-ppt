@@ -6,9 +6,9 @@ description: Shared post-processing stage for narration audio, PPTX embedding, P
 
 > Shared narration stage, run after the owning route's notes step. Edge, ElevenLabs, MiniMax, and timestamp-capable CosyVoice produce per-slide audio/SRT pairs; Qwen is audio-only because its API exposes no timing. The caller owns final PPTX integration. Context-independent: it reads `notes/*.md` and the selected voice catalog, chooses no route, and patches no slide design. Tool behavior, prerequisites, keys, and every flag are documented in [`narration.md`](../../scripts/docs/narration.md).
 
-**Trigger**: Generate PPTX — the effective `Narration Audio` outcome in `design_spec.md` §I is `enabled` (a later explicit request first updates that outcome and provenance); Quick — the request or active-context decision selects narration; Edit Native PPTX — the confirmed plan enables narration.
+**Trigger**: Generate PPTX — the effective `Narration Audio` outcome in `design_spec.md` §I is `enabled` (a later explicit request first updates that outcome and provenance); Edit Native PPTX — the confirmed plan enables narration.
 
-**Hard dependency — speaker notes**: audio requires complete per-slide notes: Generate additionally requires its effective `Speaker Notes` outcome enabled; Edit Native follows its confirmed plan (a note for every output page); Quick records the same dependency. Never enter audio generation with missing or incomplete notes — generate and validate them first. Missing notes recover through the owning route: Generate returns to its notes branch and runs `total_md_split.py <project_path>`; Edit Native returns to [`edit-native-pptx`](../edit-native-pptx.md) §6 and writes `notes/<svg-stem>.md` per output page; never run the Generate splitter on a round-trip workspace.
+**Hard dependency — speaker notes**: audio requires complete per-slide notes: Generate additionally requires its effective `Speaker Notes` outcome enabled; Edit Native follows its confirmed plan (a note for every output page). Never enter audio generation with missing or incomplete notes — generate and validate them first. Missing notes recover through the owning route: Generate returns to its notes branch and runs `total_md_split.py <project_path>`; Edit Native returns to [`edit-native-pptx`](../edit-native-pptx.md) §6 and writes `notes/<svg-stem>.md` per output page; never run the Generate splitter on a round-trip workspace.
 
 ## When to Run
 
@@ -22,7 +22,7 @@ description: Shared post-processing stage for narration audio, PPTX embedding, P
 
 ## Step 1: Determine the deck's language
 
-The AI already knows it from writing the notes — no detection script. Identify `zh` / `en` / `ja` / `ko` / …; for Chinese choose `zh-CN` (default), `zh-TW`, or `zh-HK` from context — Default may ask when unclear, Quick chooses the best supported default.
+The AI already knows it from writing the notes — no detection script. Identify `zh` / `en` / `ja` / `ko` / …; for Chinese choose `zh-CN` (default), `zh-TW`, or `zh-HK` from context — ask when unclear.
 
 ---
 
@@ -40,8 +40,6 @@ From the flat list, pick **3–6 candidates**: cover both genders when the local
 ---
 
 ## Step 3: Resolve generation settings
-
-**Quick exception**: do not pause. Apply explicit user values, resolve the rest from the recommended-value rules, keep video off unless the caller selected direct video (then embed the narrated PPTX and continue to native video only when `powerpoint_video.py --check` succeeds); with resolved sound cues continue automatically through the post-export mix. An explicit slideshow-capture request stops at the capture-ready narrated PPTX until the user supplies the recorded MP4 — never silently switching to native export. Require a timestamp-capable provider only when cue sync or subtitle delivery needs page-local SRT.
 
 **Default / Edit Native — one-shot interaction (mandatory)**: send one message that resolves all five decisions with a recommended value each; never split into rounds. Run `powerpoint_video.py --check` before offering automatic video export (an explicit slideshow-capture choice skips the check and uses the manual handoff). **Cloned-voice fast path**: when the user mentioned a cloned voice or "my own voice", in any language, with a `voice_id`, skip the recommendation list, pin the named provider and `voice_id`, and confirm only rate + embed + video. "Embed" means SVG re-export for Generate or `svg_to_pptx.py --roundtrip --recorded-narration audio` for Edit Native.
 
@@ -81,7 +79,7 @@ python3 skills/ppt-master/scripts/notes_to_audio.py <project_path> --provider <e
 # 2A. Only when narration-cue sync is selected and page SRT + animations.json exist
 python3 skills/ppt-master/scripts/narration_sync.py animations <project_path> --narration-start-floor 0.8 --narration-padding 0.5 --force
 
-# 2B. Re-export with audio embedded (Quick adds --quick-generate --with-notes; the native-export
+# 2B. Re-export with audio embedded (--with-notes; the native-export
 #     mix branch also passes --conversion-trace <final_narrated_trace>)
 python3 skills/ppt-master/scripts/svg_to_pptx.py <project_path> --recorded-narration audio --narration-start-floor 0.8 --narration-padding 0.5 --inherit-motion-from "<base_postflight_report>"
 #     narration-independent custom motion: add --animation-config animations.json; all-motion-off: --no-animations instead of --inherit-motion-from
@@ -115,7 +113,7 @@ Pacing defaults are `narration_start_floor=0.8` s and `narration_padding=0.5` s 
 
 | Caller | After audio generation |
 |---|---|
-| Generate PPTX | Derive narration-cued motion when selected; otherwise pass canonical motion, inherit base motion, or use explicit all-motion-off. Export with `--recorded-narration audio` (Quick also `--quick-generate --with-notes`). Native video uses conversion trace plus raw export and cue mix as required; explicit capture returns the narrated PPTX for the handoff, skips trace-only sound work and mixing, then aligns subtitles against the accepted capture |
+| Generate PPTX | Derive narration-cued motion when selected; otherwise pass canonical motion, inherit base motion, or use explicit all-motion-off. Export with `--recorded-narration audio --with-notes`. Native video uses conversion trace plus raw export and cue mix as required; explicit capture returns the narrated PPTX for the handoff, skips trace-only sound work and mixing, then aligns subtitles against the accepted capture |
 | Edit Native PPTX | Return to [`edit-native-pptx`](../edit-native-pptx.md) §7 and export with `--roundtrip --recorded-narration audio --use-narration-timings`; native video passes the final PPTX to `powerpoint_video.py`; explicit capture uses the same handoff and skips mixing |
 
 ---

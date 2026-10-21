@@ -1,7 +1,7 @@
 # Visualization Candidate Recall
 
-Default Strategist and the Quick Generate main agent read the complete Chart
-and Table expression vocabularies before planning.
+Strategist reads the complete Chart and Table expression vocabularies before
+planning.
 `visualization_recall.py validate` resolves their selected canonical
 references. Its `recall` command remains an optional deterministic diagnostic
 across the machine Chart and Table registries; it is not the runtime
@@ -14,9 +14,9 @@ or keyword index:
 - `templates/tables/table-vocabulary.md` — planning capability map, not read by this tool
 - `templates/tables/tables_index.json`
 
-Qualitative Structure does not enter recall. Default records its relationship
-model in §IX; Quick keeps the same decision in active context. Both load
-`executor-structure.md` and compose the shapes for the current page.
+Qualitative Structure does not enter recall. The plan records its relationship
+model in §IX; execution loads `executor-structure.md` and composes the shapes for
+the current page.
 
 ## Optional recall diagnostics
 
@@ -61,8 +61,8 @@ specific valid information structure.
 
 ## Validate selected references
 
-Validate every selected reference before Default writes Design Spec §VII and
-`spec_lock.md page_visualizations`, or before Quick opens it for immediate use:
+Validate every selected reference before writing Design Spec §VII and
+`spec_lock.md page_visualizations`:
 
 ```bash
 python3 skills/ppt-master/scripts/visualization_recall.py validate \
@@ -89,10 +89,9 @@ it without catalog lookup.
 - Runtime selection comes from the complete loaded Chart vocabulary and Table
   registry; recall output is optional diagnostic evidence, while `validate`
   resolves positive selections.
-- Default records `Page | Family | Template | Usage` for each positive
-  selection and projects `family/key` into `page_visualizations`.
+- Record `Page | Family | Template | Usage` for each positive selection and
+  project `family/key` into `page_visualizations`.
 - Usage is one concise page-local purpose; detailed adaptation remains in §IX.
-- Quick keeps the selected reference and purpose only in active context.
 - Structure is a separate runtime information model, never a catalog candidate
   or `page_visualizations` entry.
 - Never serialize `no-template-match`, empty tables, summaries, paths, or

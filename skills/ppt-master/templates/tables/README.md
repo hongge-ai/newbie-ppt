@@ -19,15 +19,12 @@ keys match `<key>.svg`, and `meta.total` matches the canonical SVG roster.
 objective planning-side information relationships without execution details or
 selection conclusions.
 
-Default Strategist and Quick read the complete Table vocabulary together with
-the Chart vocabulary before planning. They compare every objective
-relationship, then use
+Strategist reads the complete Table vocabulary together with the Chart
+vocabulary before planning, compares every objective relationship, then uses
 [`visualization_recall.py`](../../scripts/visualization_recall.py) `validate`
 to resolve selected canonical references. Its `recall` mode remains an optional
 diagnostic helper over the machine registry, not the runtime capability gate.
-Default writes
-`table/<key>` to `page_visualizations`; Quick keeps the selected reference in
-active context.
+The plan writes `table/<key>` to `page_visualizations`.
 
 ## Authoring contract
 
@@ -60,6 +57,6 @@ durations that drive horizontal task positions and lengths belong to
 a page-specific Structure.
 
 Selecting a table reference does not itself select native output. Design Spec
-§IX/Quick names independent objects separately and decides
+§IX names independent objects separately and decides
 `<object-key>=yes|no`; explicit `--native-charts-and-tables` export is a second
 opt-in.

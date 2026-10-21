@@ -1,6 +1,6 @@
 # Visual Styles — Index
 
-A **visual style** is how the deck **looks** — shape language, decoration density, whitespace rhythm, typographic character, texture / elevation. Resolve **one per deck**; Default locks it, while Quick keeps it only in active context. It anchors the aesthetic of the SVG layout itself (cards, dividers, spacing, corner radius, shadow use).
+A **visual style** is how the deck **looks** — shape language, decoration density, whitespace rhythm, typographic character, texture / elevation. Resolve **one per deck**; the plan locks it. It anchors the aesthetic of the SVG layout itself (cards, dividers, spacing, corner radius, shadow use).
 
 **Hard rule — capability boundary**: A style governs treatment, visual weight,
 density, recurrence, and coherence. It never decides carrier eligibility or
@@ -9,7 +9,7 @@ independent-composition, Boolean, or necessary-freeform authoring vocabulary.
 Page purpose selects the carriers and construction; the style makes the chosen
 forms belong to one visual system.
 
-> **Styles carry NO fixed HEX and define no palette.** Default core color identity and recurring role behavior live in `design_spec.colors` / `spec_lock.colors` (confirmation `e`); Quick resolves equivalent palette anchors in active context. A visual style describes how those anchors behave in SVG composition and may call for contextual tints, gradients, effects, or material transitions; it does not substitute an unrelated palette. Generated images follow the same anchor model through [`image-renderings/`](../image-renderings/). [`image-palettes/`](../image-palettes/) is legacy compatibility material only.
+> **Styles carry NO fixed HEX and define no palette.** Core color identity and recurring role behavior live in `design_spec.colors` / `spec_lock.colors` (confirmation `e`). A visual style describes how those anchors behave in SVG composition and may call for contextual tints, gradients, effects, or material transitions; it does not substitute an unrelated palette. Generated images follow the same anchor model through [`image-renderings/`](../image-renderings/). [`image-palettes/`](../image-palettes/) is legacy compatibility material only.
 >
 > A visual style is *not* a mode. **Visual style = how it looks; mode = how you argue** (see [`modes/_index.md`](../modes/_index.md)). Resolve them independently — any style pairs with any mode.
 
@@ -19,7 +19,7 @@ forms belong to one visual system.
 
 Each style keeps its own authoritative file with: shape & decoration, typography character, color-usage discipline (no HEX), texture / elevation, and the paired image-rendering. Read this index alone while choosing a direction. Only after a preset or custom bases are fixed may the active role read the selected sibling files: one file for a preset, every exact `visual_style_references` file for a catalog-based custom, and none for a novel custom. Never glob the directory or read an unselected sibling. The catalog mirrors [`image-renderings`](../image-renderings/_index.md): each style's "Paired rendering" names the illustration family that shares its aesthetic.
 
-> The **`visual_style` value is only ever a first-column `id`** (`swiss-minimal`, `editorial`, …). The "Paired rendering" column lists **image-rendering** names (`flat`, `minimalist-swiss`, `digital-dashboard`, …) — never treat one of those as the `visual_style`. Default records rendering under confirmation h; Quick keeps the selected rendering only in active context and any required image manifest.
+> The **`visual_style` value is only ever a first-column `id`** (`swiss-minimal`, `editorial`, …). The "Paired rendering" column lists **image-rendering** names (`flat`, `minimalist-swiss`, `digital-dashboard`, …) — never treat one of those as the `visual_style`. Rendering is recorded under confirmation h and carried by `spec_lock.md` plus any required image manifest.
 >
 > The **`Illus.`** column describes illustration's role only after the resource-need review selects illustration — `core` (illustration may lead the look), `supportive` (illustration may share the composition), or `sparse` (illustration stays selective so the style's lead visual remains clear). It tunes selected illustration's centrality and recurrence; it never recommends adding illustration, selects an AI source or image row, or narrows eligible page types, element scale, or carrier combinations. An explicit user request to use / skip illustrations overrides it either way, and `image_usage: none` always writes no illustration rows. Full per-style rule in each file's §6.
 >
@@ -107,7 +107,7 @@ an exact authoring preset here.
 
 ## 3. Editable `custom` projection
 
-Each Default Stage-2 direction authors one visible, non-empty `custom` aesthetic under [`strategist.md`](../strategist.md) §d — its executable shape language, composition geometry, decoration density, whitespace, typography character, and texture — naming only the catalog bases it actually uses. Quick resolves one preset or custom behavior under [`quick-generate.md`](../../workflows/profiles/quick-generate.md) §2 and persists nothing.
+Each Stage-2 direction authors one visible, non-empty `custom` aesthetic under [`strategist.md`](../strategist.md) §d — its executable shape language, composition geometry, decoration density, whitespace, typography character, and texture — naming only the catalog bases it actually uses.
 
 ---
 

@@ -808,7 +808,7 @@ def _run_calibrate(args: argparse.Namespace) -> int:
         )
         if args.outline and not (project_path / 'design_spec.md').is_file():
             payload['notes'].append(
-                'no design_spec.md in this project (Quick writes none), so the '
+                'no design_spec.md in this project, so the '
                 '--outline column has no §IX source and stays empty'
             )
         bold_roles = sorted(name for name, row in merged_roles.items() if row.get('weight') == 'bold')

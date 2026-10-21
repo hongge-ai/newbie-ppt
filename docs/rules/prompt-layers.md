@@ -25,7 +25,7 @@ The prompt files are read by a model before it plans a deck and hand-writes SVG 
 
 | Location | Holds | Loaded by |
 |---|---|---|
-| `references/<role>*.md` | Craft and contract, one owner per rule, organized by the phase that decides it (Plan: Strategist / Quick §2; Do·Check·Act: Executor / Quick §3–4 — see [`SKILL.md`](../../skills/ppt-master/SKILL.md) Phase Frame) | The runtime load sets in `scripts/prompt_audit_manifest.json` |
+| `references/<role>*.md` | Craft and contract, one owner per rule, organized by the phase that decides it (Plan: Strategist; Do·Check·Act: Executor — see [`SKILL.md`](../../skills/ppt-master/SKILL.md) Phase Frame) | The runtime load sets in `scripts/prompt_audit_manifest.json` |
 | `workflows/**.md` | Procedure — the route's steps, commands, gates, and checkpoints — plus the craft that only that route decides; the owner of each cross-file rule is recorded in [`rule-owners.md`](rule-owners.md) | The runtime load sets |
 | `scripts/docs/<topic>.md` | Tool documentation. A contract reference that mirrors a prompt file keeps that file's section numbers (`svg-contract.md` §1.1–§2.2 mirror `shared-standards-core.md`, Part II §6.2–§6.10 mirror `svg-effects.md`) so a pointer resolves in either direction | Nobody during generation; `coverage.exempt` in the manifest with a reason |
 | `templates/*_reference.md`, `templates/schemas/*.json` | Artifact grammar the model authors against (`design_spec.md`, `spec_lock.md`) | Read at authoring time by the owning Step |
@@ -62,7 +62,7 @@ Run this procedure paragraph by paragraph; do not classify by section heading.
 4. **Sweep references** after removing or renumbering a section: `grep -rn "<file>.*§<n>"` across `skills/` and `docs/`. A pointer to a section that no longer exists is a silent loss.
 5. **Update the manifest**: move the file between load sets if its role changed, add a `coverage.exempt` entry with a reason for a new tool document, lower the file budget to the new size (budgets are fixed upper bounds; 1000-token increments for large files), and refresh or remove any `schema_grammars` projection whose paragraph you edited.
 6. **Run `python3 skills/ppt-master/scripts/prompt_audit.py`** and record the per-file and per-load-set numbers in the commit message.
-7. **Review for strength and reach** ([`prompt-style.md`](prompt-style.md) §13): a `Hard rule` that vanished from both the prompt and the tool document, a positive capability statement that no loaded file carries any more, and a Quick-only gap (Quick loads no Strategist module) are the three regressions this kind of edit produces.
+7. **Review for strength and reach** ([`prompt-style.md`](prompt-style.md) §13): a `Hard rule` that vanished from both the prompt and the tool document, and a positive capability statement that no loaded file carries any more are the two regressions this kind of edit produces.
 
 ---
 

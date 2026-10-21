@@ -46,6 +46,19 @@ class ParseArgsTests(unittest.TestCase):
             setup_env.parse_args(["--nope"])
 
 
+class PythonVersionTests(unittest.TestCase):
+    def test_supported_patch_releases(self) -> None:
+        self.assertTrue(setup_env.python_version_supported((3, 14, 0)))
+        self.assertTrue(setup_env.python_version_supported((3, 14, 4)))
+
+    def test_older_minor_is_rejected(self) -> None:
+        self.assertFalse(setup_env.python_version_supported((3, 10, 14)))
+        self.assertFalse(setup_env.python_version_supported((3, 13, 13)))
+
+    def test_newer_minor_is_rejected(self) -> None:
+        self.assertFalse(setup_env.python_version_supported((3, 15, 0)))
+
+
 class ResolveSelectionTests(unittest.TestCase):
     def test_default_selects_all_groups(self) -> None:
         mode, groups = setup_env.resolve_selection(namespace())

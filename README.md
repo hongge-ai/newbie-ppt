@@ -5,7 +5,7 @@
 > create a task in the browser, browse the template market with real previews, configure
 > parameters, submit, and watch every page appear live — no more chat-only black box.
 
-[![Version](https://img.shields.io/github/v/release/hugohe3/ppt-master?label=version&color=blue)](https://github.com/hugohe3/ppt-master/releases)
+[![Version](https://img.shields.io/github/v/release/hongge-ai/newbie-ppt?label=version&color=blue)](https://github.com/hongge-ai/newbie-ppt/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub stars](https://img.shields.io/github/stars/hugohe3/ppt-master.svg)](https://github.com/hugohe3/ppt-master/stargazers)
 [![AtomGit stars](https://atomgit.com/hugohe3/ppt-master/star/badge.svg)](https://atomgit.com/hugohe3/ppt-master)
@@ -20,9 +20,9 @@ English | [中文](./README_CN.md)
 
 > 🆕 **As a finance professional (CPA · CPV · Consulting Engineer (Investment)), I drew on my expertise and project experience to build a tool website: [Construction Project Economic Evaluation](https://cs.hehugo.com/)** (in Chinese) — enter your project data and get a full financial evaluation online: investment, revenue, cost, debt service, profit, cash flow and balance sheet statements, plus IRR, NPV, sensitivity and break-even analysis, exportable to Excel / Word. Built for energy projects such as wind, solar and storage, with a general-purpose mode for other projects. The site is in an early trial phase; the first 100 accounts get 3 free runs, later accounts get 1.
 
-## ❤️ Sponsors
+## ❤️ Sponsors (upstream)
 
-This project is kept free and open source with the support of <a href="https://www.kimi.com/code/?aff=ppt-master">Kimi</a>, <a href="https://www.packyapi.ai/register?aff=ppt-master">PackyCode</a>, <a href="https://apikey.fan/register?aff=PPT-MASTER">APIKEY.FAN</a>, <a href="https://runapi.host/register?aff=WMLJ">RunAPI</a>, <a href="https://go.apimart.ai/gh-ppt-master1">APIMart</a> and other sponsors.
+The upstream ppt-master project is kept free and open source with the support of <a href="https://www.kimi.com/code/?aff=ppt-master">Kimi</a>, <a href="https://www.packyapi.ai/register?aff=ppt-master">PackyCode</a>, <a href="https://apikey.fan/register?aff=PPT-MASTER">APIKEY.FAN</a>, <a href="https://runapi.host/register?aff=WMLJ">RunAPI</a>, <a href="https://go.apimart.ai/gh-ppt-master1">APIMart</a> and other sponsors.
 
 > **[Want to appear here?](SPONSORING.md)**
 
@@ -172,7 +172,7 @@ Knowing how to use Python and AI agents will matter more and more, and this proj
 
 ### 1. Prerequisites
 
-**All you need to install is [Python](https://www.python.org/downloads/) 3.10+.** Everything else — [uv](https://docs.astral.sh/uv/), the Python environment, all dependencies — is set up by one command in Step 3, against the Tsinghua PyPI mirror by default.
+**All you need to install is [Python](https://www.python.org/downloads/) 3.14.** Everything else — [uv](https://docs.astral.sh/uv/), the Python environment, all dependencies — is set up by one command in Step 3, against the Tsinghua PyPI mirror by default.
 
 <details>
 <summary><strong>Windows</strong> — see the dedicated <a href="./docs/windows-installation.md">step-by-step guide</a> ⚠️</summary>
@@ -280,7 +280,7 @@ python skills/ppt-master/scripts/setup_env.py
 
 ### 4. Create
 
-**First, open the project folder in your agent:** the goal is to point the AI at the `ppt-master` directory you unzipped / cloned in the previous step. In an IDE-type tool, use **File → Open Folder** — the AI chat panel is usually in the sidebar; in a CLI agent, `cd ppt-master` first, then launch it. Everything from here on happens in the chat.
+**First, open the project folder in your agent:** the goal is to point the AI at the `newbie-ppt` directory you unzipped / cloned in the previous step. In an IDE-type tool, use **File → Open Folder** — the AI chat panel is usually in the sidebar; in a CLI agent, `cd newbie-ppt` first, then launch it. Everything from here on happens in the chat.
 
 **Provide source materials (recommended):** Place your PDF, DOCX, images, or other files in the `projects/` directory, then tell the AI chat panel which files to use. The quickest way to get the path: right-click the file in your file manager or IDE sidebar → **Copy Path** (or **Copy Relative Path**) and paste it directly into the chat.
 
@@ -294,8 +294,7 @@ You: Please create a PPT from projects/q3-report/sources/report.pdf
 You: Please turn the following into a PPT: [paste your content here...]
 ```
 
-By default—unless you explicitly request quick generation—the AI first confirms
-the design spec:
+The AI first confirms the design spec:
 
 ```
 AI:  Sure. Let's confirm the design spec:
@@ -307,23 +306,15 @@ AI:  Sure. Let's confirm the design spec:
 
 The AI handles everything — content analysis, visual design, SVG generation, and PPTX export.
 
-**Quick generation (skip the confirmation round trip):** say so explicitly and the AI goes straight to authoring and export.
-
 **Local workbench (visual, recommended for beginners):** skip describing your needs in chat — start the local workbench and do everything in the browser: create a task, browse the template market with **real template previews**, set page count / canvas / language / image policy, and upload source material. After submitting, paste the trigger sentence it shows into your AI chat. While the agent generates, the workbench shows every page as it appears; when it finishes you can download the PPTX and leave feedback.
 
 ```bash
-python3 skills/ppt-master/scripts/workbench/server.py
+uv run python skills/ppt-master/scripts/workbench/server.py
 ```
 
 The browser opens automatically at `http://127.0.0.1:7070`. Your AI agent remains the executor — the workbench only captures your decisions into task files and renders progress. See [`scripts/docs/workbench.md`](./skills/ppt-master/scripts/docs/workbench.md).
 
-```
-You: Quickly generate a 5-page deck from projects/q3-report/sources/report.pdf — no need to confirm with me
-```
-
-Whatever you state explicitly is followed; whatever you leave unspecified the agent decides on its own instead of asking. It still converts sources, fills factual gaps, applies the shared visual baseline, and uses images/icons/native shapes/charts/tables/PowerPoint-native inline or block formulas as needed — it drops interaction and durable planning, not presentation capability. It is one-pass and non-resumable, and there is no `svg_final/` preview. Full guide → [Quick mode](./docs/getting-started.md#quick-mode).
-
-> **Output:** the deck lands in `exports/<name>_<timestamp>.pptx` as natively editable DrawingML; the default flow also writes self-contained page previews to `svg_final/`. Charts and tables ship as editable shapes by default; pass `--native-charts-and-tables` for data-backed PowerPoint Chart / Table objects with **Edit Data**, saved as a separate `_native_charts_tables.pptx`. Formulas compile to editable OMML for PowerPoint 2010+. Backups, notes, animation and narration switches, and the non-PowerPoint boundaries → [FAQ](./docs/faq.md).
+> **Output:** the deck lands in `exports/<name>_<timestamp>.pptx` as natively editable DrawingML; the flow also writes self-contained page previews to `svg_final/`. Charts and tables ship as editable shapes by default; pass `--native-charts-and-tables` for data-backed PowerPoint Chart / Table objects with **Edit Data**, saved as a separate `_native_charts_tables.pptx`. Formulas compile to editable OMML for PowerPoint 2010+. Backups, notes, animation and narration switches, and the non-PowerPoint boundaries → [FAQ](./docs/faq.md).
 
 > **Already have a `.pptx` you want to reuse?** Give the AI the deck and material and ask it to "fill this deck with the new content" — Edit Native PPTX keeps the design and unchanged pages byte-for-byte, edits chosen pages, supports selection/reordering, and can add notes or narration. See the [FAQ](./docs/faq.md) and [workflow](./skills/ppt-master/workflows/edit-native-pptx.md).
 
@@ -333,7 +324,7 @@ Whatever you state explicitly is followed; whatever you leave unspecified the ag
 
 Two paths for non-user images, mixable per image in the same deck:
 
-**A) AI generation** — use the agent host's native image tool when available, or `image_gen.py` with `IMAGE_BACKEND` plus the provider's `*_API_KEY`. Host-native generation needs no separate provider image API key; ask the agent to use its own image tool. Run `python3 skills/ppt-master/scripts/image_gen.py --list-backends` for the configured-provider path. `gpt-image-2` is currently the best default.
+**A) AI generation** — use the agent host's native image tool when available, or `image_gen.py` with `IMAGE_BACKEND` plus the provider's `*_API_KEY`. Host-native generation needs no separate provider image API key; ask the agent to use its own image tool. Run `uv run python skills/ppt-master/scripts/image_gen.py --list-backends` for the configured-provider path. `gpt-image-2` is currently the best default.
 
 **B) Web image search** — `image_search.py`. **Zero-config works**; configure `PEXELS_API_KEY` / `PIXABAY_API_KEY` (both free) for consistently higher-quality results:
 
@@ -398,8 +389,8 @@ The optional `pdf` dependency group installs [PyMuPDF](https://pymupdf.readthedo
 
 Looking to collaborate, integrate PPT Master into your workflow, or just have questions?
 
-- 💬 **Questions & sharing** — [GitHub Discussions](https://github.com/hugohe3/ppt-master/discussions)
-- 🐛 **Bug reports & feature requests** — [GitHub Issues](https://github.com/hugohe3/ppt-master/issues)
+- 💬 **Questions & sharing** — [upstream GitHub Discussions](https://github.com/hugohe3/ppt-master/discussions)
+- 🐛 **Bug reports & feature requests** — [newbie-ppt Issues](https://github.com/hongge-ai/newbie-ppt/issues)
 
 ---
 
@@ -417,7 +408,7 @@ Looking to collaborate, integrate PPT Master into your workflow, or just have qu
 
 ## Sponsors & Support
 
-PPT Master is currently built and maintained primarily by me. Every new template, bug fix, and documentation update takes ongoing resources — currently shared by the sponsors and individual supporters below.
+The upstream ppt-master project is currently built and maintained primarily by Hugo He. Every new template, bug fix, and documentation update takes ongoing resources — currently shared by the sponsors and individual supporters below.
 
 **Corporate sponsors**
 
@@ -447,8 +438,8 @@ If PPT Master has been helpful to you, individual support of any amount helps ke
 
 ---
 
-Made with ❤️ by [Hugo He](https://www.hehugo.com/) — if this project helps you, please give it a ⭐ and consider [sponsoring](#sponsors--support).
+The upstream project is made with ❤️ by [Hugo He](https://www.hehugo.com/) — if it helps you, please give it a ⭐ and consider [sponsoring the upstream](#sponsors--support).
 
-<sub>Official distribution: <a href="https://github.com/hugohe3/ppt-master">GitHub</a> (primary) · <a href="https://atomgit.com/hugohe3/ppt-master">AtomGit</a> (mirror). Redistributions on other platforms are unofficial. MIT licensed — attribution required.</sub>
+<sub>Official distribution for this fork: <a href="https://github.com/hongge-ai/newbie-ppt">GitHub</a>. Based on <a href="https://github.com/hugohe3/ppt-master">ppt-master</a> (MIT); upstream releases and mirrors are separate. MIT licensed — attribution required.</sub>
 
 [⬆ Back to Top](#ppt-master--ai-generates-native-powerpoint-from-any-document)

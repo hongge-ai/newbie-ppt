@@ -84,7 +84,7 @@
 | 关注点 | 状态 | 说明 |
 |---|---|---|
 | 画布尺寸 | 系统化 | 画布契约选定演示文稿格式；SVG `viewBox` 是页面几何的唯一真值，配 fail-closed 校验，且同一 deck 的所有页面必须使用同一格式 |
-| Theme | 系统化 | 有锁的 Default 导出根据配色与字体合同逐 deck 派生 `clrScheme`、major/minor 字体与 Master 标题／正文默认字号。Flat Quick 保留转换器默认 Theme 脚手架；structured Quick 在工作区提供时保留逐 Master 源 Theme，并从语义 slot carrier 推导 Master 标题／正文字号默认值；SVG 派生的页面颜色与字体仍按直接值写入 |
+| Theme | 系统化 | 有锁的导出根据配色与字体合同逐 deck 派生 `clrScheme`、major/minor 字体与 Master 标题／正文默认字号；SVG 派生的页面颜色与字体仍按直接值写入 |
 | 字体嵌入 | 有意边界 | 从不在包内嵌入字体；品牌 / 网络字体只有确认目标系统可用后才领衔，否则导出安全字体族，并把原意向字体记录在 Design Spec 中 |
 | 幻灯片节 | 有意的不对称 | Edit Native PPTX 在 identity roster 不改 presentation 结构时保留既有节元数据；使用 `page_plan.json` 重建页面清单时会丢弃节。生成或重建页面列表的路线不创作 PowerPoint 原生节，因为页面角色与可选的 Design Spec Part 并不构成所有路线都具备的必需章节合同。节只改变缩略图栏的组织方式，从不改变任何页面外观；长 deck 需要分组时，在 PowerPoint 里手动分节约一分钟，且只做一次 |
 | Master / Layout | 系统化 | 结构化路线输出真实的 `p:sldMaster` / `p:sldLayout` part |
@@ -120,7 +120,7 @@
 
 ## 已交付里程碑
 
-一个月一行，细节见 [Release 发布说明](https://github.com/hugohe3/ppt-master/releases)与 commit log。
+一个月一行，细节见[上游 Release 发布说明](https://github.com/hugohe3/ppt-master/releases)与 commit log。
 
 | 时间 | 主题 |
 |---|---|
@@ -169,7 +169,7 @@ Generate PPTX 路线围绕完全可控的新形状、文字与版式创作。结
 
 会做：通过 prompt 精简 / 缓存命中率提升带来的间接改善。
 
-显式 `quick-generate` 是用户主动选择的工作流短路：它跳过 Strategist 和确认，随后创作 SVG，在 7 页及以上的 roster 上运行共用的中段 early gate，再运行一次无锁最终质量门并导出最终 PPTX。由于整个规划阶段不再发生——Strategist reference 的加载、`design_spec.md` / `spec_lock.md` 的写入、分步确认往返——这部分 token 开销随之消失，而逐页 SVG 创作的开销不变。它保留同一套页面级视觉与资源创作能力，以及共享的 SVG / 资源阻塞标准；它不运行 Spec Lock 对齐检查，也不从 lock 派生当前项目 Theme。Flat Quick 保留转换器默认 Theme 脚手架；structured Quick 在工作区提供时保留逐 Master 源 Theme，并从语义 slot carrier 推导 Master 标题／正文字号默认值。由于没有已确认的设计契约或可恢复的决策历史，它不承诺与 Default 作出相同设计，也不承诺具体耗时。
+
 
 默认 Generate 流程仍坚持质量优先。
 
@@ -183,8 +183,8 @@ Generate PPTX 路线围绕完全可控的新形状、文字与版式创作。结
 
 ## 反馈渠道
 
-- **Issues**：[github.com/hugohe3/ppt-master/issues](https://github.com/hugohe3/ppt-master/issues) — 报告 Bug / 提建议
-- **Discussions**：[github.com/hugohe3/ppt-master/discussions](https://github.com/hugohe3/ppt-master/discussions) — 用法讨论 / 经验分享
-- **邮箱**：heyug3@gmail.com
+- **Issues**：[github.com/hongge-ai/newbie-ppt/issues](https://github.com/hongge-ai/newbie-ppt/issues) — 报告 Bug / 提建议
+- **Discussions**：[上游 discussions](https://github.com/hugohe3/ppt-master/discussions) — 用法讨论 / 经验分享
+- **邮箱**：690832239@qq.com
 
 提需求前先扫一眼上面的**明确不做**；如果你的需求落在那一节，多半不会被采纳，但欢迎讨论是否还有别的路径解决你的真实问题。

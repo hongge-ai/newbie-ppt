@@ -44,7 +44,7 @@ DOCX 转换会把内嵌图片素材抽取到配套素材目录，并写入图片
 
 实际画布与已注册格式完全一致时，初始化可传对应键（如 `--format xhs`）。
 其他画布应省略 `--format`；Default Generate 会把确认后的 viewBox 记录到
-`spec_lock.md`，Quick Generate 则以第一张 SVG 为画布真值。输出仍然是包含原生形状的
+`spec_lock.md`。输出仍然是包含原生形状的
 `.pptx` 文件。
 
 ## Q: PPT Master 支持哪些 AI 工具？
@@ -86,7 +86,7 @@ python3 skills/ppt-master/scripts/update_repo.py
 
 ## Q: 通过 Skill marketplace 安装后，还需要什么环境，应该在哪个目录运行？
 
-所有安装方式都需要 Python 3.10+，以及一个已安装、已鉴权、能够读写文件并执行 shell 命令的 Agent host。使用 `npx skills add hongge-ai/newbie-ppt` 还要求本机有可用的 `npx` 命令，通常由 Node.js/npm 提供；仓库没有声明 Node/npm 的最低版本。Host 自带的 `/plugin install` 不走这条 `npx` 路径。
+所有安装方式都需要 Python 3.14，以及一个已安装、已鉴权、能够读写文件并执行 shell 命令的 Agent host。使用 `npx skills add hongge-ai/newbie-ppt` 还要求本机有可用的 `npx` 命令，通常由 Node.js/npm 提供；仓库没有声明 Node/npm 的最低版本。Host 自带的 `/plugin install` 不走这条 `npx` 路径。
 
 Skill 安装目录与工作目录承担不同角色。Python 依赖从完整仓库下载（其根目录带 uv 工程）安装；Agent 则应从你自行选择的、可持久保存且可写的工作目录启动。Agent 会按需在这个工作目录下创建 `projects/`，不需要从 host 管理的 skill 缓存目录运行。详见[快速入门：配置安装目录与工作目录](./getting-started.md#配置安装目录与工作目录)和 skill 的[执行入口](../../skills/ppt-master/SKILL.md)。
 
@@ -98,17 +98,17 @@ Skill 安装目录与工作目录承担不同角色。Python 依赖从完整仓�
 python3 -c "import pptx; import fitz; print('All core dependencies OK')"
 ```
 
-然后让 Agent 用 Quick 模式生成一份无来源文件的 3 页 “Hello World” deck。导入命令只检查核心 Python 包；Quick 运行会连同项目初始化、SVG 创作、校验和导出一起检查。成功标志是活动项目的 `exports/` 目录出现 PPTX，并且该文件能在演示文稿应用中打开。依据见 [Windows 安装 smoke](./windows-installation.md)和[快速模式 profile](../../skills/ppt-master/workflows/profiles/quick-generate.md)。
+然后让 Agent 生成一份无来源文件的 3 页 “Hello World” deck。导入命令只检查核心 Python 包；整次运行会连同项目初始化、SVG 创作、校验和导出一起检查。成功标志是活动项目的 `exports/` 目录出现 PPTX，并且该文件能在演示文稿应用中打开。依据见 [Windows 安装 smoke](./windows-installation.md)。
 
 ## Q: 需要手工创建 `projects/<name>` 吗？最终文件在哪个 `exports/`？
 
-不需要。由 Agent 执行时，Default Generate Step 2 或 Quick 初始化会创建活动项目，通常位于 `<工作目录>/projects/<生成的项目名>/`，并报告它的精确路径。使用默认导出路径时，PPTX 属于这个活动项目：
+不需要。由 Agent 执行时，Generate Step 2 会创建活动项目，通常位于 `<工作目录>/projects/<生成的项目名>/`，并报告它的精确路径。使用默认导出路径时，PPTX 属于这个活动项目：
 
 ```text
 <活动项目>/exports/<项目名>_<时间戳>.pptx
 ```
 
-它不是仓库根目录下一个没有项目上下文的 `exports/`；只有显式指定输出路径时例外。依据见 [Generate 的项目初始化与导出](../../skills/ppt-master/workflows/generate-pptx.md)、[快速模式 profile](../../skills/ppt-master/workflows/profiles/quick-generate.md)和[工作目录说明](./getting-started.md#配置安装目录与工作目录)。
+它不是仓库根目录下一个没有项目上下文的 `exports/`；只有显式指定输出路径时例外。依据见 [Generate 的项目初始化与导出](../../skills/ppt-master/workflows/generate-pptx.md)和[工作目录说明](./getting-started.md#配置安装目录与工作目录)。
 
 ## Q: 能用 AI 生成配图吗？
 
@@ -116,9 +116,9 @@ python3 -c "import pptx; import fitz; print('All core dependencies OK')"
 
 ## Q: 为什么没有图标？图标应该默认出现在每一页吗？
 
-不要求逐页使用图标。Default 中的 `No base icons` 与 Emoji、内置 SVG 图标、自定义项目图标一样，都是合法的确认选项。Default 的 `icons.inventory` 只索引其精选的已备素材池，不会把图标分配到页面。两种 profile 都可以使用项目内已备图标；Quick 不创建通用资源 roster，也不创建逐页图标分配表。只有页面沟通任务需要时才会使用图标，因此整份 deck 或某一页可以不用。AI 生成的插画图标切片属于另一条图片素材路径，同样不是必选项。
+不要求逐页使用图标。`No base icons` 与 Emoji、内置 SVG 图标、自定义项目图标一样，都是合法的确认选项。`icons.inventory` 只索引其精选的已备素材池，不会把图标分配到页面。只有页面沟通任务需要时才会使用图标，因此整份 deck 或某一页可以不用。AI 生成的插画图标切片属于另一条图片素材路径，同样不是必选项。
 
-依据见[策略师的图标选择](../../skills/ppt-master/references/strategist.md)、[执行器的图标用法](../../skills/ppt-master/references/executor-base.md)与[Quick 资源准备](../../skills/ppt-master/workflows/profiles/quick-generate.md)。
+依据见[策略师的图标选择](../../skills/ppt-master/references/strategist.md)与[执行器的图标用法](../../skills/ppt-master/references/executor-base.md)。
 
 ## Q: 没有生图 API Key，还能配图吗？
 
@@ -130,15 +130,15 @@ python3 -c "import pptx; import fitz; print('All core dependencies OK')"
 
 ## Q: 能把 AI 生成的 PPT 效果图或截图还原成可编辑 PowerPoint 吗？
 
-可以。提供一张或多张图片，并要求把其中的页面还原为可编辑 PPTX，PPT Master 就会把请求路由到**图片还原为 PPTX**（[`image-to-pptx`](../../skills/ppt-master/workflows/profiles/image-to-pptx.md)）profile。该 profile 当前要求在 Codex 中使用；其他 Agent host 尚未适配，不对其行为作支持或承诺。图片还原为 PPTX 始终直接启用 Quick，不需要另行说明“快速模式”。它会先把所有输入规范化为一份有序页面画面清单，所以最终页数由实际页面画面决定，而不是由文件数决定。
+可以。提供一张或多张图片，并要求把其中的页面还原为可编辑 PPTX，PPT Master 就会把请求路由到**图片还原为 PPTX**（[`image-to-pptx`](../../skills/ppt-master/workflows/profiles/image-to-pptx.md)）profile。该 profile 当前要求在 Codex 中使用；其他 Agent host 尚未适配，不对其行为作支持或承诺。它会先把所有输入规范化为一份有序页面画面清单，所以最终页数由实际页面画面决定，而不是由文件数决定。
 
 普通可见文字会还原为原生可编辑文本。Logo、图标、徽标和装饰图形在原图足够清晰时直接使用；像素过低时可由 Codex 根据参考图重建，但必须锁定身份、轮廓、比例、颜色和字标，禁止换成仅仅相似的替代物。图表、表格和数据图形禁止生成式重建：必须使用可核对数值的原生对象、精确源资产，或标记 `manual_required`。照片和插画场景至少拆成干净背景层与人物 / 前景层。多个带 padding 包围盒且互不重叠的对象可共用一次生成的底图（plate），再通过网格切片或 SVG 包围盒裁切拆成 PowerPoint 中的独立图片对象。AI 可以补全拆层后露出的隐藏场景像素，但不能改掉可见构图。把整页截图铺底、只叠少量可编辑元素，不算还原成功。
 
 ## Q: 生成的 PPT 可以编辑吗？
 
-可以。SVG 管线统一由项目转换器读取 `svg_output/` 并生成原生 DrawingML `.pptx`；文字、图形和颜色无需额外转换即可编辑，文件以时间戳命名保存至活动项目的 `exports/`。使用默认输出路径时，Default Generate 与 Quick Generate 都会把作者源 `svg_output/` 镜像到 `backup/<timestamp>/svg_output/`，便于归档或基于该版重新导出 PPTX，无需再走 LLM。对 Quick 而言，这只是包重建，不是可恢复的 AI 设计决策记录。
+可以。SVG 管线统一由项目转换器读取 `svg_output/` 并生成原生 DrawingML `.pptx`；文字、图形和颜色无需额外转换即可编辑，文件以时间戳命名保存至活动项目的 `exports/`。使用默认输出路径时，导出会把作者源 `svg_output/` 镜像到 `backup/<timestamp>/svg_output/`，便于归档或基于该版重新导出 PPTX，无需再走 LLM。
 
-`finalize_svg.py` 在默认 Generate 流程的 Step 7 中仍是强制操作，尽管原生 PPTX 导出读取的是 `svg_output/`。它会在 `svg_final/` 中生成自包含文件，用于视觉检查，也可作为 SVG 图片手动插入另一份 deck。显式快速生成会跳过这项预览产物，但在无锁最终质量检查通过后，仍保留普通 postflight 报告和默认输出路径下的备份。PowerPoint 手工“转换为形状”不是受支持的往返路径；需要可编辑形状时，请使用生成的原生 PPTX。
+`finalize_svg.py` 在默认 Generate 流程的 Step 7 中仍是强制操作，尽管原生 PPTX 导出读取的是 `svg_output/`。它会在 `svg_final/` 中生成自包含文件，用于视觉检查，也可作为 SVG 图片手动插入另一份 deck。最终质量检查通过后，导出仍保留普通 postflight 报告和默认输出路径下的备份。PowerPoint 手工“转换为形状”不是受支持的往返路径；需要可编辑形状时，请使用生成的原生 PPTX。
 
 ## Q: 多行文本会怎样导出？可以让 PowerPoint 自动重排吗？
 
@@ -187,9 +187,9 @@ PowerPoint 最终显示的是 pt，所以**导出时**自动把 px 换成 pt（`
 
 ## Q: 结果看起来只有框和线，应该先核对哪些运行事实？
 
-PPT Master 没有文档化的 `wireframe` 运行模式，也没有跨版本视觉等价保证，因此不能只凭观感判定版本回归。先记录本次使用 Default 还是 Quick，以及实际的 mode、visual style、图片方案、基础图标选择、Custom Animations 设置和资源备妥状态。Quick 不写 `design_spec.md` 或 `spec_lock.md`，这些决定只保留在 Agent 的当前上下文。
+PPT Master 没有文档化的 `wireframe` 运行模式，也没有跨版本视觉等价保证，因此不能只凭观感判定版本回归。先记录本次运行的 mode、visual style、图片方案、基础图标选择、Custom Animations 设置和资源备妥状态（见 `design_spec.md` 与 `spec_lock.md`）。
 
-再比较活动项目 `svg_output/` 中的同一页与导出的 PPTX。SVG 本身已经稀疏时，应检查规划、资源与 SVG 创作层；SVG 中存在预期对象、PPTX 却丢失或改变时，才检查转换或渲染层。这个分界依据[材料 → 规划 → 实现](./technical-design.md#材料--规划--实现餐厅合同)、[Default Generate 工作流](../../skills/ppt-master/workflows/generate-pptx.md)与[快速模式 profile](../../skills/ppt-master/workflows/profiles/quick-generate.md)。
+再比较活动项目 `svg_output/` 中的同一页与导出的 PPTX。SVG 本身已经稀疏时，应检查规划、资源与 SVG 创作层；SVG 中存在预期对象、PPTX 却丢失或改变时，才检查转换或渲染层。这个分界依据[材料 → 规划 → 实现](./technical-design.md#材料--规划--实现餐厅合同)与 [Generate 工作流](../../skills/ppt-master/workflows/generate-pptx.md)。
 
 ## Q: PPT Master 如何计费？复用模板会降低 token 用量吗？
 
@@ -247,7 +247,7 @@ carrier 与保留边界见 [PowerPoint ↔ SVG 映射指南](./powerpoint-svg-ma
 `pptx_to_svg.py` 也会把当前注册表内可精确读回的页面切换和具有精确时长的
 有限对象动画记录重建到 `animations.json`；不支持的来源 timing 会保留明确诊断。
 
-整份 deck 的自动入场可用 `-a auto`，统一效果可传规范效果名，逐页 / 逐对象时序则使用项目级 `animations.json`。Default 在已有 sidecar、显式逐页 / 逐对象请求，或有效的 Custom Animations 结果已启用时运行自定义阶段。Quick 在 sidecar 或当前上下文的动效决定需要对象级工作时运行；录制、自运行或视频导向的 Quick 交付必须进入该阶段，除非用户显式要求静态或只用页间转场。只涉及整份 deck 的要求可以保留为导出参数。所有触发都不成立时，保留 `fade` / `none` 默认值。触发边界见 [Generate 工作流](../../skills/ppt-master/workflows/generate-pptx.md)与[快速模式 profile](../../skills/ppt-master/workflows/profiles/quick-generate.md)。
+整份 deck 的自动入场可用 `-a auto`，统一效果可传规范效果名，逐页 / 逐对象时序则使用项目级 `animations.json`。已有 sidecar、显式逐页 / 逐对象请求，或有效的 Custom Animations 结果已启用时，运行自定义阶段。录制、自运行或视频导向的交付必须进入该阶段，除非用户显式要求静态或只用页间转场。只涉及整份 deck 的要求可以保留为导出参数。所有触发都不成立时，保留 `fade` / `none` 默认值。触发边界见 [Generate 工作流](../../skills/ppt-master/workflows/generate-pptx.md)。
 
 ```bash
 python3 skills/ppt-master/scripts/svg_to_pptx.py <project> -t push       # 换转场效果
@@ -301,20 +301,6 @@ python3 skills/ppt-master/scripts/svg_to_pptx.py <project> -a auto --animation-t
 一份典型的 10–15 页 PPT 大约需要 **10–20 分钟**（使用吞吐较快的模型）。生成流程是**故意串行的**（逐页生成），这样才能保持前后页面的视觉一致性——并行生成方案曾经测试过，结果是各画各的、缺乏整体观。
 
 如果感觉生成很慢，检查一下模型的 token 吞吐速度。瓶颈通常在模型的输出速度，而不是脚本本身。
-
-如果你想要的是少走流程、而不是换模型，可以显式要求快速生成：它省略策略师分析与确认停顿，但仍需逐页创作 SVG。仓库不承诺 Quick 会固定缩短多少时间。见下一问「不想先确认设计规格，能直接生成吗？」。
-
-## Q: 不想先确认设计规格，能直接生成吗？
-
-可以。请显式要求**快速生成**，Generate 路线会启用 [`quick-generate` profile](../../skills/ppt-master/workflows/profiles/quick-generate.md)。
-
-**它跳过的是策略师分析、`design_spec.md` / `spec_lock.md` 落盘和分步确认停顿：你明确提出的要求照做；你没提的，当前 Agent 直接决定并继续，不再回来征求同意。** 什么都不提，才是全部由 Agent 决定。它同时跳过 `finalize_svg.py`，因此不生成 `svg_final/` 预览。
-
-它不跳过备料或设计能力：来源转换、已识别事实缺口的研究、共享美学参考，以及生成 deck 所需的资源仍按需准备——用户提供或源文件抽取的图片、AI / 网络 / 切片图片、项目图标、原生形状、图表 / 表格，以及对应的必要运行 manifest 或来源记录。公式由当前 Agent 直接写成受影响 SVG 中的 PowerPoint 原生 marker，不再作为图片资源准备。显式选择的 manual 路径或其他不可替代的文件依赖未就绪时，Quick 会阻塞并索取文件。自动 AI 生成或其必需切片路径耗尽时，Quick 则会移除失败任务与过期 manifest 条目，改用原生可编辑文字 / SVG 或已经备好的非 AI 素材承载原沟通任务，继续本次运行，并在最终交接中披露替代结果；它不会拿无关材料顶替。备料完成后，当前 Agent 按共享规范手写 `svg_output/`，运行无锁的 Quick 最终质量检查并修复所有阻塞错误，之后才导出最终 PPTX。
-
-原生图表 / 表格替换、讲稿、动效、旁白和诊断等普通导出能力仍可按需使用；讲稿、自定义对象动画和旁白默认关闭，Agent 可在用户要求或 deck 确有需要时自动启用，不会打开确认流程。使用默认输出路径时会生成普通 postflight 报告，并把 `svg_output/` 备份到 `backup/`；显式指定输出路径时沿用普通流程不创建备份的行为。页数本身既不会自动触发，也不会阻止快速生成。
-
-Quick 省略独立规划阶段，但仓库没有文档化的测量或保证表明它会降低多少 token；逐页 SVG 创作仍然存在。Quick 保留同一套页面级视觉与资源创作能力，以及共享的 SVG / 资源阻塞标准；它不运行 Spec Lock 对齐检查，也不从 lock 派生当前项目 Theme。Flat Quick 保留转换器默认 Theme 脚手架；structured Quick 在工作区提供时保留逐 Master 源 Theme，并从语义 slot carrier 推导 Master 标题／正文字号默认值。由于没有已确认的设计契约或可恢复的决策历史，它不承诺与 Default 作出相同设计，也不承诺具体耗时。
 
 ## Q: 长 PPT 一次生成会不会上下文爆掉？
 
@@ -405,7 +391,7 @@ Create Template 会先确认简报，再写入已注册、可发现的 `library`
 
 ## Q: 模板注册后，以后每次生成都会自动使用吗？
 
-不会。注册只让工作区可被发现，不会自动选中。Default Generate 每次仍需在 Stage 1 确认；只提供一个精确工作区 root 时可在页面中预选，但不会跳过确认，提供多个 root 时则都只作为未选候选。Quick 没有模板选择页，因此精确 root 会被直接校验并使用；没有精确 root 就走自由设计。原始 `.pptx`、内层 `templates/` 目录、裸模板名或风格词都不算选中工作区。详见[选择方式](./templates-guide.md#选择方式)与[Quick 模板边界](../../skills/ppt-master/workflows/profiles/quick-generate.md)。
+不会。注册只让工作区可被发现，不会自动选中。每次仍需在 Stage 1 确认；只提供一个精确工作区 root 时可在页面中预选，但不会跳过确认，提供多个 root 时则都只作为未选候选。原始 `.pptx`、内层 `templates/` 目录、裸模板名或风格词都不算选中工作区。详见[选择方式](./templates-guide.md#选择方式)。
 
 ---
 

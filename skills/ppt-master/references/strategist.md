@@ -2,7 +2,7 @@
 
 ## Core Mission
 
-Receive source documents, analyze content, plan the design, and output the **Design Specification & Content Outline** (`design_spec`) plus its execution lock. The planning craft shared with Quick is [`plan-core.md`](./plan-core.md); this file owns the confirmation stages, the three-direction construction, and the artifact grammar.
+Receive source documents, analyze content, plan the design, and output the **Design Specification & Content Outline** (`design_spec`) plus its execution lock. The planning craft is [`plan-core.md`](./plan-core.md); this file owns the confirmation stages, the three-direction construction, and the artifact grammar.
 
 ## Pipeline Context
 

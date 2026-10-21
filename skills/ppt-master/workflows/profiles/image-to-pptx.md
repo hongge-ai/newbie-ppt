@@ -1,18 +1,18 @@
 ---
-description: Quick-only Generate profile for reconstructing one or more source images into layered, editable PPTX slides.
+description: Generate fidelity profile for reconstructing one or more source images into layered, editable PPTX slides.
 ---
 
 # Image to PPTX Profile
 
-> Quick-only Generate profile, not a top-level route. Normalize supplied images into the represented page roster, then rebuild each page as native text, identity-faithful source graphics, and independently placeable image layers. The visible result is the reference truth, but the output is not a screenshot skin: image content becomes the smallest useful background / foreground / subject stack, visible text is restored natively, and source graphics stay visually exact. No redesign, no Strategist, no confirmation.
+> Generate fidelity profile, not a top-level route. Normalize supplied images into the represented page roster, then rebuild each page as native text, identity-faithful source graphics, and independently placeable image layers. The visible result is the reference truth, but the output is not a screenshot skin: image content becomes the smallest useful background / foreground / subject stack, visible text is restored natively, and source graphics stay visually exact. No redesign.
 
 **Trigger**: the user supplies raster visuals (approved mockups, rendered slides, contact sheets, flattened pages) and explicitly asks to restore the represented pages as a PPTX. Photos, illustrations, or moodboards used as resources for a new story do not activate it.
 
 **Support boundary — Codex required**: documented and validated for Codex only, because it depends on Codex's native reference-image generation/editing and direct inspection of every derived layer. Other hosts may happen to work; the repository makes no compatibility claim and defines no alternate host or generic image-backend fallback.
 
-**Hard rule — Quick only**: always load [`quick-generate.md`](./quick-generate.md), never `generate-pptx.md`, without the user saying "Quick"; skip Strategist, Confirm UI, template selection, Design Spec, lock, and the Default gate cadence. The main agent decides the reconstruction, prepares all resources, hand-authors SVG, runs Quick's checker gates, and exports.
+**Hard rule — this profile's fidelity boundary**: run the ordinary [`generate-pptx.md`](../generate-pptx.md) Step 1–7 sequence. The normalization and reconstruction rules below replace Strategist's content shaping for these pages — the roster is the source frame order verbatim, and §IX records it 1:1 instead of re-planning it. Everything else (project initialization, confirmation gates, Design Spec, lock, Executor authoring, quality gates, export) is the standard flow.
 
-**Hard rule — source surface, not template application**: stay in Quick free design; never install or apply a Brand/Style/Layout/Deck workspace — it would compete with the canonical page geometry. A reusable-system request routes to Create Template.
+**Hard rule — source surface, not template application**: confirm `free_design` at Stage 1 and never install a Brand/Style/Layout/Deck workspace — it would compete with the canonical page geometry. A reusable-system request routes to Create Template.
 
 ---
 
@@ -20,7 +20,7 @@ description: Quick-only Generate profile for reconstructing one or more source i
 
 | Request shape | Behavior |
 |---|---|
-| Image files represent pages that must become a final editable PPTX | This profile + Quick |
+| Image files represent pages that must become a final editable PPTX | This profile + Default Generate |
 | One file contains several clearly separated slide frames | Split into the ordered roster first, then reconstruct each frame |
 | Images are ordinary content assets or inspiration for a new deck | Ordinary Generate |
 | Images should define a reusable workspace | [`create-template.md`](../create-template.md) |
@@ -83,9 +83,11 @@ The reference-image CLI does not inherit source dimensions: pass an explicit mat
 
 ---
 
-## 5. Source Evidence without a Quick Plan
+## 5. Source Evidence Inventory
 
-Before deciding layers, write `<project_path>/analysis/reconstruction_inventory.json` recording only what is visibly present: original file and normalized page path; page order, source-frame bbox, SHA-256, pixel dimensions; visible regions with stable ids, bboxes, observed family (`text` / `graphic` / `image` / `unknown`), verbatim text where applicable, and confidence; observed sufficiency, boundary completeness, occlusion/contamination, and identity/data verifiability; overlap/z-order observations and unresolved evidence. No final layer choices, prompts, output filenames, or SVG bindings — those stay in active context plus required operational image evidence; context loss restarts the run. Low-confidence text, an uncertain boundary, or an unidentified branded/data graphic is unresolved evidence and blocks delivery.
+Before deciding layers, write `<project_path>/analysis/reconstruction_inventory.json` recording only what is visibly present: original file and normalized page path; page order, source-frame bbox, SHA-256, pixel dimensions; visible regions with stable ids, bboxes, observed family (`text` / `graphic` / `image` / `unknown`), verbatim text where applicable, and confidence; observed sufficiency, boundary completeness, occlusion/contamination, and identity/data verifiability; overlap/z-order observations and unresolved evidence. No final layer choices, prompts, output filenames, or SVG bindings — those belong to the Design Spec's §IX page briefs and the operational image evidence. Low-confidence text, an uncertain boundary, or an unidentified branded/data graphic is unresolved evidence and blocks delivery.
+
+**Roster obligation**: the confirmed §IX roster maps one normalized frame to one page, in source order, with the frame's aspect ratio preserved. Page content comes from the image evidence; the Strategist plans how each evidence unit is carried (native text, source graphic, image layer) rather than re-ideating the page.
 
 ---
 
@@ -97,7 +99,7 @@ When any `image_layer` or low-resolution `source_graphic` needs reference editin
 
 ## 7. SVG Authoring and Release Gate
 
-Follow Quick after normalization and preparation: hand-author pages serially from the base, registered layers, source graphics, native shapes, and native text, giving independently movable layers stable direct-root group ids for later animation.
+Follow Generate Step 6 after normalization and preparation: hand-author pages serially from the base, registered layers, source graphics, native shapes, and native text, giving independently movable layers stable direct-root group ids for later animation.
 
 **Forbidden — screenshot skin**: never use the complete source page as the sole full-slide picture with token editable text above it; the source page is comparison evidence, not a hidden backing layer.
 
@@ -112,7 +114,7 @@ Follow Quick after normalization and preparation: hand-author pages serially fro
 | Honest reconstruction | AI-recovered hidden pixels identified as reconstruction |
 | Independent objects | Every layer requested for editing or animation is a distinct picture object (shared plates allowed for disjoint members) |
 | Reference exclusion | Canonical full-page source images are not referenced or packaged as slide media |
-| Package quality | Quick's lockless final checker and PPTX postflight pass |
+| Package quality | Generate's final SVG quality gate and PPTX postflight pass |
 
 If a layer drifts, retry from the canonical reference with a narrower edit; never compensate by changing native text/graphics or flattening the page. If the Codex path is exhausted, mark the layer `Needs-Manual` and block export.
 
@@ -122,6 +124,6 @@ If a layer drifts, retry from the canonical reference with a narrower edit; neve
 - [x] Visible text native and verbatim; source graphics identity-faithful and sharp
 - [x] Required background / foreground / subject layers independent and registered; shared plates split into independent objects
 - [x] Recombined pages match the references; canonical source images absent from slide media
-- [x] Quick's SVG quality gate and PPTX postflight pass
+- [x] Generate's SVG quality gate and PPTX postflight pass
 - [ ] **Next**: Report the PPTX and identify native, exact-source, and AI-reconstructed objects
 ```

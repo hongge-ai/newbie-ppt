@@ -21,6 +21,7 @@ import posixpath
 import re
 import shutil
 import tempfile
+import time
 import zipfile
 from collections.abc import Callable
 from dataclasses import dataclass, field, replace
@@ -1310,15 +1311,15 @@ def publish_staged_workspace(
 
         if output_dir.is_dir():
             try:
-                os.replace(output_dir, backup_dir)
-                os.replace(candidate_dir, output_dir)
+                _replace_with_retry(output_dir, backup_dir)
+                _replace_with_retry(candidate_dir, output_dir)
             except BaseException as publish_error:
                 try:
                     if _path_lexists(backup_dir):
                         if _path_lexists(output_dir):
                             failed_output = transaction_dir / "failed-publish"
-                            os.replace(output_dir, failed_output)
-                        os.replace(backup_dir, output_dir)
+                            _replace_with_retry(output_dir, failed_output)
+                        _replace_with_retry(backup_dir, output_dir)
                 except BaseException as restore_error:
                     if (
                         not _path_lexists(backup_dir)
@@ -1333,10 +1334,22 @@ def publish_staged_workspace(
                     ) from restore_error
                 raise
         else:
-            os.replace(candidate_dir, output_dir)
+            _replace_with_retry(candidate_dir, output_dir)
     finally:
         if not preserve_backup:
             shutil.rmtree(transaction_dir, ignore_errors=True)
+
+
+def _replace_with_retry(source: Path, target: Path, attempts: int = 5) -> None:
+    """Replace a path, retrying transient Windows sharing violations."""
+    for attempt in range(attempts):
+        try:
+            os.replace(source, target)
+            return
+        except PermissionError:
+            if attempt == attempts - 1:
+                raise
+            time.sleep(0.05 * (attempt + 1))
 
 
 def _write_artifact_tree(

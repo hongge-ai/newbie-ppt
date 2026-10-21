@@ -77,7 +77,10 @@ class TemplateFlowBatch4Tests(unittest.TestCase):
         library.mkdir(parents=True)
         outside = self.root / 'outside'
         outside.mkdir()
-        (library / 'escaped').symlink_to(outside, target_is_directory=True)
+        try:
+            (library / 'escaped').symlink_to(outside, target_is_directory=True)
+        except OSError as exc:
+            self.skipTest(f"symlink creation unavailable: {exc}")
         with patch.object(mirror, '__file__', str(fake_script)):
             for destination, kind, expected in (
                 (self.root / 'project', 'deck', 'design_spec.deck.TODO.md'),

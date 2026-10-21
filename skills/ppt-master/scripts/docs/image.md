@@ -12,7 +12,7 @@ pipeline, not the image pipeline.
 ## Legacy standalone `latex_render.py`
 
 This retained standalone utility renders a user-authored
-`images/formula_manifest.json` to PNG. Neither Default nor Quick Generate calls
+`images/formula_manifest.json` to PNG. Generate does not call
 it, and new projects do not create formula manifests or formula images. The
 supported generated-deck path authors a native formula marker in SVG and lets
 `svg_to_pptx.py` compile its LaTeX payload to editable PowerPoint OMML.
@@ -32,11 +32,11 @@ Unified image generation entry point.
 This script is the **Path A** API/proxy executor for generated images. Default
 Generate checks `design_spec.md §I / AI Image Acquisition Path` before manifest
 mode: only `api` / `auto` permits Path A; a missing or unknown value fails
-closed and returns to Step 4 recovery. Quick Generate has no Design Spec: use
+closed and returns to Step 4 recovery.
 the explicit active-context path when supplied, otherwise `auto` selects the
 A → B chain defined in
 [`image-generator.md`](../../references/image-generator.md) §7 without asking;
-exhausted automation triggers Quick's no-AI replan rather than Offline Manual.
+exhausted automation stops at the recovery decision rather than Offline Manual.
 In either profile, `host-native` uses the host image tool directly and an
 explicit `manual` choice uses the read-only Markdown sidecar.
 

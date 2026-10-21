@@ -4,12 +4,12 @@ description: Conditional quality-gate stage for data-chart geometry and encoding
 
 # Verify Charts Stage
 
-> Conditional Generate-PPTX quality stage. Run after a deck containing data charts has finished SVG generation and before post-processing/export; it catches coordinate and encoding errors introduced while mapping source values into SVG marks. Default runs it context-independently from `design_spec.md` plus the SVGs; the lockless Quick branch runs in the same active session from the page decisions just authored — if that context is lost, restart Quick rather than inventing a page plan from finished files.
+> Conditional Generate-PPTX quality stage. Run after a deck containing data charts has finished SVG generation and before post-processing/export; it catches coordinate and encoding errors introduced while mapping source values into SVG marks. It runs context-independently from `design_spec.md` plus the SVGs, so a resumed session verifies against retained artifacts rather than reconstructing a page plan from finished files.
 
 ## When to Run
 
 - The deck contains at least one chart where source values determine SVG geometry or encoding (bar lengths, point positions, arc angles, polygon vertices, connector endpoints, bubble centers/radii, flow widths, cell colors, word sizes).
-- SVGs exist in `<project_path>/svg_output/` and `finalize_svg.py` / `svg_to_pptx.py` have not run. Default enters from its quality-gate order; Quick runs it before its one lockless final checker.
+- SVGs exist in `<project_path>/svg_output/` and `finalize_svg.py` / `svg_to_pptx.py` have not run. It enters from Generate's quality-gate order, before the final checker.
 
 The calculator has direct models for bars, lines/scatter, pie/donut, radar, and grids. Composite charts are not out of scope: geometry that reduces to repeated direct calculations is `decomposable-calc`; data-driven geometry with no layout model is `manual-verify`, never silently skipped.
 
@@ -17,12 +17,9 @@ The calculator has direct models for bars, lines/scatter, pie/donut, radar, and 
 
 ## Step 1: Build the chart-object list from the active profile authority
 
-| Active profile | Object-list authority |
-|---|---|
-| Default Generate | `design_spec.md §IX` — every semantic object key whose `Visualization` entry declares value-driven SVG geometry; §VII only resolves a selected catalog reference, and one real §VII data-chart row may supply one legacy object for a page whose §IX predates object keys |
-| Quick Generate | The still-active semantic object keys and page decisions, cross-checked one-for-one against every `chart-plot-area` marker found by one search of `svg_output/`; add a missing scoped marker, investigate an unexpected one, keep the list in active context only |
+| Object-list authority | `design_spec.md §IX` — every semantic object key whose `Visualization` entry declares value-driven SVG geometry; §VII only resolves a selected catalog reference, and one real §VII data-chart row may supply one legacy object for a page whose §IX predates object keys |
 
-Incidental microvisuals not promoted by the profile authority are not inferred into the list: Default repairs §IX first; Quick decides promotion in active context and updates the marker before verification. Never guess from SVG content when §IX declares no data-driven object.
+The list is cross-checked one-for-one against every `chart-plot-area` marker found by one search of `svg_output/`; add a missing scoped marker and investigate an unexpected one. Incidental microvisuals are not inferred into the list: repair §IX first, never guess from SVG content when §IX declares no data-driven object.
 
 | Mode | `charts_index.json` keys | Notes |
 |------|--------------------------|-------|
@@ -63,13 +60,13 @@ If the list is empty, output `verify-charts: active profile declares no data-dri
 
 6. **Scale-aware comparison**: before declaring a mismatch, confirm every invocation used the axis range, plot area, center/radius, start angle, or size scale the SVG visually declares — for `calc bar` the header must show `Value scale: axis ticks (...)` when the SVG has ticks; `auto (max*1.1)` means go back to step 3. Never update the SVG with mismatched-scale output. When the scale matches and coordinates genuinely differ, update by hand — no regex or bulk replacement. On a signed bar chart the calculator starts every bar at the axis minimum, so compare `x_min + width` against the drawn far edge from the zero baseline rather than its `X`.
 
-After updating any page, follow the profile's checker order. Default reruns `svg_quality_checker.py <project_path> --canonical-authoring --stage final --json`, which writes the current `final` report Step 7.3 requires. Quick completes every chart comparison/repair first, then returns to `quick-generate.md` §4 for its one lockless final checker — no checker call between chart pages.
+After updating any page, complete every chart comparison/repair first, then run the final checker once: `svg_quality_checker.py <project_path> --canonical-authoring --stage final --json`, which writes the current `final` report Step 7.3 requires. No checker call between chart pages.
 
 ---
 
 ## Step 3: Per-object receipt
 
-One line per Step 1 object, including its semantic key; receipt count MUST equal the list length — that is the gate-closing evidence. Quick does not persist these lines.
+One line per Step 1 object, including its semantic key; receipt count MUST equal the list length — that is the gate-closing evidence.
 
 ```
 verify-charts: 03_market_share.svg | object=market-share | type=bar | mode=direct-calc | scale=0-100 (from ticks) | calc=ran | svg=updated
@@ -84,4 +81,4 @@ verify-charts: 19_flow.svg | object=flow | type=sankey | mode=manual-verify | li
 
 ## After verification
 
-Default continues with [`generate-pptx`](../generate-pptx.md) Step 7; Quick returns to [`quick-generate`](../profiles/quick-generate.md) §4 for its final checker and direct export.
+Continue with [`generate-pptx`](../generate-pptx.md) Step 7.

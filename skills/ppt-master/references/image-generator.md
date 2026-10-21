@@ -4,7 +4,7 @@
 
 Role definition for the **AI image generation path**: turn each active `Acquire Via: ai` row into one prose prompt, generate the image into `project/images/`, and derive `slice` elements from illustration, illustrated-icon, and lettering sheets.
 
-**Trigger**: the Default resource list contains `Acquire Via: ai` or `slice`, or Quick has resolved a required AI/sliced image in active context.
+**Trigger**: the `design_spec.md §VIII` resource list contains `Acquire Via: ai` or `slice`.
 
 ---
 
@@ -39,7 +39,7 @@ Pick whatever `page_role` and `text_policy` make the page work; everything else 
 | Dimension | Decides | When fixed |
 |---|---|---|
 | **Rendering** | Visual style family (vector / sketch-notes / 3d-isometric / corporate-photo / …) | Once per deck |
-| **Deck colors** | Core background / primary / accent / secondary-accent / text anchors from `spec_lock.md colors` (Default) or the active-context decisions (Quick) | Default after Stage 2; Quick before acquisition |
+| **Deck colors** | Core background / primary / accent / secondary-accent / text anchors from `spec_lock.md colors` | After Stage 2, before acquisition |
 | **Type** | Optional recall for a local structural infographic's skeleton (infographic / flowchart / framework / matrix / cycle / funnel / pyramid / comparison / timeline / map / scene); omit when no template fits, for single-subject/portrait, and for `hero_page` | Per image |
 
 Rendering decides how the image is drawn. Color begins from the deck roles — background / secondary background dominate the field, primary carries main forms, accents stay scarce — with context-justified lighting, material, and tint transitions but never an unrelated image-only palette.
@@ -53,24 +53,23 @@ Rendering decides how the image is drawn. Color begins from the deck roles — b
 1. **Load the indices** above.
 2. **Resolve deck rendering + colors** (table below), then read the single resolved rendering file (an 80–120-word style paragraph plus two fewshot snippets).
 3. **Per-image type + assembly** (table below). Assemble one paragraph from the rendering style paragraph, the deck color behavior, the type layout or composition prose, the `Reference` intent as concrete visual nouns, the container note, and the §5 hard rules.
-4. **Write the manifest (§6) and execute the selected path (§7)** — Default's confirmed path, Quick's explicit path or `auto`, without asking.
+4. **Write the manifest (§6) and execute the selected path (§7)** — the path confirmed at Stage 2, without asking.
 
 **Rendering and color resolution**:
 
 | Situation | Resolution |
 |---|---|
-| Default | `spec_lock.md colors` already carries `image_rendering` and the role HEX (`image_rendering: vector-illustration`, `background: #F8F9FA`, `primary: #1E3A5F`, `accent: #D4AF37`) — identity anchors, not a second user-facing choice |
-| Quick | The agent resolves one rendering/color set in context and writes it to `image_prompts.json` |
+| Recorded | `spec_lock.md colors` already carries `image_rendering` and the role HEX (`image_rendering: vector-illustration`, `background: #F8F9FA`, `primary: #1E3A5F`, `accent: #D4AF37`) — identity anchors, not a second user-facing choice |
 | `custom` | Read every `image_rendering_references` file when the row exists — apply one basis under `image_rendering_behavior`, or synthesize several by their stated line, texture, depth, material, and mood contributions; with no references use the behavior alone; never infer adjacent references |
 | Missing `image_rendering` key in an existing lock ([`failure-recovery.md`](../workflows/governance/failure-recovery.md) §2) | Infer the rendering from `design_spec.md d. Style` plus the intended image jobs against the complete catalog; keep the existing color rows as anchors; sanity-check against `icons.library`; choose the strongest fit without presenting a choice; print "spec_lock.md has no `image_rendering`—inferring `<X>` from design_spec; image colors still use the locked deck roles." Stop for lock repair if the inference lands on `custom` or the value is empty/invalid |
-| Absent lock outside Quick | Stops at Generate Step 5 |
+| Absent lock | Stops at Generate Step 5 |
 
-**Per-image resolution** (explicit row values bind; Quick resolves omissions):
+**Per-image resolution** (explicit row values bind):
 
 | Field | Resolution |
 |---|---|
 | `Image pattern` | Never copied into the prompt. When page use depends on stable composition, carry the row's `Reference` / §IX / active-context contract — subject and quiet zones, boundary or direction, overlap/seam, approximate share — without inventing layout |
-| `page_role` | The row's value, else `local` (`hero_page` is Strategist-explicit in Default; Quick may resolve it) |
+| `page_role` | The row's value, else `local` (`hero_page` is Strategist-explicit) |
 | `text_policy` | The row's value, else `none` or `embedded` from `Purpose`, `Reference`, and page intent |
 | Type | An Illustration Sheet omits `type` and follows §4.3; another local structural infographic takes one of the 11 types only on a real index match, otherwise §4.1 E prose; a local single-subject/portrait uses §4.1 A/B; a `hero_page` uses §4.1 A–E. Read `image-type-templates/<type>.md` only when selected |
 
@@ -119,7 +118,7 @@ A sheet generates compatible transparent **illustration**, **illustrated-icon**,
 
 **Default — batch compatible elements; split when separate generation improves the result**: group illustrated-icon cues normally; group lettering by compatible letterform character and treatment (not font name); split for style, geometry, detail, quality, or semantic precision. A single element may use a keyed `1x1` sheet. Full-canvas or opaque images take the normal §4.1 path; several opaque photos for a multi-cell layout may share one sheet under the same contract, sliced by `--grid` with `--inset` and no key color, `--trim`, or `--alpha`.
 
-**Hard rule — a sheet is a generation source, not a slide asset**: never referenced from SVG; out of `spec_lock.md images` in Default, generation-only in Quick's context and manifest; only sliced element rows are placed.
+**Hard rule — a sheet is a generation source, not a slide asset**: never referenced from SVG; out of `spec_lock.md images`, generation-only in the manifest; only sliced element rows are placed.
 
 **Hard rule — separable treatment before keying**: when the slice excludes a supporting surface, choose a treatment whose complete visible geometry stands alone against the key field. Engraved, etched, debossed, inlaid, or bas-relief treatments are valid only when their carrier belongs in the slice; never define a carrier as necessary and ask the prompt to remove it.
 
@@ -330,21 +329,19 @@ Prerequisite: §3 complete and `images/image_prompts.json` validates. The manife
 |---|---|---|
 | `api`, or `auto` with `IMAGE_BACKEND` configured | **Path A** `image_gen.py --manifest` | One command runs the manifest with concurrency and writes status per item |
 | `host-native`, or `auto` with a host image tool | **Path B** host-native tool | The agent invokes the host capability; outputs land at `project/images/<filename>` |
-| Default confirmed `manual`, or Quick explicitly `manual` | **Offline Manual** | Manifest stays on disk; the user generates from `items[].prompt` and places files |
+| Confirmed `manual` | **Offline Manual** | Manifest stays on disk; the user generates from `items[].prompt` and places files |
 
 **Path selection**: planning never inspects configuration or probes a provider — capability is resolved only here. All modes share one output contract: a file at `project/images/<filename>`.
 
 | Recorded path | Resolution |
 |---|---|
-| Default `api` (from `AI Image Acquisition Path` in `design_spec.md §I`, already consumed from the confirmation; never reopen `result.json`) | Path A |
-| Default `host-native` | Path B, skipping A even when `IMAGE_BACKEND` is configured |
-| Default `manual` | Offline Manual |
-| Default `auto` | Path A when `IMAGE_BACKEND` is configured (two consecutive failures fall to B), then Path B when the host has a native tool; never Offline Manual by itself |
-| Default missing row | Return to Step 4 recovery |
-| Quick explicit `api` / `host-native` / `manual` | That path |
-| Quick otherwise | `auto` A → B without asking |
+| `api` (from `AI Image Acquisition Path` in `design_spec.md §I`, already consumed from the confirmation; never reopen `result.json`) | Path A |
+| `host-native` | Path B, skipping A even when `IMAGE_BACKEND` is configured |
+| `manual` | Offline Manual |
+| `auto` | Path A when `IMAGE_BACKEND` is configured (two consecutive failures fall to B), then Path B when the host has a native tool; never Offline Manual by itself |
+| Missing row | Return to Step 4 recovery |
 
-**Hard rule — no reopened selection**: normal execution never reopens selection. A confirmed path that fails after its retry never switches provider — Default enters the recovery decision below, Quick applies its no-AI replan.
+**Hard rule — no reopened selection**: normal execution never reopens selection. A confirmed path that fails after its retry never switches provider — enter the recovery decision below.
 
 ### Path A — `image_gen.py --manifest`
 
@@ -360,14 +357,11 @@ Automatic when `IMAGE_BACKEND` is unset or Path A failed and the host (Codex, An
 
 ### Offline Manual Mode
 
-Entered only after Default confirmed `manual` (Stage 2 or the recovery decision) or an explicit Quick instruction — never asked again inside acquisition. Verify the manifest, set `status: "Needs-Manual"` on every affected item ([`image-base.md`](./image-base.md) §3), and print one consolidated handoff: filenames, the `images/image_prompts.md` paste-ready blocks (or `items[].prompt`), the exact target `project/images/<filename>`, and the continuation.
+Entered only after `manual` was confirmed (Stage 2 or the recovery decision) — never asked again inside acquisition. Verify the manifest, set `status: "Needs-Manual"` on every affected item ([`image-base.md`](./image-base.md) §3), and print one consolidated handoff: filenames, the `images/image_prompts.md` paste-ready blocks (or `items[].prompt`), the exact target `project/images/<filename>`, and the continuation.
 
-| Runtime | Continuation |
-|---|---|
-| Default | Draws dashed placeholders and blocks every Step 7 export command until files are validated and placeholders replaced |
-| Quick | Blocks direct export until every required row is validated and reconciled to `Generated`, and only while the original context survives (otherwise a clean run) |
+Draws dashed placeholders and blocks every Step 7 export command until files are validated and placeholders replaced.
 
-#### Default exhausted-automation decision
+#### Exhausted-automation decision
 
 When required rows stay unresolved after the confirmed path or `auto`'s A → B, keep them `Failed`, pause once with one consolidated list (filenames, prompts, attempted paths, concrete errors), and ask for exactly one outcome. Never create `Needs-Manual` before manual fulfillment is confirmed.
 
@@ -377,13 +371,9 @@ When required rows stay unresolved after the confirmed path or `auto`'s A → B,
 | **Generate manually** | Record `AI Image Acquisition Path: manual` in `design_spec.md §I`, mark rows `Needs-Manual`, hand off, author up to the Step 7 readiness gate |
 | **Cancel the affected AI images** | Return to Step 4 as a post-confirmation override, remove the `ai` and dependent `slice` rows, revise their §IX jobs and lock rows to native text/SVG or confirmed non-AI sources, set the path `not applicable` when no AI rows remain; never add a new source or drop required content |
 
-#### Quick exhausted-automation no-AI replan
+**Failure handling** (extends [`image-base.md`](./image-base.md) §3): on `auto`, two consecutive Path A failures fall to Path B without halting; if B also fails, enter the decision above. A confirmed `api` or `host-native` path is retried once, never switched. If an alternate platform watermarks outputs (e.g. Gemini web), `scripts/gemini_watermark_remover.py` exists.
 
-Do not ask and do not enter Offline Manual. Retain the filename, attempted path, concrete error, and replacement carrier for the completion report. Remove the `ai` row, its dependent `slice` rows, and the manifest item; re-render `image_prompts.md` when other items remain, otherwise delete both manifest files. Carry the communication job with native text/SVG or prepared non-AI assets; add no other source. Retaining AI imagery means repairing capability and a new Quick run.
-
-**Failure handling** (extends [`image-base.md`](./image-base.md) §3): on `auto`, two consecutive Path A failures fall to Path B without halting; if B also fails, Default enters the decision above and Quick the replan. A confirmed `api` or `host-native` path is retried once, never switched. If an alternate platform watermarks outputs (e.g. Gemini web), `scripts/gemini_watermark_remover.py` exists.
-
-**Guardrails**: never claim an image exists without a file at its path; `Needs-Manual` only on confirmed or explicit manual. Status transitions are evidence-driven: a file permits `Generated`; exhausted Default automation stays `Failed` until a retry succeeds or the user chooses; exhausted Quick rows leave only through the replan.
+**Guardrails**: never claim an image exists without a file at its path; `Needs-Manual` only on confirmed or explicit manual. Status transitions are evidence-driven: a file permits `Generated`; exhausted automation stays `Failed` until a retry succeeds or the user chooses.
 
 ---
 

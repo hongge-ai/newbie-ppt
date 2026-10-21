@@ -2,7 +2,7 @@
 
 Mandatory reference for every route that authors or regenerates slide visuals through SVG. It owns XML validity, the closed generated-authoring surface, page closure, semantic grouping, shared visual-quality defaults, and fidelity vocabulary. The complete closed grammar that the checker and exporter enforce — mapping tables, accepted-but-warned spellings, rejection boundaries, import-side metadata — lives in [`svg-contract.md`](../scripts/docs/svg-contract.md); this file keeps the form the model writes.
 
-**Conditional module routing**: Default and Quick Generate load every module through [`executor-base.md`](./executor-base.md)'s routing table. Other SVG-authoring routes (Create Template, Edit Native PPTX) load:
+**Conditional module routing**: Generate loads every module through [`executor-base.md`](./executor-base.md)'s routing table. Other SVG-authoring routes (Create Template, Edit Native PPTX) load:
 
 | Trigger | Load |
 |---|---|
@@ -143,7 +143,7 @@ Append `--filter-id softShadow` only when that id already names one direct page-
 
 ## 3. Canvas Format Quick Reference
 
-Use the already locked canvas id and exact viewBox. [`canvas-formats.md`](canvas-formats.md) owns format selection; this core owns only SVG conformance on that canvas. The lockless [`quick-generate`](../workflows/profiles/quick-generate.md) profile uses its first SVG to establish the canvas; every remaining page must use the identical viewBox.
+Use the already locked canvas id and exact viewBox. [`canvas-formats.md`](canvas-formats.md) owns format selection; this core owns only SVG conformance on that canvas. Every page must use the identical viewBox.
 
 ---
 
@@ -164,8 +164,8 @@ Use the already locked canvas id and exact viewBox. [`canvas-formats.md`](canvas
 
 Semantic markers are minimal compiler hints. Flat pages declare one root `data-pptx-page-role` and omit Master/Layout/layer/placeholder markers. Structured pages carry their final root identity, layer atoms, slots, and native-object metadata from authoring start and omit `data-pptx-page-role`. Use `data-pptx-role` with a stable `id` only when no specialized marker expresses page-frame behavior. Keep ordinary visible content in SVG attributes/text; [`semantic-svg.md`](semantic-svg.md) owns the vocabulary.
 
-- **Canvas authority**: new authoring writes `viewBox="0 0 W H"` with positive integer pixels from the lock, or from the first SVG under `quick-generate`; all pages and Layout prototypes in one build share it, optional root `width`/`height` never override it, and a root `<svg>` transform is forbidden. Export quantizes once at `1 SVG px = 9,525 EMU`.
-- **Font portability**: resolve an explicit user/template delivery target first; otherwise default to Windows Microsoft PowerPoint with locale following the deck's primary language. Exported Latin/EA faces must be installed or approved on that target. The authoring host's fonts affect SVG preview and measurement only and MUST NOT select PPTX faces; a local counterpart may appear only as a preview tail that preserves the same export resolution. `@font-face` remains forbidden; the family choice belongs to the planning role ([`plan-core.md`](plan-core.md) §6.2, shared by Default and Quick).
+- **Canvas authority**: new authoring writes `viewBox="0 0 W H"` with positive integer pixels from the lock; all pages and Layout prototypes in one build share it, optional root `width`/`height` never override it, and a root `<svg>` transform is forbidden. Export quantizes once at `1 SVG px = 9,525 EMU`.
+- **Font portability**: resolve an explicit user/template delivery target first; otherwise default to Windows Microsoft PowerPoint with locale following the deck's primary language. Exported Latin/EA faces must be installed or approved on that target. The authoring host's fonts affect SVG preview and measurement only and MUST NOT select PPTX faces; a local counterpart may appear only as a preview tail that preserves the same export resolution. `@font-face` remains forbidden; the family choice belongs to the planning role ([`plan-core.md`](plan-core.md) §6.2).
 - **Icon placeholders**: `<use data-icon="library/name">` is a pipeline-specific form, distinct from local SVG reuse. Follow the contract in [`../templates/icons/README.md`](../templates/icons/README.md).
 - **Local reuse**: ordinary same-document `<use>` follows §1.3.
 
@@ -179,7 +179,7 @@ These forms are needed only when the stated PPT behavior matters:
 | Stable object grouping or object-level animation anchor | Wrap the intended object in `<g id="...">`. Content grouping is **mandatory** per §4.3 — a top-level `<g id>` is also the animation anchor; it is not an optional convenience. |
 | Native PowerPoint background promotion | Outside structured mode, make the first visual layer a direct full-canvas `<rect>` (or one inside a simple single-child group) with a solid, linear/radial gradient, or preset-pattern fill and no transform, filter, clip, rounding, or visible stroke; export writes it as Slide `p:bg`. Structured routes follow [`pptx-structure-interface.md`](./pptx-structure-interface.md). |
 | Free-design / brand-only PowerPoint structure | Use `pptx_structure.mode: flat`: keep objects Slide-local and author no Master/Layout identities, layers, or slots; export emits one clean Master plus Blank Layout. |
-| Reusable template-based PowerPoint Layout | Default maps page prototypes through `page_layouts` and Master/Layout definitions through `page_pptx_layouts`; Quick authors the selected Master/Layout/slot contract in every output SVG and its all-or-none gate infers structured packaging. Never infer ownership from repeated Slide-local geometry. |
+| Reusable template-based PowerPoint Layout | Map page prototypes through `page_layouts` and Master/Layout definitions through `page_pptx_layouts`. Never infer ownership from repeated Slide-local geometry. |
 
 **Default — leading by role and density (may be overridden for user, template, typeface, legibility, or locked visual-style fit)**: For direct positioned `<tspan>` rows, start multiline titles around `1.2–1.3 × font-size`, dense / small body around `1.4–1.5 ×`, ordinary body around `1.5–1.6 ×`, and large / sparse / breathing body around `1.6–2.0 ×`. These are starting ranges, not checker quotas; display headlines may be tighter when the selected style calls for it. Author the spacing as positive relative `dy`, not CSS/SVG `line-height`, which has no registered DrawingML mapping.
 
@@ -231,13 +231,13 @@ An authored native preset fragment (§1.5) is already an atomic `<g id>` and cou
 
 ## 5. Workflow Authority
 
-Serial post-processing and export belong to [`generate-pptx.md`](../workflows/generate-pptx.md) Step 7 and, for the direct-generation exception, [`quick-generate.md`](../workflows/profiles/quick-generate.md). This file defines SVG authoring boundaries only; project structure, commands, quality-gate order, and export products are intentionally outside it.
+Serial post-processing and export belong to [`generate-pptx.md`](../workflows/generate-pptx.md) Step 7. This file defines SVG authoring boundaries only; project structure, commands, quality-gate order, and export products are intentionally outside it.
 
 ---
 
 ## 6. Shared Aesthetic Baseline
 
-**Default — shared aesthetic baseline (may be overridden by explicit user, installed template / brand, or locked / Quick-resolved visual-style requirements)**: Required / Forbidden technical contracts remain absolute. When a higher authority is silent, build clear hierarchy through typography and leading, alignment, negative space, purposeful imagery / icons, shapes, and repetition. Deliberate tightness, imbalance, off-axis placement, or container-heavy structure remains valid when that authority calls for it.
+**Default — shared aesthetic baseline (may be overridden by explicit user, installed template / brand, or locked visual-style requirements)**: Required / Forbidden technical contracts remain absolute. When a higher authority is silent, build clear hierarchy through typography and leading, alignment, negative space, purposeful imagery / icons, shapes, and repetition. Deliberate tightness, imbalance, off-axis placement, or container-heavy structure remains valid when that authority calls for it.
 
 | Concern | Shared default |
 |---|---|

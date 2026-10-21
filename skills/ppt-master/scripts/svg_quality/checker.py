@@ -331,7 +331,6 @@ try:
         TemplateStructureError as _TemplateStructureError,
         _is_authored_preset_atom as _is_authored_preset_atom,
         load_pptx_structure_lock as _load_pptx_structure_lock,
-        parse_optional_layout_slides as _parse_optional_layout_slides,
         parse_template_slide as _parse_template_structure_slide,
         parse_template_slides as _parse_template_structure_slides,
         structured_layout_definition_files as _structured_layout_definition_files,
@@ -344,7 +343,6 @@ except ImportError:
     _TemplateStructureError = None
     _is_authored_preset_atom = None
     _load_pptx_structure_lock = None
-    _parse_optional_layout_slides = None
     _parse_template_structure_slide = None
     _parse_template_structure_slides = None
     _structured_layout_definition_files = None
@@ -1175,13 +1173,11 @@ class SVGQualityChecker:
         self,
         *,
         template_mode: bool = False,
-        quick_generate: bool = False,
         canonical_authoring: bool = False,
     ):
         self.template_mode = template_mode
         self._image_pixel_sizes: Dict[Path, Tuple[int, int]] = {}
         self.scan_banner = True
-        self.quick_generate = quick_generate
         self.canonical_authoring = canonical_authoring
         self.results = []
         self._roundtrip_source_fingerprint: Dict[str, object] | None = None
@@ -1324,23 +1320,6 @@ class SVGQualityChecker:
                 else:
                     if hydrated_payloads:
                         result['info']['native_payload_refs'] = hydrated_payloads
-
-                roster = discover_slide_svgs(svg_path.parent) if self.quick_generate else []
-                if (
-                    roster
-                    and svg_path.name == roster[0].name
-                    and not (
-                        root.get('lang')
-                        or root.get('{http://www.w3.org/XML/1998/namespace}lang')
-                    )
-                ):
-                    result['warnings'].append(
-                        'Quick roster declares no deck language: put '
-                        'lang="<BCP-47>" (vi-VN, he-IL, ...) on the first '
-                        "page's root <svg>; export reads it for run proofing "
-                        'language, right-to-left defaults, theme script slots '
-                        'and docProps (advisory)'
-                    )
 
                 # 1. Check viewBox
                 self._check_viewbox(
@@ -6196,11 +6175,8 @@ class SVGQualityChecker:
             for elem in root.iter()
             for attr in _PPTX_STRUCTURE_ATTRS
         )
-        if self.quick_generate and not has_structure_metadata:
-            return
         if (
-            not self.quick_generate
-            and not self.template_mode
+            not self.template_mode
             and svg_path.parent.name == 'svg_output'
         ):
             declared_mode = _declared_pptx_structure_mode(
@@ -6465,8 +6441,6 @@ class SVGQualityChecker:
         common layouts: SVG directly under <project>/ or under
         <project>/svg_output/). Results are cached per lock path.
         """
-        if self.quick_generate:
-            return None
         if _parse_spec_lock is None:
             return None
         for candidate in (svg_path.parent / 'spec_lock.md',
@@ -7172,7 +7146,6 @@ class SVGQualityChecker:
         }
         if (
             self.template_mode
-            or self.quick_generate
             or _load_pptx_structure_lock is None
         ):
             return
@@ -7491,14 +7464,12 @@ class SVGQualityChecker:
             self._check_pptx_structure_contract(dir_path, svg_files)
         if (
             not self.template_mode
-            and not self.quick_generate
             and dir_path.is_dir()
         ):
             self._check_animation_config_contract(dir_path)
             self._check_illustration_resource_contract(dir_path)
         if (
             not self.template_mode
-            and not self.quick_generate
             and validate_communication_trace is not None
         ):
             project_path = self._resolve_project_path(dir_path)
@@ -7526,37 +7497,6 @@ class SVGQualityChecker:
         svg_files: List[Path],
     ) -> None:
         """Validate the all-page structured lock and reusable contracts."""
-        if self.quick_generate:
-            if (
-                _parse_optional_layout_slides is None
-                or _TemplateStructureError is None
-            ):
-                self._pptx_structure_issues.append((
-                    'error',
-                    'Quick PPTX structure inference is unavailable because '
-                    'the template_structure module could not be imported.',
-                ))
-                return
-            try:
-                specs = _parse_optional_layout_slides(svg_files)
-            except _TemplateStructureError as exc:
-                self._pptx_structure_issues.append(('error', str(exc)))
-                return
-            if specs is None:
-                return
-            self._structured_native_slots = sorted({
-                str(item.placeholder) for spec in specs for item in spec.placeholders
-                if item.placeholder in {'chart', 'table'}
-            })
-            self._pptx_structure_issues.extend(
-                ('error', message)
-                for message in self._shared_fixed_layer_errors(specs)
-            )
-            self._pptx_structure_issues.extend(
-                ('warning', message)
-                for message in self._duplicate_layout_key_warnings(specs)
-            )
-            return
         project_path = self._resolve_project_path(target_path)
         standard_project = bool(
             not self.template_mode
@@ -9726,7 +9666,7 @@ class SVGQualityChecker:
         connector against pages whose ``Relationships`` line names ``order``,
         ``link``, ``parent``, or ``membership``; this reads that count from the
         project's ``design_spec.md`` so the comparison is on the receipt. None
-        when no exact ``design_spec.md`` is present (Quick, templates).
+        when no exact ``design_spec.md`` is present (e.g. templates).
         """
         paths = [
             Path(result['path'])

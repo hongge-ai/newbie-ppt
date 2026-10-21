@@ -43,6 +43,7 @@ import re
 import shutil
 import sys
 import tempfile
+import time
 from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -2627,7 +2628,7 @@ def project_svg_batch(
                     raise OSError(
                         f"Cannot atomically publish across filesystems: {output_dir}"
                     )
-                new_root.replace(output_dir)
+                _replace_directory(new_root, output_dir)
             except OSError as exc:
                 cleanup_errors = _remove_created_directories(created)
                 if cleanup_errors:
@@ -2644,6 +2645,18 @@ def project_svg_batch(
             )
 
     return [report for report, _, _ in rendered]
+
+
+def _replace_directory(source: Path, target: Path, attempts: int = 5) -> None:
+    """Rename a directory, retrying transient Windows sharing violations."""
+    for attempt in range(attempts):
+        try:
+            source.replace(target)
+            return
+        except PermissionError:
+            if attempt == attempts - 1:
+                raise
+            time.sleep(0.05 * (attempt + 1))
 
 
 def _is_within(path: Path, parent: Path) -> bool:

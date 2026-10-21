@@ -4,11 +4,11 @@ description: Generate-PPTX runbook for validating and installing selected Brand,
 
 # Apply Template Workspace Stage
 
-> Run from [`generate-pptx.md`](../generate-pptx.md) Step 4 only after Stage 1 confirms at least one exact template workspace; [`quick-generate`](../profiles/quick-generate.md) enters only for exact roots or a current Create Template handoff. Never load for free design, bare names, or style descriptions. This stage applies the completed selection; it never chooses a workspace or changes the communication contract.
+> Run from [`generate-pptx.md`](../generate-pptx.md) Step 4 only after Stage 1 confirms at least one exact template workspace. Never load for free design, bare names, or style descriptions. This stage applies the completed selection; it never chooses a workspace or changes the communication contract.
 
 ## 1. Gate and Normalize Inputs
 
-🚧 **GATE**: Default Stage 1 confirmed a non-free selection, or Quick received exact roots directly from the user/current Create Template handoff — in Quick that input is the complete selection authority (no Confirm UI recommendations or selection receipt). Every selected input resolves to one current contract:
+🚧 **GATE**: Stage 1 confirmed a non-free selection. Every selected input resolves to one current contract:
 
 | Input shape | Spec and SVG source | Asset source |
 |---|---|---|
@@ -65,7 +65,7 @@ Validate each normalized root once. The effective structural owner is Layout whe
 |---|---|
 | `brand` | Identity constrained; structure free unless Layout or Deck is also selected |
 | `style` | Direction/method without identity, prototypes, or structure; Style-only and Style + Brand stay flat, Style + Layout/Deck follows that owner; Style never activates visual review |
-| `layout` | Reusable structure, precedence over Deck; Default plans against its prototypes, Quick reads the roster and authors its Master/Layout/slot contract directly |
+| `layout` | Reusable structure, precedence over Deck; the plan uses its prototypes |
 | `deck` | Descriptive application context and identity; structure and prototype roster only when no Layout is selected |
 
 **Command**: the mapping, provenance line, asset copy, collision and duplicate-kind refusal, and completion receipt below are one run of the install tool (add `--dry-run` to review the mapping first; `--skip-validation` only when the §2 checker already ran on that root in this turn); [`template-tools.md`](../../scripts/docs/template-tools.md#apply_templatepy) owns its behavior:
@@ -76,13 +76,13 @@ python3 ${SKILL_DIR}/scripts/apply_template.py <project_path> --root <workspace_
 
 **Atomic install preflight**: resolve every source and destination path; enumerate the union mapping across all roots and across `templates/`, `images/`, `icons/`, mapping each source file at most once; resolve Layout-over-Deck precedence before building the map so the shadowed roster never enters it; reject every destination collision and duplicate kind before writing; write the accepted mapping once — never recursive copy as an implicit conflict policy. An input equal to the target project is consumed in place; if a selected Layout supersedes its in-place Deck roster, stage the mapping and replace the roster atomically.
 
-**Hard rule — project-local consumer boundary**: after installation, Default final Stage 2, Quick's agent before authoring, and every later role read only `<project_path>/templates/` and the project-local `images/` / `icons/` pools; the library or external root is installation input only.
+**Hard rule — project-local consumer boundary**: after installation, final Stage 2 and every later role read only `<project_path>/templates/` and the project-local `images/` / `icons/` pools; the library or external root is installation input only.
 
-Template SVGs are complete Slide authoring prototypes (Master + Layout context already resolved), so `page_layouts` selects one directly; standalone Master/Layout definition SVGs are invalid, and an unselected authored prototype may still back a reusable Layout definition. Default records `page_layouts` and the structure lock; Quick freezes the natural-language application paragraph in active context and writes the Master/Layout/slot contract directly into the output SVGs, staying flat only without a structure owner or under an explicit visual-only instruction. For a template-owned Chart/Table carrying `data-pptx-native-authority="json"`, the installed inline JSON remains the object's authority: a page may keep or regenerate the preview from that JSON but never derives replacement JSON from the preview.
+Template SVGs are complete Slide authoring prototypes (Master + Layout context already resolved), so `page_layouts` selects one directly; standalone Master/Layout definition SVGs are invalid, and an unselected authored prototype may still back a reusable Layout definition. The plan records `page_layouts` and the structure lock; pages then author against that contract. For a template-owned Chart/Table carrying `data-pptx-native-authority="json"`, the installed inline JSON remains the object's authority: a page may keep or regenerate the preview from that JSON but never derives replacement JSON from the preview.
 
 ## 5. Segment Precedence Is Resolved While Reading
 
-Installation copies specs; it never merges them. The consuming role — Default final Stage 2 through [`strategist-template.md`](../../references/strategist-template.md), or Quick's agent before authoring — reads every installed `design_spec.<kind>.<id>.md` and resolves the segments in context; asset collisions are rejected at install time (§4), segment conflicts are a reading decision. Never reinterpret the confirmed Stage-1 contract here: Default obtains any additional material conflict decision through chat after Stage 1 without reopening selection; Quick follows explicit conflict instructions, and an unresolved material conflict is a hard prerequisite handled in chat, never by Confirm UI or path order.
+Installation copies specs; it never merges them. The consuming role — final Stage 2 through [`strategist-template.md`](../../references/strategist-template.md) — reads every installed `design_spec.<kind>.<id>.md` and resolves the segments in context; asset collisions are rejected at install time (§4), segment conflicts are a reading decision. Never reinterpret the confirmed Stage-1 contract here: any additional material conflict decision goes through chat after Stage 1 without reopening selection, and an unresolved material conflict is a hard prerequisite, never decided by Confirm UI or path order.
 
 ### 5.1 Different Kinds
 
@@ -93,11 +93,11 @@ Installation copies specs; it never merges them. The consuming role — Default 
 | Reusable application context | Deck only; preserved for comparison, never the current project's application contract |
 | Direction / method | Style when present, otherwise unresolved; Deck prototypes and Signature facts inform compatibility but do not own this segment |
 
-Apply each segment wholesale; never mix fields implicitly. Brand or Deck identity overrides Style's identity-adjacent defaults; a Style direction adapts to that identity but cannot relabel its candidates as brand facts. **Hard rule — an owned segment governs visual weight, not only values**: when an owner declares how a value dominates, recedes, or stays rare, that instruction carries the value's authority; a Style's whitespace tendency never demotes a Brand's dominant color to an accent. Before Style overlays Layout or Deck guidance, verify its method fits the structure (and, for Deck, its reusable context); on mismatch require omitting Style or choosing a compatible pair, never silently weakening a segment. Field-level micro-adjustments such as a primary-color override are not a workspace selection: Default carries them into the Stage-2 confirmation fields, Quick treats them as direct authoring constraints.
+Apply each segment wholesale; never mix fields implicitly. Brand or Deck identity overrides Style's identity-adjacent defaults; a Style direction adapts to that identity but cannot relabel its candidates as brand facts. **Hard rule — an owned segment governs visual weight, not only values**: when an owner declares how a value dominates, recedes, or stays rare, that instruction carries the value's authority; a Style's whitespace tendency never demotes a Brand's dominant color to an accent. Before Style overlays Layout or Deck guidance, verify its method fits the structure (and, for Deck, its reusable context); on mismatch require omitting Style or choosing a compatible pair, never silently weakening a segment. Field-level micro-adjustments such as a primary-color override are not a workspace selection: they are carried into the Stage-2 confirmation fields.
 
 ### 5.2 Selection Conflicts
 
-Duplicate kinds are selection errors: Default returns them to Stage 1, Quick asks for narrower roots. Layout plus Deck is valid — Layout owns structure, Deck keeps its other segments. Never split a multi-kind root, average same-kind specs, or choose by path order.
+Duplicate kinds are selection errors: return them to Stage 1. Layout plus Deck is valid — Layout owns structure, Deck keeps its other segments. Never split a multi-kind root, average same-kind specs, or choose by path order.
 
 ### 5.3 Installed Set
 
@@ -111,4 +111,4 @@ Each installed file keeps its own frontmatter `kind` and `<id>`; nothing is rela
 - [x] Every kind schema passed preflight; structured SVG checks ran only for Layout/Deck inputs
 - [x] Duplicate kinds and destination collisions were rejected before one atomic install; Layout-over-Deck precedence selected exactly one active roster
 - [x] `<project_path>/templates/` and portable sibling assets are complete and the only downstream template source
-- [ ] **Next**: Default continues [`generate-pptx.md`](../generate-pptx.md) Step 4 Stage 2 after the server verifies selection and installation; Quick returns to [`quick-generate`](../profiles/quick-generate.md) §2
+- [ ] **Next**: continue [`generate-pptx.md`](../generate-pptx.md) Step 4 Stage 2 after the server verifies selection and installation

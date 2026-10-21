@@ -15,7 +15,7 @@ Usage::
 A root is a workspace directory exposing ``templates/design_spec.md`` (library
 shape) or one ``templates/design_spec.<kind>.<id>.md`` per kind (project
 shape). A root that resolves to the target project is consumed in place. The
-tool selects nothing: which roots to pass is the Stage-1 / Quick decision.
+tool selects nothing: which roots to pass is the Stage-1 decision.
 """
 
 from __future__ import annotations
@@ -29,6 +29,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -563,23 +564,49 @@ def _write(plan: InstallPlan) -> None:
                 continue
             current = plan.project / name
             if current.exists():
-                os.replace(current, backup / name)
+                _replace_with_retry(current, backup / name)
                 moved.append(name)
-            os.replace(staged / name, current)
+            _replace_with_retry(staged / name, current)
             published.append(name)
     except BaseException:
         try:
             for name in reversed(published):
-                os.replace(plan.project / name, staged / name)
+                _replace_with_retry(plan.project / name, staged / name)
             for name in reversed(moved):
-                os.replace(backup / name, plan.project / name)
+                _replace_with_retry(backup / name, plan.project / name)
         except OSError as exc:
             cleanup = False
             raise ApplyTemplateError(f"Installation rollback failed; recover backups in {transaction}: {exc}") from exc
         raise
     finally:
         if cleanup:
-            shutil.rmtree(transaction)
+            _rmtree_with_retry(transaction)
+
+
+def _rmtree_with_retry(path: Path, attempts: int = 5) -> None:
+    """Remove a transaction tree, retrying transient Windows sharing violations."""
+    for attempt in range(attempts):
+        try:
+            shutil.rmtree(path)
+            return
+        except FileNotFoundError:
+            return
+        except PermissionError:
+            if attempt == attempts - 1:
+                raise
+            time.sleep(0.05 * (attempt + 1))
+
+
+def _replace_with_retry(source: Path, target: Path, attempts: int = 5) -> None:
+    """Replace a path, retrying transient Windows sharing violations."""
+    for attempt in range(attempts):
+        try:
+            os.replace(source, target)
+            return
+        except PermissionError:
+            if attempt == attempts - 1:
+                raise
+            time.sleep(0.05 * (attempt + 1))
 
 
 def _receipt(plan: InstallPlan) -> str:

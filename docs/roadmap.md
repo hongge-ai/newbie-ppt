@@ -84,7 +84,7 @@ A presentation is four layers: what is on the slide, how it is arranged, how it 
 | Concern | Status | Notes |
 |---|---|---|
 | Slide size | Systematized | The canvas contract selects the presentation format; the SVG `viewBox` is the single geometry truth with fail-closed validation, and every page in a deck must agree on one format |
-| Theme | Systematized | Lock-backed Default export derives each deck's `clrScheme`, major/minor fonts, and Master title/body size defaults from its palette and typography contract. Flat Quick keeps converter-default Theme scaffolding. Structured Quick retains installed per-Master source Themes when available and infers Master title/body size defaults from semantic slot carriers; SVG-derived page colors and fonts remain direct values |
+| Theme | Systematized | Lock-backed export derives each deck's `clrScheme`, major/minor fonts, and Master title/body size defaults from its palette and typography contract. SVG-derived page colors and fonts remain direct values |
 | Font embedding | Bounded by design | Fonts are never embedded in the package; a brand or web face leads only after confirmed availability on the target system, otherwise export uses a safe family and keeps the intended face recorded in the Design Spec |
 | Slide sections | Asymmetric by design | Edit Native PPTX retains existing section metadata when the identity roster leaves presentation structure untouched; a `page_plan.json` roster drops sections. Routes that generate or rebuild a slide roster do not author PowerPoint Sections because page roles and optional Design Spec Parts do not form one required, route-wide section contract. Sections change only how the thumbnail rail organizes a deck and never change page appearance; grouping a long deck by hand in PowerPoint takes about a minute and is done once |
 | Master / Layout | Systematized | Real `p:sldMaster` / `p:sldLayout` parts on structured routes |
@@ -120,7 +120,7 @@ Candidates already evaluated as "worth doing when real demand shows", listed so 
 
 ## Shipped milestones
 
-One line per month. Full detail lives in the [release notes](https://github.com/hugohe3/ppt-master/releases) and the commit log.
+One line per month. Full detail lives in the [upstream release notes](https://github.com/hugohe3/ppt-master/releases) and the commit log.
 
 | When | Theme |
 |---|---|
@@ -169,22 +169,6 @@ In the cost / speed / quality triangle this project picks **quality**. ~20 minut
 
 Will do: indirect improvements via prompt slimming / cache hit rate.
 
-Explicit `quick-generate` is a user-selected workflow shortcut: it skips
-Strategist and confirmation, then authors SVG, runs the shared mid-roster
-early gate on rosters of seven or more pages plus one lockless final quality
-gate, and exports the final PPTX. Because the whole
-planning phase no longer happens — the Strategist reference load, the
-`design_spec.md` / `spec_lock.md` artifacts, and the staged confirmation round
-trip — its token cost disappears with it, while per-page SVG authoring is
-unchanged. It keeps the same page-level visual and resource-authoring
-capabilities and the shared SVG/resource blocking standards. It does not run
-Spec Lock alignment checks or derive a current-project Theme from a lock. Flat
-Quick keeps converter-default Theme scaffolding; structured Quick retains
-installed per-Master source Themes when available and infers Master title/body
-size defaults from semantic slot carriers. Without a confirmed design contract
-or resumable decision history it does not promise the same design decisions or
-wall-clock time as Default.
-
 The default Generate pipeline continues to prefer quality over speed.
 
 ### Standalone CLI / hosted SaaS / desktop app form factors
@@ -197,8 +181,8 @@ Won't do: standalone CLI (`ppm`-style), SaaS web service, Electron shell. Any "m
 
 ## Feedback channels
 
-- **Issues**: [github.com/hugohe3/ppt-master/issues](https://github.com/hugohe3/ppt-master/issues) — bugs / proposals
-- **Discussions**: [github.com/hugohe3/ppt-master/discussions](https://github.com/hugohe3/ppt-master/discussions) — usage / experience sharing
-- **Email**: heyug3@gmail.com
+- **Issues**: [github.com/hongge-ai/newbie-ppt/issues](https://github.com/hongge-ai/newbie-ppt/issues) — bugs / proposals
+- **Discussions**: [upstream discussions](https://github.com/hugohe3/ppt-master/discussions) — usage / experience sharing
+- **Email**: 690832239@qq.com
 
 Before proposing a new direction, scan the **Non-goals** above. If your request falls there, it's unlikely to land — but we're happy to discuss other paths to your underlying need.

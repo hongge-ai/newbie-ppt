@@ -417,7 +417,7 @@ ownership.
 
 ### Segment ownership is resolved while reading
 
-The consuming role — Default final Stage 2, or Quick's agent before authoring —
+The consuming role — final Stage 2 —
 reads every installed spec and, when Layout/Deck owns structure, every installed
 SVG prototype, then resolves these segments in context:
 
@@ -463,7 +463,7 @@ field-level syntax.
 The complete selection contains at most one contribution per kind. Layout and
 Deck may coexist; Layout owns structure. A specified multi-kind root is atomic
 and may coexist only with registered roots of non-overlapping kinds. Default rejects conflicts in the
-Stage-1 selector and server receipt; Quick requires a narrower exact-root set
+Stage-1 selector and server receipt
 in chat. Installation never averages same-kind specs or chooses by path order.
 
 ### Traceability
@@ -507,9 +507,9 @@ Bitmaps share the workspace `images/` pool and template SVGs reference them thro
 
 Installing a template does not narrow away the communication question. Stage 1 confirms the same open communication contract together with, but independently from, the template choice. The communication goal (audience, intent, outcome, core message, delivery context, and afterlife) comes only from the current request, source facts, conversation constraints, and project initialization; template facts already in context may inform only the recommended canvas and page range, and a canvas that differs from project initialization is a visible Stage-1 decision. Only after Stage 1 closes and any selection is installed does final Stage 2 inspect that state and confirm the complete solution and production plan. Brand supplies identity constraints while structure stays free; Style supplies method and visual-default seeds while remaining flat; Layout exposes structural capability; Deck contributes descriptive reusable application context for comparison, not the current project's contract. For Style-only use, Strategist does not look for prototypes and deterministically records `template_reuse_scope: style` with flat structure. It otherwise inspects every effective prototype—Layout when present, otherwise Deck—and current content, then authors one page/prototype plan and records `mirror`, `layout`, or `style` only as internal exporter values. A mirror-authored workspace therefore enables literal reuse but never forces it.
 
-Default still presents three template-compliant design directions. The Recommended direction is the viable one that most fully expresses the resolved template context; the other two vary only dimensions left open by that context and the user. Quick materializes no candidate set and directly executes that same recommended-direction rule.
+The run presents three template-compliant design directions. The Recommended direction is the viable one that most fully expresses the resolved template context; the other two vary only dimensions left open by that context and the user.
 
-Default confirms one natural-language `template_application` paragraph; Quick
+The run confirms one natural-language `template_application` paragraph;
 freezes the same decision only in active context. Explicit user wording wins,
 otherwise the agent decides from content and the complete SVG roster, with
 reference-led use as the fallback. Reference, augment-only, and
@@ -521,7 +521,7 @@ user explicitly requests visual-only use. Confirm UI exposes Free design / Use
 templates and the prose field, but not internal reuse/adherence fields. Planning
 semantics live in `references/strategist.md` and
 `references/strategist-template.md`; `templates/schemas/spec_lock.schema.json`
-owns the durable Default machine structure, while Quick validates the all-page
+owns the durable machine structure, and the checker validates the all-page
 SVG structure contract directly.
 
 ---

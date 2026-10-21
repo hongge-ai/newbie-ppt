@@ -4,7 +4,7 @@
 
 Conditional Executor authority for inline attribution on web-sourced images and their prepared derivatives.
 
-**Trigger**: any placed `Status: Sourced` image, or a placed image or derivative whose filename has an `image_sources.json` record (copied web provenance, or a user-supplied asset registered with its licence terms); Quick uses the same manifest without interaction.
+**Trigger**: any placed `Status: Sourced` image, or a placed image or derivative whose filename has an `image_sources.json` record (copied web provenance, or a user-supplied asset registered with its licence terms).
 
 ## 1. Inline Attribution for Sourced Images
 
@@ -16,4 +16,4 @@ Conditional Executor authority for inline attribution on web-sourced images and 
 | `attribution-required` | `<image>` plus a visible inline credit preserving that asset's author, source/provider, and CC BY / CC BY-SA license ([image-searcher.md §7](./image-searcher.md)) |
 | `manual` | `<image>` only — a user-supplied `--from-url` replacement whose rights and credit are the user's responsibility |
 
-Start from the manifest's `attribution_text`; the filename and full URL may go when the source stays clear, but the author and license stay so the checker can bind the credit to the asset. Size, position, color, per-image versus combined treatment, labels, and any contrast scrim/gradient are Executor's as long as the credit is readable and unambiguously bound. `svg_quality_checker.py` errors on a missing image-specific author + license credit (one generic CC token never covers several files) and on an unreadable manifest or missing per-file provenance; fix before post-processing or Quick export. Never duplicate credits into speaker notes or any other artifact.
+Start from the manifest's `attribution_text`; the filename and full URL may go when the source stays clear, but the author and license stay so the checker can bind the credit to the asset. Size, position, color, per-image versus combined treatment, labels, and any contrast scrim/gradient are Executor's as long as the credit is readable and unambiguously bound. `svg_quality_checker.py` errors on a missing image-specific author + license credit (one generic CC token never covers several files) and on an unreadable manifest or missing per-file provenance; fix before post-processing or export. Never duplicate credits into speaker notes or any other artifact.

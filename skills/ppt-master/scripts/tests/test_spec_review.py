@@ -201,7 +201,7 @@ class SpecBlocksTests(unittest.TestCase):
 
 class ReviewServiceTests(unittest.TestCase):
     def setUp(self):
-        temporary = tempfile.TemporaryDirectory()
+        temporary = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name)
         self.path = self.root / "design_spec.md"

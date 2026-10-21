@@ -21,13 +21,13 @@ projection. It lists all 33 exact `chart/<key>` references by information
 relationship and states only what each encoding represents. It contains no
 chart-authoring instructions and does not prescribe selection.
 
-Default Strategist and Quick read the vocabulary together with the Table
-registry before planning, choose through their own judgment, then use
+Strategist reads the vocabulary together with the Table registry before
+planning, chooses through its own judgment, then uses
 [`visualization_recall.py`](../../scripts/visualization_recall.py) `validate`
 to resolve selected canonical references. Its `recall` mode remains an
 optional diagnostic helper over the machine registry, not the runtime
-capability gate. Default writes `chart/<key>` to `page_visualizations`; Quick
-keeps the selected reference in active context. Executor then reads only the
+capability gate. The plan writes `chart/<key>` to `page_visualizations`.
+Executor then reads only the
 selected SVG and execution references. [`chart_recall.py`](../../scripts/chart_recall.py)
 and bare keys remain legacy compatibility only.
 
@@ -55,9 +55,9 @@ Structure built from those relationships.
 ## Runtime boundary
 
 One selected SVG is a flexible reference for one mapped page. Design Spec §IX
-or the Quick active-context decision plus source data owns final semantics.
+plus source data owns final semantics.
 Project palette, typography, chrome, grouping, capacity, and geometry remain
 adaptable. Selecting a chart reference does not itself select native output;
-§IX/Quick names independent objects separately and decides
+§IX names independent objects separately and decides
 `<object-key>=yes|no`, while explicit `--native-charts-and-tables` export is a
 second opt-in.

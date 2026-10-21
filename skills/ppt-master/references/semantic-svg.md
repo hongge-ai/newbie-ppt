@@ -12,7 +12,7 @@ Rendering-neutral compiler hints, used only where ordinary SVG cannot express Po
 | `data-pptx-placeholder` | Direct child `<g id>` of root | Declare one reusable Layout slot whose visible content stays Slide-local |
 | `data-pptx-role` | Structural page-frame element | Package, page-number, or animation behavior no specialized metadata already expresses |
 
-**Hard rule — route boundary**: free-design, brand-only, and `template_reuse_scope: style` pages use `pptx_structure.mode: flat`, declare one root `data-pptx-page-role`, and omit every Master/Layout/layer/placeholder marker. Only Default `template_reuse_scope: mirror|layout` pages or Quick pages authoring an installed Layout/Deck owner's structure declare Master and Layout before drawing and omit `data-pptx-page-role`; the exporter compiles that contract and never selects, clusters, distills, or infers it.
+**Hard rule — route boundary**: free-design, brand-only, and `template_reuse_scope: style` pages use `pptx_structure.mode: flat`, declare one root `data-pptx-page-role`, and omit every Master/Layout/layer/placeholder marker. Only `template_reuse_scope: mirror|layout` pages declare Master and Layout before drawing and omit `data-pptx-page-role`; the exporter compiles that contract and never selects, clusters, distills, or infers it.
 
 **Hard rule — specialized metadata wins**: Master/Layout/placeholder metadata for native structure, `data-pptx-replace-with` for native Chart/Table/Formula replacement, and the shape metadata of [`shared-standards-core.md`](./shared-standards-core.md) §§1.4–1.5 are never duplicated with `data-pptx-role`.
 

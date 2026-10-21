@@ -39,12 +39,9 @@ Notes:
   when the actual canvas exactly matches a registered format.
 - Without `--format`, `init` creates `<name>_<YYYYMMDD>`; a name that already
   ends in `_<YYYYMMDD>` is used as-is (no second date). Authoring records the
-  canvas in `spec_lock.md` for Default Generate or the first SVG for Quick
-  Generate.
+  canvas in `spec_lock.md`.
 - With `--format`, `init` preserves the registered form
   `<name>_<format>_<YYYYMMDD>` and normalizes aliases such as `xhs`.
-- `init --quick-generate`: `svg_output/` plus
-  `validation/workflow.log`; no README
 - Files outside `projects/` are always copied into `sources/`
 - `--move` applies only to sources under the repository's `projects/` tree
 - A directly supplied supported bitmap is also copied into `images/` with a

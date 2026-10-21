@@ -109,7 +109,6 @@ from ..drawingml.theme_fonts import (
     infer_master_text_style_spec,
     load_master_text_style_spec,
     load_theme_font_spec,
-    load_theme_font_spec_from_pages,
 )
 from ..drawingml.utils import unsafe_exported_font_faces
 from .narration import (
@@ -125,7 +124,6 @@ from .template_structure import (
     load_native_structure_contract,
     load_pptx_structure_lock,
     load_template_source_themes,
-    parse_optional_layout_slides,
     parse_template_slides,
     structured_layout_definition_files,
     template_lock_errors,
@@ -1657,7 +1655,7 @@ _XML_LANG_ATTR = '{http://www.w3.org/XML/1998/namespace}lang'
 def _svg_root_language(project_path: Path) -> str | None:
     """Return the ``lang`` / ``xml:lang`` the first svg_output page declares.
 
-    Quick has no lock; its pages carry the deck language on the root
+    Without a lock, the pages carry the deck language on the root
     ``<svg lang="...">`` instead.
     """
     pages = discover_slide_svgs(project_path / 'svg_output')
@@ -1980,7 +1978,6 @@ def main(argv: list[str] | None = None) -> int:
 Examples:
     %(prog)s projects/ppt169_demo                         # Default: native pptx -> exports/, svg_output -> backup/<ts>/
     %(prog)s projects/ppt169_demo -o out.pptx            # Explicit path (no backup/)
-    %(prog)s projects/quick_generate_demo --quick-generate # Lockless inferred structure + postflight
     %(prog)s <import_workspace> --roundtrip               # authoring-svg-flat/ with source restoration
 
     # Disable transition / change transition effect
@@ -2028,8 +2025,8 @@ Speaker notes:
     - Supports two naming conventions:
       1. Match by filename (recommended): 01_cover.md corresponds to 01_cover.svg
       2. Match by index: slide01.md corresponds to the 1st SVG (backward compatible)
-    - Enabled by default outside Quick Generate; use --no-notes to disable
-    - Disabled by default in Quick Generate; use --with-notes to enable
+    - Enabled by default; use --no-notes to disable
+    - --with-notes forces them on
 
 Recorded narration:
     %(prog)s projects/ppt169_demo --recorded-narration audio \\
@@ -2062,16 +2059,6 @@ Recorded narration:
                         help='Require SVG canvases to match this registered format')
     parser.add_argument('-q', '--quiet', action='store_true', help='Quiet mode')
     parser.add_argument(
-        '--quick-generate',
-        action='store_true',
-        help=(
-            'Export a Quick Generate SVG roster from svg_output/ without '
-            'spec_lock.md. Require a matching final quality report, infer one '
-            'consistent canvas, infer flat versus structured output from the '
-            'complete SVG roster, and support normal export capabilities.'
-        ),
-    )
-    parser.add_argument(
         '--primary-language',
         type=str,
         default=None,
@@ -2101,7 +2088,7 @@ Recorded narration:
         help=(
             'Apply supported compatibility normalizations to svg_output/ or an '
             'explicit -s/--source, then run the ordinary strict converter. '
-            'Cannot be combined with --roundtrip or --quick-generate. '
+            'Cannot be combined with --roundtrip. '
             'Unnormalized contract, resource, conversion, relationship, and '
             'package failures remain blocking.'
         ),
@@ -2179,7 +2166,7 @@ Recorded narration:
         help=(
             'PPTX structure strategy for native export. Omitting this flag reads '
             'spec_lock.md; a legacy lock without pptx_structure.mode defaults to '
-            'flat. Quick Generate requires omission and infers flat/structured '
+            'flat. '
             'from its complete SVG roster. Flat is the style-reference/free-design/'
             'brand-only release mode and '
             'builds one clean project-owned Master plus Blank Layout while keeping '
@@ -2289,12 +2276,12 @@ Recorded narration:
     notes_mode.add_argument(
         '--with-notes',
         action='store_true',
-        help='Embed speaker notes. Required to opt in during Quick Generate.',
+        help='Embed speaker notes.',
     )
     notes_mode.add_argument(
         '--no-notes',
         action='store_true',
-        help='Disable speaker notes embedding (enabled by default outside Quick Generate)',
+        help='Disable speaker notes embedding (enabled by default)',
     )
     parser.add_argument('--narration-audio-dir', type=str, default=None,
                         help='Low-level audio embedding from this directory; allows partial matches. '
@@ -2361,8 +2348,6 @@ Recorded narration:
         conflicts: list[str] = []
         if args.roundtrip:
             conflicts.append('--roundtrip')
-        if args.quick_generate:
-            conflicts.append('--quick-generate')
         if args.pptx_structure not in {None, 'flat'}:
             conflicts.append('--pptx-structure must be omitted or flat')
         if conflicts:
@@ -2381,8 +2366,6 @@ Recorded narration:
 
     if args.roundtrip:
         conflicts: list[str] = []
-        if args.quick_generate:
-            conflicts.append('--quick-generate')
         if args.source not in {None, AUTHORING_SVG_FLAT_DIR.as_posix()}:
             conflicts.append(
                 '-s/--source must be omitted or authoring-svg-flat'
@@ -2401,24 +2384,7 @@ Recorded narration:
 
     diagnostic_source = args.source not in {None, 'output'}
 
-    if args.quick_generate:
-        conflicts: list[str] = []
-        if args.source not in {None, 'output'}:
-            conflicts.append('--source must be omitted or output')
-        if args.pptx_structure is not None:
-            conflicts.append(
-                '--pptx-structure must be omitted; Quick infers it from svg_output/'
-            )
-        if conflicts:
-            print(
-                "Error: --quick-generate cannot be combined with: "
-                + ", ".join(conflicts),
-                file=sys.stderr,
-            )
-            return 1
-        if not args.with_notes:
-            args.no_notes = True
-    elif (diagnostic_source or compatibility_export) and not args.roundtrip:
+    if (diagnostic_source or compatibility_export) and not args.roundtrip:
         if args.pptx_structure not in {None, 'flat'}:
             print(
                 "Error: a diagnostic or dangerous compatibility source "
@@ -2467,8 +2433,7 @@ Recorded narration:
     pptx_structure = args.pptx_structure
     lock_path = project_path / 'spec_lock.md'
     lockless_export = (
-        args.quick_generate
-        or diagnostic_source
+        diagnostic_source
         or compatibility_export
     )
     if not lockless_export and not lock_path.is_file():
@@ -2516,9 +2481,7 @@ Recorded narration:
         _print_structure_contract_error(declared_structure_mode)
         return 1
     if pptx_structure is None:
-        if args.quick_generate:
-            pass
-        elif declared_structure_mode is None:
+        if declared_structure_mode is None:
             pptx_structure = 'flat'
             print(
                 "Warning: spec_lock.md has no pptx_structure.mode; using flat "
@@ -2633,7 +2596,6 @@ Recorded narration:
     if (
         source_themes_path.exists()
         and not mirror_source_themes
-        and not args.quick_generate
     ):
         print(
             "Error: templates/source_themes.json is allowed only for a "
@@ -2696,13 +2658,7 @@ Recorded narration:
             if re.fullmatch(r'slide_\d+\.svg', path.name)
         ]
     if not native_files:
-        if args.quick_generate:
-            print(
-                "Error: No SVG files found for --quick-generate in: "
-                f"{project_path / 'svg_output'}",
-                file=sys.stderr,
-            )
-        elif compatibility_export and args.source is None:
+        if compatibility_export and args.source is None:
             print(
                 "Error: No SVG files found for dangerous compatibility export in: "
                 f"{project_path / 'svg_output'}",
@@ -2718,77 +2674,6 @@ Recorded narration:
         else:
             print("Error: No SVG files found", file=sys.stderr)
         return 1
-
-    quick_template_specs = None
-    if args.quick_generate:
-        try:
-            quick_template_specs = parse_optional_layout_slides(native_files)
-        except TemplateStructureError as exc:
-            print(
-                "Error: Quick Generate SVG structure inference failed: "
-                f"{exc}",
-                file=sys.stderr,
-            )
-            return 1
-        pptx_structure = (
-            'structured' if quick_template_specs is not None else 'flat'
-        )
-        print(
-            "  Quick PPTX structure: "
-            f"{pptx_structure} (inferred from {len(native_files)} SVG page(s))"
-        )
-        if primary_language is not None and theme_font_spec is None:
-            # A lockless roster that declares its language still gets theme
-            # fonts (and their script slots) from the faces its pages use.
-            theme_font_spec = load_theme_font_spec_from_pages(project_path, primary_language)
-        if quick_template_specs is not None:
-            try:
-                (
-                    master_text_style_spec,
-                    quick_title_px,
-                    quick_body_px,
-                ) = infer_master_text_style_spec(native_files)
-            except ThemeFontError as exc:
-                print(f"Error: {exc}", file=sys.stderr)
-                return 1
-            print(
-                "  Quick Master text defaults: "
-                f"title {quick_title_px:g}px, body {quick_body_px:g}px "
-                "(inferred from structured SVG pages)"
-            )
-        if source_themes_path.exists():
-            if quick_template_specs is None:
-                print(
-                    "Warning: templates/source_themes.json is ignored because "
-                    "Quick SVG pages declare no structured Master/Layout contract.",
-                    file=sys.stderr,
-                )
-            else:
-                try:
-                    available_source_themes = load_template_source_themes(
-                        project_path / "templates"
-                    ) or {}
-                except TemplateStructureError as exc:
-                    print(f"Error: {exc}", file=sys.stderr)
-                    return 1
-                used_master_keys = {
-                    spec.master_key for spec in quick_template_specs
-                }
-                missing_source_themes = sorted(
-                    used_master_keys - set(available_source_themes)
-                )
-                if missing_source_themes:
-                    print(
-                        "Error: Quick structured SVG pages reference Master(s) "
-                        "missing from templates/source_themes.json: "
-                        + ", ".join(missing_source_themes),
-                        file=sys.stderr,
-                    )
-                    return 1
-                source_theme_xml_by_master = {
-                    master_key: available_source_themes[master_key]
-                    for master_key in used_master_keys
-                }
 
     ref_files = native_files
     authoring_roundtrip_temporary: tempfile.TemporaryDirectory[str] | None = None
@@ -3108,29 +2993,22 @@ Recorded narration:
             }
 
     release_quality_gate = (
-        args.quick_generate
-        or args.source in {None, 'output'}
+        args.source in {None, 'output'}
     ) and not compatibility_export
     if release_quality_gate:
         source_fingerprint = _svg_source_fingerprint(native_files)
         quality = _quality_report_context(project_path, source_fingerprint)
         quality_gate, _ = _quality_gate_status(quality)
         if quality_gate != 'passed':
-            export_mode = (
-                '--quick-generate'
-                if args.quick_generate
-                else 'default release export'
-            )
             print(
-                f"Error: {export_mode} requires a passing final SVG quality "
-                f"report for the current {native_source_dir}/; found "
+                "Error: default release export requires a passing final SVG "
+                f"quality report for the current {native_source_dir}/; found "
                 f"{quality_gate}.",
                 file=sys.stderr,
             )
-            quick_flag = ' --quick-generate' if args.quick_generate else ''
             print(
                 "Run: python3 skills/ppt-master/scripts/svg_quality_checker.py "
-                f'"{project_path}"{quick_flag} --canonical-authoring --stage final --json',
+                f'"{project_path}" --canonical-authoring --stage final --json',
                 file=sys.stderr,
             )
             return 1
@@ -3141,14 +3019,11 @@ Recorded narration:
     baseline_layout_specs = None
     layout_definition_files: list[Path] = []
     if pptx_structure == 'structured':
-        if quick_template_specs is not None:
-            template_specs = quick_template_specs
-        else:
-            try:
-                template_specs = parse_template_slides(native_files)
-            except TemplateStructureError as exc:
-                print(f"Error: {exc}", file=sys.stderr)
-                return 1
+        try:
+            template_specs = parse_template_slides(native_files)
+        except TemplateStructureError as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return 1
     if pptx_structure == 'structured' and structure_lock is not None:
         lock_errors = template_lock_errors(template_specs, structure_lock)
         if lock_errors:

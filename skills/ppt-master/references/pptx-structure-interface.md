@@ -2,7 +2,7 @@
 
 # PPTX Structure Interface
 
-Conditional interface for PowerPoint Master, Layout, fixed-layer, and placeholder authoring. In Generate, load only for Default `spec_lock.md pptx_structure.mode: structured` or Quick structured Slide authoring from an installed Layout/Deck owner.
+Conditional interface for PowerPoint Master, Layout, fixed-layer, and placeholder authoring. In Generate, load only when `spec_lock.md` declares `pptx_structure.mode: structured`.
 
 **Cross-reference map**: unqualified §1.5 and §4.2 references point to [`shared-standards-core.md`](./shared-standards-core.md); this file's own sections are §1–§3. Exporter and read-back mechanics live in [`svg-pipeline.md`](../scripts/docs/svg-pipeline.md#structured-export-mechanics).
 
@@ -15,13 +15,11 @@ Every new SVG project declares one deterministic route:
 | Free-design, brand-only, `template_reuse_scope: style` | `flat` | none; omit `pptx_masters` / `pptx_layouts` / `page_pptx_layouts` / `page_layouts`; export materializes one clean project-owned Master plus one Blank Layout from the lock and keeps every object Slide-local |
 | Layout/Deck template with `template_reuse_scope: mirror\|layout` | `structured` | §2; `standard` / `fidelity` templates use their authored contract, mirror templates use the validated source identities and parentage of the compact workspace |
 
-**Quick exception**: Lock-row/Strategist statements in this file are Default-only. Quick keeps free/Brand/Style-only flat; an installed Layout/Deck owner is structured unless visual-only, with identities on SVG roots and title/body anchors inferred from slot carriers.
-
 **Hard rule — no structure inference**: Flat export promotes and deduplicates nothing. Structured export compiles only declared root identities, atomic fixed layers, and slot groups; it never assigns Layout families, clusters pages, infers placeholders, repairs missing metadata, or migrates legacy contracts. Create a current workspace through [`create-template`](../workflows/create-template.md) before generating structured pages.
 
 **Layout reuse**: Reuse one Layout key only when its ordered fixed Layout atoms and slot ids/types/effective indices/default bounds/binding modes are identical. Different wording, data, imagery, crop, or Slide-local carrier geometry does not create a new Layout; a genuinely different reusable contract gets a new key even when both pages are semantically `content`. A Layout may have zero slots and zero fixed atoms — valid for a cover, poster, or full-visual page; do not manufacture an empty `utility` kind or a full-page fake `object` slot.
 
-**Adaptive change**: `strict` preserves the prototype. `adaptive` retains its Master and uses only a Layout declared in Default's plan/lock or permitted by Quick's frozen Template Application. Required atom/slot-contract changes return Default for repair/readback/validation; Quick creates a new Layout only under that permission. Never mutate a reused key.
+**Adaptive change**: `strict` preserves the prototype. `adaptive` retains its Master and uses only a Layout declared in the plan/lock. Required atom/slot-contract changes return to Design Spec repair/readback/validation. Never mutate a reused key.
 
 ## 2. Explicit PPTX Master / Layout / Placeholder Metadata
 
@@ -80,6 +78,6 @@ Projects or analysis packages carrying `analysis/native_structure.json` / `sourc
 | Legacy or unstructured SVG Type B | `standard` / `fidelity` use pages as visual/contextual reference and author a complete new contract; old metadata is not output topology |
 | Complete current SVG Type B | `mirror` may author a compact equivalent preserving the explicit current contract in a new workspace; authored modes may replace it |
 
-Without an original PPTX or complete current Type B contract, do not claim mirror or source-topology recovery. After template creation, Generate Step 6 (or Quick §3) authors new structured `svg_output/` pages; the exporter only compiles those declarations.
+Without an original PPTX or complete current Type B contract, do not claim mirror or source-topology recovery. After template creation, Generate Step 6 authors new structured `svg_output/` pages; the exporter only compiles those declarations.
 
 ---

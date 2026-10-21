@@ -1,6 +1,6 @@
 # Modes — Index
 
-A **mode** is the deck's **narrative + persuasion skeleton** — how the argument is organized and advanced across pages. Resolve **one mode per deck**; Default locks it, while Quick keeps it only in active context. It shapes page sequencing, title voice, page-structure tendencies, and speaker-notes register.
+A **mode** is the deck's **narrative + persuasion skeleton** — how the argument is organized and advanced across pages. Resolve **one mode per deck**; the plan locks it. It shapes page sequencing, title voice, page-structure tendencies, and speaker-notes register.
 
 > A mode is *not* a visual style. **Mode = how you argue; visual style = how it looks** (see [`visual-styles/_index.md`](../visual-styles/_index.md)). Resolve the two independently — any mode pairs with any visual style (a `pyramid` deck can look `swiss-minimal` or `dark-tech`).
 
@@ -18,9 +18,9 @@ Each mode keeps its own authoritative file with: narrative skeleton, page-struct
 | [`showcase`](./showcase.md) | Visual-led impact; big imagery / numbers; emotional rhythm | Launches, brand reveals, event / promo decks |
 | [`briefing`](./briefing.md) | Neutral, complete, scannable; topic titles, even weight, no thesis | Status updates, reference decks, catalogs, meeting packs, FAQs |
 
-> The five are **argument strategies, not a taxonomy of communication purposes**. A presentation may inform + align + request a decision at once; that composite intent stays as open prose in Default's Stage-1 communication contract or Quick's active brief. Default uses this index to map each whole solution intent into one project-specific custom behavior; Quick resolves one preset or custom direction directly.
+> The five are **argument strategies, not a taxonomy of communication purposes**. A presentation may inform + align + request a decision at once; that composite intent stays as open prose in the Stage-1 communication contract. Use this index to map each whole solution intent into one project-specific custom behavior.
 >
-> **A mode is a lens, not a mandate over an explicitly preserved structure.** Default applies the confirmed `content_divergence`; Quick applies the equivalent user-stated or active-context boundary to a supplied outline. An ordinary source outline is a Reference that the mode may regroup, reorder, or retitle while preserving its facts and intended relationships. Preserve page order, titles, or wording only when the user presents the outline as the final page plan or explicitly requests that boundary. When the user gives no structure, the mode does the structural lifting. To keep reshaping light, `briefing` imposes the least skeleton.
+> **A mode is a lens, not a mandate over an explicitly preserved structure.** Apply the confirmed `content_divergence`, and honor any user-stated boundary to a supplied outline. An ordinary source outline is a Reference that the mode may regroup, reorder, or retitle while preserving its facts and intended relationships. Preserve page order, titles, or wording only when the user presents the outline as the final page plan or explicitly requests that boundary. When the user gives no structure, the mode does the structural lifting. To keep reshaping light, `briefing` imposes the least skeleton.
 
 ---
 
@@ -49,10 +49,10 @@ selecting one for the current deck:
 
 ## 3. How to use
 
-**Resolution scope**: deck-wide (one mode per deck). The five are the catalog you select from; if the structure is genuinely mixed, pick the mode of the body pages and let pages vary within it, or use a warranted `custom` blend (§4). Default recommends and confirms under [`strategist.md`](../strategist.md) §d; Quick decides directly under [`quick-generate.md`](../../workflows/profiles/quick-generate.md) §2; Executor reads the confirmed preset file or exact custom references.
+**Resolution scope**: deck-wide (one mode per deck). The five are the catalog you select from; if the structure is genuinely mixed, pick the mode of the body pages and let pages vary within it, or use a warranted `custom` blend (§4). Recommend and confirm under [`strategist.md`](../strategist.md) §d; Executor reads the confirmed preset file or exact custom references.
 
 ---
 
 ## 4. Editable projection and escape hatch — `custom`
 
-`custom` is the editable behavior carrier: one deck resolves a single `mode`, and a multi-mode blend is one custom behavior whose paragraph states the executable cadence, not several modes. A custom may use catalog material in any way or none — carrying one preset unchanged is valid — and names only the bases it actually uses. Default authors it for each Stage-2 direction under [`strategist.md`](../strategist.md) §d; Quick uses it only when a project-specific specialization or fusion serves the deck better than one preset and keeps the behavior in active context.
+`custom` is the editable behavior carrier: one deck resolves a single `mode`, and a multi-mode blend is one custom behavior whose paragraph states the executable cadence, not several modes. A custom may use catalog material in any way or none — carrying one preset unchanged is valid — and names only the bases it actually uses. Author it for each Stage-2 direction under [`strategist.md`](../strategist.md) §d when a project-specific specialization or fusion serves the deck better than one preset.

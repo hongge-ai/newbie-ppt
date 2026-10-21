@@ -38,6 +38,11 @@ TOOLS_DIR = Path(__file__).resolve().parent
 SKILL_DIR = TOOLS_DIR.parent
 REPO_ROOT = SKILL_DIR.parent.parent
 
+# The repository is validated on Python 3.14.x only; keep this in sync with
+# pyproject.toml `requires-python` and .python-version.
+MINIMUM_PYTHON = (3, 14)
+MAXIMUM_PYTHON = (3, 15)
+
 CORE = "core"
 GROUP_DESCRIPTIONS: dict[str, str] = {
     "pdf": "PDF source import / PDF 源导入 (AGPL: PyMuPDF)",
@@ -71,6 +76,12 @@ License notice / 许可证说明
   可选组 `pdf` 会安装 AGPL-3.0 的 PyMuPDF（Artifex 另提供商业许可），仅
   source_to_md/pdf_to_md.py 导入。用 --core 可完全避开；若要连同依赖一起
   再分发，请先核对 AGPL 条款（详见 scripts/docs/conversion.md）。"""
+
+
+def python_version_supported(version_info: tuple[int, ...] | None = None) -> bool:
+    """Return whether the running interpreter is the supported 3.14.x line."""
+    version = tuple(version_info if version_info is not None else sys.version_info)[:2]
+    return MINIMUM_PYTHON <= version < MAXIMUM_PYTHON
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -241,6 +252,16 @@ def verify_imports(uv: str, groups: list[str]) -> bool:
 
 
 def main(argv: list[str] | None = None) -> int:
+    if not python_version_supported():
+        found = ".".join(str(part) for part in sys.version_info[:3])
+        print(
+            f"Python 3.14.x is required; found {found}. "
+            "Install Python 3.14 from https://www.python.org/downloads/ and re-run. / "
+            f"本仓库需要 Python 3.14.x，当前为 {found}；请安装 Python 3.14 后重跑。",
+            file=sys.stderr,
+        )
+        return 2
+
     args = parse_args(argv)
 
     if args.list_groups:

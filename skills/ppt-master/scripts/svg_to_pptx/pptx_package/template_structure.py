@@ -2020,77 +2020,6 @@ def parse_template_slides(svg_files: list[Path]) -> list[TemplateSlideSpec]:
     return specs
 
 
-def parse_optional_layout_slides(
-    svg_files: list[Path],
-) -> list[TemplateSlideSpec] | None:
-    """Parse an all-or-none structured Layout contract, or return no metadata."""
-    roots: list[tuple[Path, ET.Element]] = []
-    has_structure_metadata = False
-    for svg_path in svg_files:
-        try:
-            root = _parse_svg_root(svg_path)
-        except (OSError, ET.ParseError, NativePayloadError) as exc:
-            raise TemplateStructureError(
-                f"{svg_path.name}: unable to inspect SVG Layout metadata: {exc}"
-            ) from exc
-        roots.append((svg_path, root))
-        has_structure_metadata = has_structure_metadata or any(
-            elem.get(attr) is not None
-            for elem in root.iter()
-            for attr in _STRUCTURE_ATTRS
-        )
-
-    if not has_structure_metadata:
-        return None
-
-    missing_master_keys = [
-        svg_path.name
-        for svg_path, root in roots
-        if not (root.get("data-pptx-master") or "").strip()
-    ]
-    missing_master_names = [
-        svg_path.name
-        for svg_path, root in roots
-        if not (root.get("data-pptx-master-name") or "").strip()
-    ]
-    missing_keys = [
-        svg_path.name
-        for svg_path, root in roots
-        if not (root.get("data-pptx-layout") or "").strip()
-    ]
-    missing_names = [
-        svg_path.name
-        for svg_path, root in roots
-        if not (root.get("data-pptx-layout-name") or "").strip()
-    ]
-    if missing_master_keys or missing_master_names or missing_keys or missing_names:
-        missing_fields: list[str] = []
-        if missing_master_keys:
-            missing_fields.append(
-                "data-pptx-master: " + ", ".join(missing_master_keys)
-            )
-        if missing_master_names:
-            missing_fields.append(
-                "data-pptx-master-name: " + ", ".join(missing_master_names)
-            )
-        if missing_keys:
-            missing_fields.append(
-                "data-pptx-layout: " + ", ".join(missing_keys)
-            )
-        if missing_names:
-            missing_fields.append(
-                "data-pptx-layout-name: " + ", ".join(missing_names)
-            )
-        raise TemplateStructureError(
-            "Explicit Layout metadata is all-or-none: once any SVG uses PPTX "
-            "structure metadata, every generated page root must declare "
-            "Master/Layout keys and names with non-empty values; "
-            "missing "
-            + "; ".join(missing_fields)
-        )
-    return parse_template_slides(svg_files)
-
-
 def flat_structure_metadata_errors(svg_files: list[Path]) -> list[str]:
     """Return every Master/Layout marker forbidden by flat export."""
     errors: list[str] = []
@@ -2140,7 +2069,7 @@ def structured_layout_definition_files(
     converts that SVG on an internal trailing slide and removes the carrier slide
     after registering the reusable Layout.
     Installed prototypes absent from ``pptx_layouts`` are never compiled.
-    Lockless Quick export compiles only its public pages' Layouts.
+    A lockless export compiles only its public pages' Layouts.
     """
     if structure_lock.mode != "structured":
         return []

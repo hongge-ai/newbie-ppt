@@ -83,7 +83,7 @@ TASKS_DIR_NAME = 'tasks'
 TASK_FILE_NAME = 'task.json'
 FEEDBACK_FILE_NAME = 'feedback.json'
 UPLOADS_DIR_NAME = 'uploads'
-TASK_SCHEMA_VERSION = 1
+TASK_SCHEMA_VERSION = 2
 LOCK_FILE_NAME = 'workbench.lock'
 SERVER_LOG_NAME = 'server.log'
 
@@ -96,7 +96,6 @@ CUSTOM_TEMPLATES_DIR_NAME = 'custom_templates'
 CUSTOM_TEMPLATE_ID_RE = re.compile(r'ct\d{8}-\d{6}-[0-9a-f]{4}\Z')
 CUSTOM_TEMPLATE_SCHEMA_VERSION = 1
 CUSTOM_TEMPLATE_NAME_MAX = 40
-PROFILE_VALUES = {'quick', 'default'}
 IMAGE_POLICY_VALUES = {'auto', 'none', 'web', 'ai'}
 PAGE_COUNT_MIN = 1
 PAGE_COUNT_MAX = 60
@@ -412,7 +411,6 @@ def _default_task(task_id: str, topic: str, display_title: Optional[str]) -> dic
         'topic': topic,
         'requirements': {'audience': '', 'tone': '', 'extra': ''},
         'params': {
-            'profile': 'quick',
             'canvas': 'ppt169',
             'page_count': None,
             'primary_language': 'zh-CN',
@@ -439,8 +437,6 @@ def _apply_params_patch(params: dict, patch: object) -> Optional[str]:
     """Merge accepted params fields; return an error message or None."""
     if not isinstance(patch, dict):
         return 'params must be a JSON object'
-    if 'profile' in patch and patch['profile'] not in PROFILE_VALUES:
-        return f'profile must be one of {sorted(PROFILE_VALUES)}'
     if 'canvas' in patch:
         canvas = patch['canvas']
         if canvas is not None and canvas not in CANVAS_FORMATS:
@@ -460,7 +456,7 @@ def _apply_params_patch(params: dict, patch: object) -> Optional[str]:
         return 'speaker_notes must be a boolean'
     if 'image_policy' in patch and patch['image_policy'] not in IMAGE_POLICY_VALUES:
         return f'image_policy must be one of {sorted(IMAGE_POLICY_VALUES)}'
-    for key in ('profile', 'canvas', 'page_count', 'primary_language',
+    for key in ('canvas', 'page_count', 'primary_language',
                 'speaker_notes', 'image_policy'):
         if key in patch:
             params[key] = patch[key]
@@ -655,7 +651,6 @@ def _list_task_summaries(projects_root: Path) -> list:
                 'task_id': entry.name,
                 'display_title': None,
                 'status': 'error',
-                'profile': None,
                 'created_at': None,
                 'submitted_at': None,
                 'updated_at': None,
@@ -667,7 +662,6 @@ def _list_task_summaries(projects_root: Path) -> list:
             'task_id': data.get('task_id') or entry.name,
             'display_title': data.get('display_title'),
             'status': data.get('status'),
-            'profile': (data.get('params') or {}).get('profile'),
             'created_at': data.get('created_at'),
             'submitted_at': data.get('submitted_at'),
             'updated_at': data.get('updated_at'),
@@ -1161,7 +1155,6 @@ def create_app(
             'page_counts': static_options.get('page_counts', []),
             'image_policies': static_options.get('image_policies', []),
             'languages': static_options.get('languages', []),
-            'profiles': static_options.get('profiles', []),
         })
         resp.headers['Cache-Control'] = 'no-store'
         return resp

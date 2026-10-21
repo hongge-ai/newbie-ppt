@@ -390,11 +390,24 @@ class NativeTableMixedRunAuditTests(unittest.TestCase):
         svg_dir = project / "svg_output"
         svg_dir.mkdir(parents=True)
         (svg_dir / "01.svg").write_text(svg, encoding="utf-8")
+        (project / "spec_lock.md").write_text(
+            "# Execution Lock\n\n"
+            "## canvas\n- viewBox: 0 0 1280 720\n\n"
+            "## communication\n- primary_language: en-US\n\n"
+            "## colors\n"
+            "- background: #FFFFFF\n"
+            "- body_text: #000000\n"
+            "- primary: #4472C4\n"
+            "- accent: #ED7D31\n\n"
+            "## typography\n- font_family: Arial\n- body: 20\n- title: 40\n\n"
+            "## pptx_structure\n- mode: flat\n",
+            encoding="utf-8",
+        )
         commands = [
             ["stamp_native_fallbacks.py", str(svg_dir), "--write"],
             ["svg_quality_checker.py", str(project), "--canonical-authoring", "--stage", "final",
-             "--json", "--quick-generate"],
-            ["svg_to_pptx.py", str(project), "--quick-generate", "--native-charts-and-tables",
+             "--json"],
+            ["svg_to_pptx.py", str(project), "--native-charts-and-tables",
              "-o", str(output)],
         ]
         results = []
@@ -414,6 +427,18 @@ class NativeTableMixedRunAuditTests(unittest.TestCase):
         from xml.etree import ElementTree as ET
 
         ns = {"a": "http://schemas.openxmlformats.org/drawingml/2006/main"}
+
+        def _run_color(run) -> str | None:
+            """Theme-mapped body text exports as schemeClr dk1; explicit runs keep srgbClr."""
+            solid = run.find("a:rPr/a:solidFill", ns)
+            if solid is None:
+                return None
+            explicit = solid.find("a:srgbClr", ns)
+            if explicit is not None:
+                return explicit.get("val")
+            scheme = solid.find("a:schemeClr", ns)
+            return f"scheme:{scheme.get('val')}" if scheme is not None else None
+
         with tempfile.TemporaryDirectory() as tmp:
             for length in (1, 10):
                 with self.subTest(length=length):
@@ -428,10 +453,13 @@ class NativeTableMixedRunAuditTests(unittest.TestCase):
                     self.assertIsNotNone(cell)
                     actual = [
                         (run.find("a:t", ns).text, run.find("a:rPr", ns).get("b"),
-                         run.find("a:rPr/a:solidFill/a:srgbClr", ns).get("val"))
+                         _run_color(run))
                         for run in cell.findall(".//a:r", ns)
                     ]
-                    self.assertEqual(actual, [("AAA", "0", "000000"), (red_text, "1", "FF0000")])
+                    self.assertEqual(
+                        actual,
+                        [("AAA", "0", "scheme:dk1"), (red_text, "1", "FF0000")],
+                    )
 
     def test_a06_missing_minority_bold_or_color_still_blocks_native_export(self) -> None:
         import tempfile

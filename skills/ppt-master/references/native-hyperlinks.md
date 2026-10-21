@@ -10,7 +10,7 @@ Authoring contract for PowerPoint-native click hyperlinks on complete objects an
 |---|---|
 | Default Strategist | Record each linked text/object and its exact target on the §IX page block's `Hyperlinks` line — same-deck jumps as `#slide-N`, external destinations as the full URI; never invent or normalize an unknown destination |
 | Default Executor | Choose the whole-object or inline carrier and author the canonical SVG anchor |
-| Active Quick context | Both responsibilities directly |
+| Single-agent execution | Both responsibilities directly |
 | SVG-to-PPTX exporter | Validate the target, create the native relationship, and attach the click action |
 
 **Hard rule — page content only**: hyperlinks are not a confirmation field, resource, manifest, or `spec_lock.md` entry. Missing or ambiguous targets return upstream; never substitute a search result or guessed URL.

@@ -10,7 +10,7 @@ Authoring contract for editable PowerPoint math generated from exact LaTeX, inli
 |---|---|
 | Default Strategist | Record exact mathematical content as a canonical delimiter-free LaTeX expression body; do not classify its implementation |
 | Default Executor | Decide ordinary text versus inline versus block native math, then author the marker and SVG preview |
-| Active Quick context | Both responsibilities directly |
+| Single-agent execution | Both responsibilities directly |
 | SVG-to-PPTX exporter | Compile marker LaTeX to editable Office Math and replace only the registered preview |
 
 | Content form | Authoring choice |

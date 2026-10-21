@@ -55,7 +55,6 @@ python3 skills/ppt-master/scripts/narration_sync.py subtitles <project_path> --p
 python3 skills/ppt-master/scripts/svg_to_pptx.py <project_path> --recorded-narration audio --narration-start-floor 0.8 --narration-padding 0.5 --inherit-motion-from "<base_postflight_report>"
 #   [--animation-config animations.json]  canonical narration-independent motion
 #   [--no-animations]                     explicit all-motion-off
-#   [--quick-generate --with-notes]       Quick projects
 #   [--conversion-trace <final_narrated_trace>]  native-export mix branch
 ```
 

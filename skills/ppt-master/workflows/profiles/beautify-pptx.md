@@ -1,5 +1,5 @@
 ---
-description: Generate profile for 1:1, content-faithful re-layout of an existing deck through Default or explicit Quick execution.
+description: Generate profile for 1:1, content-faithful re-layout of an existing deck.
 ---
 
 # Beautify PPTX (Re-layout) Profile
@@ -7,8 +7,6 @@ description: Generate profile for 1:1, content-faithful re-layout of an existing
 > Generate profile, not a top-level route. [`edit-native-pptx.md`](../edit-native-pptx.md) keeps a deck's native design and edits selected pages; this profile keeps a deck's content and redoes its layout: text verbatim, source palette/fonts as the preselected recommendation (only explicit user requirements or final confirmation override them), layout, hierarchy, whitespace, and visual treatment rebuilt into a new native deck through the SVG pipeline — not a patch over the original.
 
 **Trigger**: the user supplies a `.pptx` and asks, in any language, to beautify or re-layout it while keeping the content — explicit intent plus a provided file, never inferred.
-
-**Hard rule — select one runtime before continuing**: when the request also meets [`quick-generate.md`](./quick-generate.md)'s explicit trigger, load that runtime and not `generate-pptx.md`; otherwise load [`generate-pptx.md`](../generate-pptx.md) and not Quick. The 1:1 constraints below apply in either runtime.
 
 ---
 
@@ -18,9 +16,9 @@ Existing `.pptx` + beautify intent ("把这份 PPT 美化一下" / "make this de
 
 **Hard rule — content is frozen**: every source text string is preserved exactly (no add / remove / reword / reorder); freedom lives only in layout, hierarchy, spacing, and rhythm. Run-level emphasis (words the source colors or bolds) is hierarchy to keep: the same words stand out, restyled in the effective palette. Off-canvas Morph staging copies ([`animations.md`](../../references/animations.md) §3.1) would duplicate frozen strings in the export, so a page takes the fade instead. Page chrome the source lacks — page numbers, footers, running heads — is not added either: the export then carries no character the source did not, and PowerPoint inserts numbering in one step when the user wants it.
 
-**Hard rule — not a patch, not a fill**: this regenerates a native deck through the selected runtime; it never edits the source in place, is not Edit Native PPTX, and never parses a third-party template for text-only substitution (the rejected #53 direction). It is the inverse of a `replication_mode: mirror` template ([`executor-structured.md`](../../references/executor-structured.md) §1.1), which keeps layout and edits text. When the authoritative input is a raster page roster whose visible layout must be preserved, activate the Quick-only [`image-to-pptx.md`](./image-to-pptx.md) instead; the two fidelity profiles never compose.
+**Hard rule — not a patch, not a fill**: this regenerates a native deck through the Generate route; it never edits the source in place, is not Edit Native PPTX, and never parses a third-party template for text-only substitution (the rejected #53 direction). It is the inverse of a `replication_mode: mirror` template ([`executor-structured.md`](../../references/executor-structured.md) §1.1), which keeps layout and edits text. When the authoritative input is a raster page roster whose visible layout must be preserved, activate the [`image-to-pptx.md`](./image-to-pptx.md) profile instead; the two fidelity profiles never compose.
 
-**When this profile is wrong**: it preserves page count and order 1:1 — "keep this deck, lay it out better". Merging, splitting, reordering, re-outlining, or re-paginating for fit ("keep every word but split a crowded page") changes the page breakdown: convert with [`ppt_to_md`](../../scripts/source_to_md/ppt_to_md.py) and use ordinary Quick or Default instead. The deciding question: is the source's page split information to preserve, or the previous author's structure to improve?
+**When this profile is wrong**: it preserves page count and order 1:1 — "keep this deck, lay it out better". Merging, splitting, reordering, re-outlining, or re-paginating for fit ("keep every word but split a crowded page") changes the page breakdown: convert with [`ppt_to_md`](../../scripts/source_to_md/ppt_to_md.py) and use ordinary Generate instead. The deciding question: is the source's page split information to preserve, or the previous author's structure to improve?
 
 ---
 
@@ -35,8 +33,7 @@ Existing `.pptx` + beautify intent ("把这份 PPT 美化一下" / "make this de
 Match the canvas to the source so 1:1 pages and paste-back align: before the project exists, run `beautify_identity.py <source.pptx>` to stdout, read `canvas.aspect`, and pick `ppt169` (≈1.778), `ppt43` (≈1.333), or the exact source `width_px`x`height_px` without `--format`.
 
 ```bash
-python3 ${SKILL_DIR}/scripts/project_manager.py init <project_name> [--format <format>]                 # Default
-python3 ${SKILL_DIR}/scripts/project_manager.py init <project_name> [--format <format>] --quick-generate # Quick — run exactly one init
+python3 ${SKILL_DIR}/scripts/project_manager.py init <project_name> [--format <format>]
 python3 ${SKILL_DIR}/scripts/project_manager.py import-sources <project_path> <source.pptx>
 ```
 
@@ -57,7 +54,7 @@ python3 ${SKILL_DIR}/scripts/pptx_to_svg.py <project_path>/sources/<source.pptx>
 python3 ${SKILL_DIR}/scripts/extract_svg_assets.py <project_path>/analysis/source_svg_import/svg-flat --icons-dir <project_path>/analysis/source_svg_import/icons --icon-namespace imported --inplace --id-prefix source_flat --min-decoration-bytes 3000 --clean-stale
 ```
 
-Use the cleaned `svg-flat/slide_*.svg` pages and `svg-flat_vector_asset_inventory.json` in Step 5; open an individual `icons/imported/*.svg` only when a candidate may be promoted or materially affects the style decision. By default do not copy candidates into `icons/`, list them as output assets, or preserve decorations byte-for-byte. **Optional reuse gate**: a non-text brand/logo/motif/decorative candidate may be promoted to `<project_path>/icons/imported/` and referenced with `<use data-icon="imported/<name>"/>` — Default lists it in Step 5 and waits for confirmation, Quick decides directly and stops only when frozen facts lack a lossless path; never promote text-bearing groups, charts/tables, page layouts, or dense composites.
+Use the cleaned `svg-flat/slide_*.svg` pages and `svg-flat_vector_asset_inventory.json` in Step 5; open an individual `icons/imported/*.svg` only when a candidate may be promoted or materially affects the style decision. By default do not copy candidates into `icons/`, list them as output assets, or preserve decorations byte-for-byte. **Optional reuse gate**: a non-text brand/logo/motif/decorative candidate may be promoted to `<project_path>/icons/imported/` and referenced with `<use data-icon="imported/<name>"/>` — Step 5 lists it for confirmation and stops only when frozen facts lack a lossless path; never promote text-bearing groups, charts/tables, page layouts, or dense composites.
 
 **Assemble the inventory** — the deterministic per-slide ledger Step 5 resolves and Step 7 verifies against:
 
@@ -80,10 +77,6 @@ Omit `--images` when no pictures were extracted. It joins `text_blocks`, `tables
 ---
 
 ## 5. Beautify Decisions
-
-### Quick branch
-
-Do not run the Default confirmation flow. Apply the same inventory interpretation, identity judgment, and body-size method (the `body_size` paragraph under the Default branch is method, not interaction — read it, `× 4/3` included) directly in active context: explicit user requirements are authoritative, otherwise the source identity is the default; resolve `ignored` and `needs_confirmation` without a payload, Design Spec, lock, or substitute plan; if a flagged complex object cannot be regenerated without losing frozen facts, stop as a hard prerequisite instead of simplifying. **Mandatory — close the transient state before §6**: exact source-order roster and one core message per page; identity, palette, fonts, body size, and type-role anchors; per-page density, body frame, primary zone, and composition direction; frozen relationships, reading path, neighbor/section rhythm, and ending; usable local resources and decided notes / motion / audio / image / icon / formula / Chart-Table / verification outcomes. Keep it transient — no Design Spec, lock, or payload — while still filling the inventory's `ignored` / `needs_confirmation` arrays, which §7 verifies against; then continue to §6 Quick.
 
 ### Default branch — Recommend & Confirm
 
@@ -135,8 +128,6 @@ Run Step 4's confirmation orchestration unchanged. In the UI branch read `confir
 ---
 
 ## 6. Author + Export
-
-**Quick**: follow [`quick-generate.md`](./quick-generate.md) §3–4 with the inventory as the exact roster and frozen-content contract; keep source order, hand-author every page, run Quick's checker gates (early on rosters of seven or more pages, lockless final), export with `--quick-generate`; no Confirm UI, Design Spec, lock, or `finalize_svg.py`. **Long-deck review cadence (may adapt)**: after about five pages or at a section boundary, reread only the inventory summary/current-page views and cross-page anchors — a reread, not an extra checker call — and send one `authored/total` status per batch.
 
 **Default**: run [`generate-pptx`](../generate-pptx.md) Steps 6–7. The Executor re-lays-out each page from the lock's semantic anchors plus page/source/template context (page-local colors, gradients, effects, and export-safe faces need no lock rows), regenerates charts/tables as native SVG from the extracted data, and re-lays-out the source pictures. Step 7 owns the serial post-processing commands, gates, and artifacts.
 

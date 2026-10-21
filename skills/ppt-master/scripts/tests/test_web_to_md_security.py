@@ -21,6 +21,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
+from urllib3.connection import _WrappedAndVerifiedSocket
 from urllib3.util.ssl_ import resolve_cert_reqs
 
 SCRIPTS_DIR = Path(__file__).resolve().parents[1]
@@ -363,7 +364,7 @@ class TransportBindingTests(unittest.TestCase):
                     patch.dict(web_to_md.os.environ, HTTP_PROXY='http://127.0.0.1:9',
                                HTTPS_PROXY='http://127.0.0.1:9', ALL_PROXY='http://127.0.0.1:9'), \
                     patch('urllib3.connection._ssl_wrap_socket_and_match_hostname',
-                          return_value=SimpleNamespace(socket=sock, is_verified=True)) as tls:
+                          return_value=_WrappedAndVerifiedSocket(socket=sock, is_verified=True)) as tls:
                 response = web_to_md._http_get(f'{scheme}://public.example/')
                 self.assertEqual(response.content, b'public')
                 sock.connect.assert_called_once_with(('8.8.8.8', 443 if scheme == 'https' else 80))

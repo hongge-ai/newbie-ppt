@@ -1,4 +1,4 @@
-"""Regressions from the Hebrew and Vietnamese Quick deck dogfoods (2026-09-12)."""
+"""Regressions from the Hebrew and Vietnamese deck dogfoods (2026-09-12)."""
 
 from __future__ import annotations
 
@@ -14,7 +14,6 @@ if str(SCRIPTS_DIR / "source_to_md") not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR / "source_to_md"))
 
 import web_to_md  # noqa: E402
-from svg_to_pptx.drawingml.theme_fonts import load_theme_font_spec_from_pages  # noqa: E402
 from svg_to_pptx.drawingml.utils import unsafe_exported_font_faces  # noqa: E402
 from svg_to_pptx.pptx_package.cli import _declared_primary_language  # noqa: E402
 
@@ -25,18 +24,13 @@ PAGE = (
 )
 
 
-class QuickLanguageChannelTests(unittest.TestCase):
-    def test_root_lang_is_the_lockless_deck_language(self) -> None:
+class DeckLanguageFallbackTests(unittest.TestCase):
+    def test_root_lang_is_the_deck_language_without_a_lock(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             project = Path(tmp)
             (project / "svg_output").mkdir()
             (project / "svg_output" / "01_cover.svg").write_text(PAGE, encoding="utf-8")
             self.assertEqual(_declared_primary_language(project), "he-IL")
-            spec = load_theme_font_spec_from_pages(project, "he-IL")
-            self.assertIsNotNone(spec)
-            self.assertEqual(spec.major_family, "David")
-            self.assertEqual(spec.minor_family, "Segoe UI")
-            self.assertEqual(spec.cs_scripts, ("Hebr",))
 
     def test_missing_root_lang_yields_none(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

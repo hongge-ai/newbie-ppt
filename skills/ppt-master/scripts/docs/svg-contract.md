@@ -428,10 +428,10 @@ narrower explicit solid-background ownership contract in
 **Flat packaging**: `pptx_structure.mode: flat` keeps represented objects
 Slide-local; export emits one clean Master plus Blank Layout, removes stock
 content placeholders/Layout inventory, and retains the standard
-date/footer/slide-number hooks. Without a Layout/Deck owner, Quick uses the
+date/footer/slide-number hooks. Without a Layout/Deck owner, the project uses the
 same ownership with converter-default theme scaffolding. Reusable Layouts are
 mapped through `page_layouts` / `page_pptx_layouts` in Default and inferred
-from the complete structured SVG roster in Quick; ownership is never inferred
+from the complete structured SVG roster; ownership is never inferred
 from repeated Slide-local geometry.
 
 **Root-group bounds checks**: every visible direct root `<g>` except a compact

@@ -2,7 +2,8 @@
 """Regress Edit Native motion, narration, and notes overlays on small native decks.
 
 Usage: python3 -m unittest tests.test_edit_native_batch_a
-Dependencies: python-pptx and the converter's normal dependencies.
+Dependencies: python-pptx and the converter's normal dependencies; ffprobe for
+the recorded-narration cases (those tests skip when it is absent).
 """
 
 from __future__ import annotations
@@ -11,6 +12,7 @@ import copy
 import io
 import json
 import posixpath
+import shutil
 import sys
 import tempfile
 import unittest
@@ -46,6 +48,7 @@ MINIMAL_TIMING = (
     '<p:timing><p:tnLst><p:par><p:cTn id="1" dur="indefinite" '
     'restart="never" nodeType="tmRoot"/></p:par></p:tnLst></p:timing>'
 )
+FFPROBE = shutil.which('ffprobe')
 
 
 def _fragment(xml: str) -> ET.Element:
@@ -178,12 +181,14 @@ class EditNativeBatchATests(unittest.TestCase):
         self.assertIsNone(self._slide(output).find('p:timing', NS))
         self.assertEqual(ET.tostring(self._slide(output, 2)), ET.tostring(self._slide(source, 2)))
 
+    @unittest.skipUnless(FFPROBE, "ffprobe required for recorded narration durations")
     def test_a3_narration_accepts_minimal_native_timing(self) -> None:
         project = self._import(self._source(timing=MINIMAL_TIMING))
         self._audio(project)
         output, *_ = self._export(project, '--recorded-narration', 'audio')
         self.assertEqual(len(self._slide(output).findall('.//p:audio', NS)), 1)
 
+    @unittest.skipUnless(FFPROBE, "ffprobe required for recorded narration durations")
     def test_a4_preserved_unreconstructed_click_timing_blocks_recording(self) -> None:
         timing = create_sequence_timing_xml([(2, 0, 'entrance_fade')], trigger='on-click')
         timing = timing.replace('presetID="10"', 'presetID="999"')
@@ -213,6 +218,7 @@ class EditNativeBatchATests(unittest.TestCase):
                 self.assertEqual((transition.get('advClick'), transition.get('advTm')), ('0', '4200'))
                 self.assertIsNotNone(transition.find('p:fade', NS))
 
+    @unittest.skipUnless(FFPROBE, "ffprobe required for recorded narration durations")
     def test_a5_imported_narration_matches_output_stems(self) -> None:
         project = self._import(self._source())
         self._audio(project)
@@ -268,6 +274,7 @@ class EditNativeBatchATests(unittest.TestCase):
         self.assertEqual(len(final.findall('.//p:pic', NS)), 1)
         self.assertEqual(len(final.findall('.//p:audio', NS)), 1)
 
+    @unittest.skipUnless(FFPROBE, "ffprobe required for recorded narration durations")
     def test_a6_second_export_does_not_overwrite_source_media(self) -> None:
         project = self._import(self._source())
         self._audio(project)

@@ -2,7 +2,7 @@
 
 # SVG Effects and Geometry Specification
 
-Authority for advanced paint, effects, transforms, freeform/radial geometry, and constructed visual styles. Default and Quick Generate load it on the executor-base routing trigger — the first page whose visual job reaches beyond the everyday block — and keep it for the rest of the run; other SVG-authoring routes follow their workflow trigger. It keeps the form the model writes and the design decisions behind each technique; the complete grammar the checker and exporter enforce for §6.2–§6.10 is in [`svg-contract.md`](../scripts/docs/svg-contract.md) Part II under the same section numbers; §6.1 and §6.11–§6.13 are design guidance with no separate contract.
+Authority for advanced paint, effects, transforms, freeform/radial geometry, and constructed visual styles. Generate loads it on the executor-base routing trigger — the first page whose visual job reaches beyond the everyday block — and keep it for the rest of the run; other SVG-authoring routes follow their workflow trigger. It keeps the form the model writes and the design decisions behind each technique; the complete grammar the checker and exporter enforce for §6.2–§6.10 is in [`svg-contract.md`](../scripts/docs/svg-contract.md) Part II under the same section numbers; §6.1 and §6.11–§6.13 are design guidance with no separate contract.
 
 **Cross-reference map**: unqualified §1, §2, and §4 references point to [`shared-standards-core.md`](./shared-standards-core.md); §6 references are local to this file.
 
@@ -24,8 +24,8 @@ rhythm, and style; apply those that materially help.
 | Decision layer | Authority |
 |---|---|
 | Technical validity | Required / Forbidden / Conditional contracts in this file, over the shared core's closed authoring surface, the route's other required construction references, and any triggered module |
-| Project values | Default: `<project_path>/spec_lock.md` anchors plus retained Design Spec/page context; Quick: anchors resolved in the current context |
-| Aesthetic fit | Locked or Quick-resolved `visual_style` / `visual_style_behavior` |
+| Project values | `<project_path>/spec_lock.md` anchors plus retained Design Spec/page context |
+| Aesthetic fit | Locked `visual_style` / `visual_style_behavior` |
 | Per-page choice | Content purpose, hierarchy, legibility, semantics, and rhythm |
 
 **Reference — job-first effect selection**: establish the editable semantic
@@ -92,7 +92,7 @@ modifier or prepared-asset treatments, resolve its implementation here.
 | `A1 · 02–04; A3 · 02/03` · blur, duotone, blend, frost, desaturation | Prepared local bitmap/composite/derivative; registered frost is a blurred derivative; §6.12 |
 
 **Reference — illustrative colors**: colors below demonstrate syntax only;
-generated pages choose paint from the Default locked or Quick-resolved identity
+generated pages choose paint from the locked identity
 anchors, visual style, content semantics, and current composition. A contextual
 tint, gradient stop, shadow/glow paint, or one-off display color need not
 already be a persistent identity role; promote it only when it becomes a
@@ -437,7 +437,7 @@ prefer editable primitives and exact Office presets, independently composed
 when possible; materialize a Boolean only when one contour requires it. Use a
 closed cubic path only for an organic silhouette those cannot express,
 polygon/closed path for unmatched ribbons/facets, and an open path only for a
-required data curve, custom route, or locked or Quick-resolved hand-drawn /
+required data curve, custom route, or locked hand-drawn /
 organic style. Straight relationships use `<line>`; exact stock bends/curves
 use an authored native Connector preset. Multi-`M` paths remain available for
 exact linework, and a §1.2 path clip for unmatched organic pictures. Filled
@@ -518,7 +518,7 @@ filled `Native-normalized` arrowhead. Example:
 browser-filter permissions.
 
 **Reference — not a constraint**: use them only when they match the locked or
-Quick-resolved style. Their curve recipes are explicit exceptions to the
+locked style. Their curve recipes are explicit exceptions to the
 Shape-first default above; they do not authorize decorative freeforms in
 another style.
 

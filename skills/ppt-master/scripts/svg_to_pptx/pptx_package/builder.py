@@ -13,6 +13,7 @@ import shutil
 import stat
 import subprocess
 import tempfile
+import time
 import uuid
 import zipfile
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -4926,10 +4927,10 @@ def _prune_unused_slide_layouts(
                     f"Slide master {master_part} has no sldLayoutId entry for {rel_id}"
                 )
             _remove_relationship(master_rels_path, rel_id)
-            (extract_dir / layout_part).unlink()
+            _unlink_with_retry(extract_dir / layout_part)
             layout_rels_path = _relationships_path_for_part(extract_dir, layout_part)
             if layout_rels_path.exists():
-                layout_rels_path.unlink()
+                _unlink_with_retry(layout_rels_path)
             _remove_content_type_override(content_types_path, layout_part)
             pruned += 1
         master_path.write_text(master_xml, encoding="utf-8")
@@ -4937,6 +4938,18 @@ def _prune_unused_slide_layouts(
     if verbose and pruned:
         print(f"  Layout prune: removed {pruned} unused base layout(s)")
     return pruned
+
+
+def _unlink_with_retry(path: Path, attempts: int = 5) -> None:
+    """Unlink a file, retrying transient Windows sharing violations."""
+    for attempt in range(attempts):
+        try:
+            path.unlink()
+            return
+        except PermissionError:
+            if attempt == attempts - 1:
+                raise
+            time.sleep(0.05 * (attempt + 1))
 
 
 def _flat_structure_name(value: str | None) -> str:

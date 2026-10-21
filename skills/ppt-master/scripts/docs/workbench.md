@@ -182,7 +182,6 @@ visible without restart.
   "topic": "非空任务主题",
   "requirements": {"audience": "", "tone": "", "extra": ""},
   "params": {
-    "profile": "quick",            // quick|default
     "canvas": "ppt169",            // config.CANVAS_FORMATS key
     "page_count": null,            // hint, not a hard constraint
     "primary_language": "zh-CN",
@@ -225,28 +224,26 @@ agent reads it when the user asks for a revision.
 ## Agent Consumption Contract
 
 The routing row in `workflows/routing.md` points here. When the user asks to
-process a workbench task, the agent runs this playbook inside the profile the
-task's `params.profile` selects (`quick` → Quick runtime, `default` → Default
-runtime with its normal Confirm UI stages).
+process a workbench task, the agent runs this playbook inside the Generate
+route with its normal Confirm UI stages.
 
 1. **Claim**: read `projects/.workbench/tasks/<task_id>/task.json`. Proceed
-   only when `status == "submitted"` and `schema_version == 1`; any other
+   only when `status == "submitted"` and `schema_version == 2`; any other
    status means the task is already claimed, finished, or still a draft —
    say so and stop. Write back `status: "processing"`, `started_at`, and
    `project_dir` (atomic temp-file + `os.replace`, same as the server).
 2. **Initialize**: `project_manager.py init <slug> [--format <canvas>]`
    with a slug derived from `display_title`/`topic` (ASCII-safe, dated by
    the tool itself); pass `--format` only when `params.canvas` names a
-   registered canvas key, and `--quick-generate` when the profile is
-   `quick`. Record the resulting absolute project path in `project_dir`.
+   registered canvas key. Record the resulting absolute project path in
+   `project_dir`.
 3. **Material**: `project_manager.py import-sources <project> <task>/uploads/*`
    when uploads exist — its move semantics carry the staged files into
    `sources/`; conversion and any research then follow the selected
    profile's normal source-intake rules.
 4. **Templates**: when `template_selection.mode == "templates"`, feed each
    `selections[].workspace_root` into the existing explicit-workspace-root
-   rule of the selected profile (Quick: validate and install directly;
-   Default: Stage-1 candidate with the single-root preselection). If
+   rule as a Stage-1 candidate with the single-root preselection. If
    `indexes_sha256` no longer matches the current index files, warn the
    user that the library changed since the selection, then continue —
    `apply_template.py` remains the final validator. `free_design` mode
@@ -262,8 +259,8 @@ runtime with its normal Confirm UI stages).
    each authored page batch, quality gates, export). On success write
    `status: "done"`, `finished_at`, and `deliverables` (the export file
    names); on failure write `status: "failed"` and a human-readable
-   `error`. Every write is atomic, and the agent never edits the frozen
-   user domain.
+   `error`. Every write is atomic, encoded as UTF-8 explicitly (never the
+   platform default), and the agent never edits the frozen user domain.
 7. **Feedback**: when the user asks for a revision, read `feedback.json`
    (`wants_revision`, `comment`) alongside the task record.
 

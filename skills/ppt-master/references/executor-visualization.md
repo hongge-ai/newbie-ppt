@@ -4,7 +4,7 @@
 
 Conditional Executor authority for resolving one page-local Chart/Table `family/key` SVG reference and adapting it without turning the catalog preview into a page specification.
 
-**Trigger**: Default `spec_lock.md page_visualizations` maps the current page to a canonical Chart/Table reference, a legacy `page_charts` row resolves to a live Chart/Table SVG, or Quick already selected one canonical reference in active context.
+**Trigger**: `spec_lock.md page_visualizations` maps the current page to a canonical Chart/Table reference, or a legacy `page_charts` row resolves to a live Chart/Table SVG.
 
 ---
 
@@ -18,7 +18,6 @@ Conditional Executor authority for resolving one page-local Chart/Table `family/
 | Active profile | Resolve from |
 |---|---|
 | Default Generate | The current `P<NN>: family/key` row in retained `spec_lock.md page_visualizations`, then that page's `Page \| Family \| Template \| Usage` row in Design Spec §VII; a legacy `page_charts` row and its §VII Usage only when the canonical row is absent |
-| Quick Generate | The canonical `family/key` and page-local purpose already selected in active context before SVG authoring |
 
 **Mandatory — shared resolution**: resolve through `visualization_recall.py validate` and consume its canonical `reference` and `path`; never guess a family or build a path from the input string. Add `--legacy-bare` only for a value read from legacy `page_charts`.
 
@@ -27,7 +26,7 @@ python3 ${SKILL_DIR}/scripts/visualization_recall.py validate <family/key>
 python3 ${SKILL_DIR}/scripts/visualization_recall.py validate --legacy-bare <legacy-key>
 ```
 
-**Hard rule — one primary reference per page**: one page resolves at most one catalog SVG, guiding one dominant reusable Chart/Table structure; secondary objects are authored from their content through the applicable branch without another catalog SVG, keeping their §IX or Quick object keys for native/verification contracts. New `page_visualizations` and Quick selections accept only canonical `chart/<key>` or `table/<key>`; a bare key is read-compatible only from legacy `page_charts` and must resolve unambiguously, otherwise stop for upstream correction. Canonical and legacy rows for one page stop on the duplicate contract even when both resolve to the same SVG.
+**Hard rule — one primary reference per page**: one page resolves at most one catalog SVG, guiding one dominant reusable Chart/Table structure; secondary objects are authored from their content through the applicable branch without another catalog SVG, keeping their §IX object keys for native/verification contracts. New `page_visualizations` selections accept only canonical `chart/<key>` or `table/<key>`; a bare key is read-compatible only from legacy `page_charts` and must resolve unambiguously, otherwise stop for upstream correction. Canonical and legacy rows for one page stop on the duplicate contract even when both resolve to the same SVG.
 
 **Legacy Structure boundary**: a retired Structure bare key is semantic intent, not a reference — do not resolve it or load this branch; recover the relationship from §IX and apply [`executor-structure.md`](./executor-structure.md) when the per-page topology decision is yes, or return upstream when §IX lacks meaning.
 
@@ -37,7 +36,7 @@ Read the resolver-returned SVG once before first use and reuse that reading unti
 
 ## 2. Flexible Page-local Adaptation
 
-**Hard rule — reference, not lock**: the selected SVG is a page-local construction reference. The §IX page block or Quick page decision plus authoritative content owns the final information structure; the preview locks no visualization type, geometry, styling, or native replacement.
+**Hard rule — reference, not lock**: the selected SVG is a page-local construction reference. The §IX page block plus authoritative content owns the final information structure; the preview locks no visualization type, geometry, styling, or native replacement.
 
 | Preserve | Adapt freely |
 |---|---|

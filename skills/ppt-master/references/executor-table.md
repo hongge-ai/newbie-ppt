@@ -34,4 +34,4 @@ With a `table/<key>` primary reference, [`executor-visualization.md`](./executor
 
 ## 3. Object Boundary
 
-Each semantic table is one independently bounded page object even with nested cell groups; captions, source notes, and callouts may sit outside the grid when ownership is visually explicit. Native readiness is decided per table object, not by family or numeric cells: reuse its §IX/Quick semantic object key in the `Native-ready` map; only `<object-key>=yes` loads [`native-data-interface.md`](./native-data-interface.md), everything else remains Shape-first SVG geometry.
+Each semantic table is one independently bounded page object even with nested cell groups; captions, source notes, and callouts may sit outside the grid when ownership is visually explicit. Native readiness is decided per table object, not by family or numeric cells: reuse its §IX semantic object key in the `Native-ready` map; only `<object-key>=yes` loads [`native-data-interface.md`](./native-data-interface.md), everything else remains Shape-first SVG geometry.

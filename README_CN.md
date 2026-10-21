@@ -4,7 +4,7 @@
 > 完整保留原生 PowerPoint 生成管线，并新增本地 Web 工作台：在浏览器里建任务、
 > 模板市场真实预览、参数配置、一键提交、逐页实时看进度——告别纯聊天黑盒。
 
-[![Version](https://img.shields.io/github/v/release/hugohe3/ppt-master?label=version&color=blue)](https://github.com/hugohe3/ppt-master/releases)
+[![Version](https://img.shields.io/github/v/release/hongge-ai/newbie-ppt?label=version&color=blue)](https://github.com/hongge-ai/newbie-ppt/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub stars](https://img.shields.io/github/stars/hugohe3/ppt-master.svg)](https://github.com/hugohe3/ppt-master/stargazers)
 [![AtomGit stars](https://atomgit.com/hugohe3/ppt-master/star/badge.svg)](https://atomgit.com/hugohe3/ppt-master)
@@ -19,9 +19,9 @@
 
 > 🆕 **作为投融资领域从业者（注册会计师 · 资产评估师 · 咨询工程师（投资）），我结合自己的专业知识和项目经验，制作了一个工具网站：[建设项目经济评价](https://cs.hehugo.com/)**——输入项目数据，在线完成全套财务测算：投资、收入、成本、还本付息、利润、现金流量、资产负债等报表，以及内部收益率、净现值、敏感性和盈亏平衡分析，可导出 Excel / Word 报表。适用于风电、光伏、储能等能源类建设项目，其他项目可用通用型评价。网站目前处于初步试用阶段，前 100 名注册送 3 次运算，之后注册送 1 次。
 
-## ❤️ 赞助
+## ❤️ 赞助（上游）
 
-本项目由 <a href="https://www.kimi.com/code/?aff=ppt-master">Kimi</a>、<a href="https://www.packyapi.ai/register?aff=ppt-master">PackyCode</a>、<a href="https://apikey.fan/register?aff=PPT-MASTER">APIKEY.FAN</a>、<a href="https://runapi.host/register?aff=WMLJ">RunAPI</a>、<a href="https://go.apimart.ai/gh-ppt-master1">APIMart</a> 等赞助方支持，得以持续免费开源。
+上游项目 ppt-master 由 <a href="https://www.kimi.com/code/?aff=ppt-master">Kimi</a>、<a href="https://www.packyapi.ai/register?aff=ppt-master">PackyCode</a>、<a href="https://apikey.fan/register?aff=PPT-MASTER">APIKEY.FAN</a>、<a href="https://runapi.host/register?aff=WMLJ">RunAPI</a>、<a href="https://go.apimart.ai/gh-ppt-master1">APIMart</a> 等赞助方支持，得以持续免费开源。
 
 > **[想出现在这里？](SPONSORING_CN.md)**
 
@@ -171,7 +171,7 @@
 
 ### 1. 前置条件
 
-**只需安装 [Python](https://www.python.org/downloads/) 3.10+。** 其余的 [uv](https://docs.astral.sh/uv/)、Python 环境和全部依赖，都由第 3 步的一条命令装齐，默认走清华 PyPI 镜像。
+**只需安装 [Python](https://www.python.org/downloads/) 3.14。** 其余的 [uv](https://docs.astral.sh/uv/)、Python 环境和全部依赖，都由第 3 步的一条命令装齐，默认走清华 PyPI 镜像。
 
 <details>
 <summary><strong>Windows</strong> — 请看专门的<a href="./docs/zh/windows-installation.md">手把手安装指南</a> ⚠️</summary>
@@ -282,7 +282,7 @@ python skills/ppt-master/scripts/setup_env.py
 
 ### 4. 开始创作
 
-**先在 Agent 里打开项目文件夹：** 目标是让 AI 工作在上一步解压 / 克隆出来的 `ppt-master` 目录里——IDE 类工具通过菜单 **文件 → 打开文件夹**（File → Open Folder）打开它，AI 聊天面板通常在侧边栏；CLI 类工具先 `cd ppt-master` 再启动。之后的一切都在聊天里完成。
+**先在 Agent 里打开项目文件夹：** 目标是让 AI 工作在上一步解压 / 克隆出来的 `newbie-ppt` 目录里——IDE 类工具通过菜单 **文件 → 打开文件夹**（File → Open Folder）打开它，AI 聊天面板通常在侧边栏；CLI 类工具先 `cd newbie-ppt` 再启动。之后的一切都在聊天里完成。
 
 **提供原始材料（推荐）：** 将 PDF、DOCX、图片等文件放入 `projects/` 目录下，在 AI 聊天面板中告诉它使用哪些文件。获取路径的最快方式：在文件管理器或 IDE 侧边栏中右键文件 → **复制路径**（Copy Path / Copy Relative Path），直接粘贴进聊天框。
 
@@ -296,7 +296,7 @@ python skills/ppt-master/scripts/setup_env.py
 你：请根据以下内容制作成 PPT：[粘贴你的文字内容...]
 ```
 
-默认流程下（除非显式要求快速生成），AI 会先确认设计规范：
+AI 会先确认设计规范：
 
 ```
 AI：好的，先确认设计规范：
@@ -308,21 +308,15 @@ AI：好的，先确认设计规范：
 
 AI 全程处理——内容分析、视觉设计、SVG 生成、PPTX 导出。
 
-**快速生成（跳过来回确认）：** 显式说明即可，AI 直接进入创作与导出。
-
 **本地工作台（可视化操作，推荐新手）：** 不用在聊天里描述需求——启动本地工作台,在浏览器里完成全部操作:新建任务、浏览模板市场并**预览模板真实效果**、配置页数/画幅/语言/配图策略、上传参考材料;提交后把页面给出的触发语粘贴到 AI 对话即可。生成过程中,工作台实时显示每一页产出,完成后可直接下载 PPTX 并提交反馈。
 
 ```bash
-python3 skills/ppt-master/scripts/workbench/server.py
+uv run python skills/ppt-master/scripts/workbench/server.py
 ```
 
 浏览器会自动打开 `http://127.0.0.1:7070`。执行者仍是你的 AI agent——工作台只负责收集你的决策、落盘为任务文件、并展示生成进度。详见 [scripts/docs/workbench.md](./skills/ppt-master/scripts/docs/workbench.md)。
 
 ```
-你：用 projects/q3-report/sources/report.pdf 快速生成一份 5 页 PPT，不用跟我确认
-```
-
-你明确提的照做，你没提的由 AI 直接定，不再回来问你。它仍会转换来源、补齐事实、应用共享视觉基线，并按需使用图片 / 图标 / 原生形状 / 图表 / 表格 / PowerPoint 原生行内或块级公式——省掉的是交互与持久规划，不是 PPT 能力。它是不可续接的一次性生成，也不会产生 `svg_final/` 预览。完整说明 → [快速模式](./docs/zh/getting-started.md#快速模式)。
 
 > **输出说明：** 成品保存为 `exports/<name>_<timestamp>.pptx`，是可直接编辑的原生 DrawingML；默认流程还会在 `svg_final/` 生成自包含的页面预览。图表和表格默认导出为可逐形状编辑的对象；加 `--native-charts-and-tables` 可得到带数据源、支持**编辑数据**的 PowerPoint 原生 Chart / Table 对象，另存为 `_native_charts_tables.pptx`。公式编译为 PowerPoint 2010+ 可编辑的 OMML。备份、备注 / 动画 / 旁白开关，以及非 PowerPoint 客户端的边界 → [常见问题](./docs/zh/faq.md)。
 
@@ -334,7 +328,7 @@ python3 skills/ppt-master/scripts/workbench/server.py
 
 非用户自带图片有两条路径，可在同一份 deck 里按图混用：
 
-**A) AI 生图** — Agent host 提供原生生图工具时可直接使用；也可通过 `image_gen.py` 配置 `IMAGE_BACKEND` 和供应商 `*_API_KEY`。host-native 生图不需要另配供应商生图 API Key，直接要求 Agent 使用自身生图工具即可。`python3 skills/ppt-master/scripts/image_gen.py --list-backends` 查看供应商后端清单。`gpt-image-2` 目前综合质量最佳。
+**A) AI 生图** — Agent host 提供原生生图工具时可直接使用；也可通过 `image_gen.py` 配置 `IMAGE_BACKEND` 和供应商 `*_API_KEY`。host-native 生图不需要另配供应商生图 API Key，直接要求 Agent 使用自身生图工具即可。`uv run python skills/ppt-master/scripts/image_gen.py --list-backends` 查看供应商后端清单。`gpt-image-2` 目前综合质量最佳。
 
 **B) 网络图片搜索** — `image_search.py`。**零配置**可用；建议配置 `PEXELS_API_KEY` / `PIXABAY_API_KEY`（都免费申请）以获得稳定的高质量结果：
 
@@ -399,8 +393,8 @@ PPT Master 会优先读取当前进程环境变量，然后按顺序读取第一
 
 欢迎合作交流、将 PPT Master 集成到你的工作流，或者单纯提问：
 
-- 💬 **提问与分享** — [GitHub Discussions](https://github.com/hugohe3/ppt-master/discussions)
-- 🐛 **Bug 反馈与功能建议** — [GitHub Issues](https://github.com/hugohe3/ppt-master/issues)
+- 💬 **提问与分享** — [上游 GitHub Discussions](https://github.com/hugohe3/ppt-master/discussions)
+- 🐛 **Bug 反馈与功能建议** — [newbie-ppt Issues](https://github.com/hongge-ai/newbie-ppt/issues)
 
 ---
 
@@ -418,7 +412,7 @@ PPT Master 会优先读取当前进程环境变量，然后按顺序读取第一
 
 ## 赞助与支持
 
-PPT Master 目前主要由我开发维护。每个新模板、Bug 修复、文档更新都需要持续的资源投入，目前由以下赞助方和个人支持者共同分担。
+上游项目 PPT Master 目前主要由何雨果开发维护。每个新模板、Bug 修复、文档更新都需要持续的资源投入，目前由以下赞助方和个人支持者共同分担。
 
 **企业赞助方**
 
@@ -448,8 +442,8 @@ PPT Master 目前主要由我开发维护。每个新模板、Bug 修复、文�
 
 ---
 
-Made with ❤️ by [何雨果 Hugo He](https://www.hehugo.com/) — 如果这个项目对你有帮助，请给一个 ⭐，也欢迎[赞助支持](#赞助与支持)。
+上游项目由 [何雨果 Hugo He](https://www.hehugo.com/) 用 ❤️ 打造 — 如果它帮到了你，请给一个 ⭐，也欢迎[赞助上游](#赞助与支持)。
 
-<sub>官方发布渠道：<a href="https://github.com/hugohe3/ppt-master">GitHub</a>（主仓库）· <a href="https://atomgit.com/hugohe3/ppt-master">AtomGit</a>（镜像）。其他平台转发版本均为非官方版本。MIT 协议，使用需保留署名。</sub>
+<sub>本 fork 官方发布渠道：<a href="https://github.com/hongge-ai/newbie-ppt">GitHub</a>。基于 <a href="https://github.com/hugohe3/ppt-master">ppt-master</a>（MIT）二次开发；上游的 Release 与镜像属于上游项目。MIT 协议，使用需保留署名。</sub>
 
 [⬆ 回到顶部](#ppt-master--ai-生成原生-powerpoint支持任意文档输入)

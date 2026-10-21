@@ -27,7 +27,7 @@ Before starting the agent, keep these three directories separate:
 | **Working folder** | A persistent, writable folder that you open in the agent | For a full-repository clone or repository ZIP, normally the repository root; for skill-only installation, choose your own folder—it does not have to be the installed skill directory |
 | **Active project** | One generation run's sources, authored SVG, reports, backups, and exports | The agent initializes it under `<working-folder>/projects/<generated-project-name>/` and reports the exact path |
 
-Every installation path needs Python 3.10+ and an installed, authenticated agent host that can read and write the working folder and run shell commands. For a full-repository clone or repository ZIP, run the one-click setup from the repository root — it bootstraps [uv](https://docs.astral.sh/uv/) and installs every dependency layer:
+Every installation path needs Python 3.14 and an installed, authenticated agent host that can read and write the working folder and run shell commands. For a full-repository clone or repository ZIP, run the one-click setup from the repository root — it bootstraps [uv](https://docs.astral.sh/uv/) and installs every dependency layer:
 
 ```bash
 python skills/ppt-master/scripts/setup_env.py
@@ -84,44 +84,16 @@ Full guide → [Templates Guide](./templates-guide.md)
 Once the environment and working folder above are ready, the whole loop is three steps:
 
 1. **Give the agent source material it can read** — a PDF, DOCX, Markdown file, a URL, or text pasted into chat. A folder such as `<working-folder>/inputs/` is fine; you do not need to pre-create the final `projects/<name>/` directory.
-2. **Tell the AI in chat** what to turn into a deck. [Default Generate Step 2](../skills/ppt-master/workflows/generate-pptx.md) or [Quick initialization](../skills/ppt-master/workflows/profiles/quick-generate.md) creates the active project under the working folder's `projects/` directory and reports its exact path. File-based material is imported when present; pasted text stays in the conversation context and needs no import. Default then opens Stage 1 to confirm the communication contract together with free design or template use; Quick skips those confirmation stages. For Default, add one exact workspace root when you want template mode and that path preselected:
+2. **Tell the AI in chat** what to turn into a deck. [Generate Step 2](../skills/ppt-master/workflows/generate-pptx.md) creates the active project under the working folder's `projects/` directory and reports its exact path. File-based material is imported when present; pasted text stays in the conversation context and needs no import. Stage 1 then opens to confirm the communication contract together with free design or template use. Add one exact workspace root when you want template mode and that path preselected:
    ```
    You: Make a deck from <path-to-report.pdf>
    You: Turn this text into a deck: <paste your text>
    ```
 3. **Get an editable `.pptx`** at `<active-project>/exports/<project-name>_<timestamp>.pptx` unless you explicitly requested another output path. For a full-repository clone or repository ZIP this is commonly `<repository-root>/projects/<generated-project-name>/exports/...`; for skill-only installation it is `<working-folder>/projects/<generated-project-name>/exports/...`. Use the exact active-project path reported by the agent rather than looking for an unqualified repository-root `exports/`.
 
-The terms in that flow are not extra folders you must create. **Stage 1** confirms the communication contract—purpose, audience, reading situation, canvas/format—and the free-design/template choice. A **workspace root** is the root directory of an optional reusable Brand, Style, Layout, or Deck package; it is not the active project. The AI installs any selected workspace, then **Stage 2** confirms page count, the visual system, template application, and production choices. From there it handles content analysis, layout, image acquisition, SVG generation, and export. To skip interactive confirmation, see [Quick mode](#quick-mode) below.
+The terms in that flow are not extra folders you must create. **Stage 1** confirms the communication contract—purpose, audience, reading situation, canvas/format—and the free-design/template choice. A **workspace root** is the root directory of an optional reusable Brand, Style, Layout, or Deck package; it is not the active project. The AI installs any selected workspace, then **Stage 2** confirms page count, the visual system, template application, and production choices. From there it handles content analysis, layout, image acquisition, SVG generation, and export.
 
 ---
-
-## Quick mode
-
-The default flow runs its combined Stage-1 communication/template choice followed by final Stage 2. To skip that interaction, explicitly ask for **quick generation**:
-
-```
-You: Quickly generate a deck from sources/report.pdf — no need to confirm with me
-You: Turn this into a deck, skip the confirmation, about 8 pages, dark corporate look
-```
-
-**Whatever you state explicitly is followed; whatever you leave unspecified the agent decides directly, without coming back to ask.** The page count and the look in the second example still hold — quick mode drops the round trip, not your say. Instead of materializing Default's three directions, Quick directly executes the direction that Default would recommend: the strongest overall fit for free design, or the viable direction most fully expressing installed template context. State nothing, and the agent decides everything.
-
-Quick mode never opens the Confirm UI template selector. Give it up to one exact
-Brand / Style / Layout / Deck workspace root per kind and it validates,
-installs, and uses them directly; give it no exact root and it uses free design.
-A bare template name or style phrase is still only a design brief. Quick keeps
-its lockless workflow but preserves template capability: free design and
-Brand / Style-only output stays flat, while a supplied Layout / Deck workspace
-keeps explicit Master / Layout / slot metadata in the authored SVGs and compiles
-it into reusable native structure. Before P01, the agent reads every installed
-template SVG and freezes one natural-language application paragraph in active
-context; no confirmation/spec artifact is created.
-
-It does not skip capabilities: source conversion, research on identified factual gaps, shared aesthetic guidance, image / icon preparation, and native-shape / chart / table authoring still run as needed. Structural formulas are authored directly as native PowerPoint markers rather than prepared as image assets. A missing explicitly selected manual asset or other irreplaceable file dependency blocks until you provide it. If automated AI generation or required dependent slicing is exhausted, Quick removes the failed jobs and stale manifest entries, replans with native editable text/SVG or already-prepared non-AI assets, continues the same run, and reports the replacement in its final handoff.
-
-Quick is a one-pass profile, not a shortened resumable workflow. It creates no Strategist record, `design_spec.md`, `spec_lock.md`, or substitute page plan; its content/design/resource decisions exist only in the active AI context. If that context is lost before delivery, start Quick again. Operational manifests, quality reports, postflight, and the cold Python audit log may remain, but they cannot reconstruct why the AI designed the deck that way. The profile reduces interaction and durable planning, not the available presentation toolbox or the intended quality bar.
-
-Full guide → [quick-generate profile](../skills/ppt-master/workflows/profiles/quick-generate.md)
 
 ---
 

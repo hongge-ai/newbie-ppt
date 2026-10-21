@@ -28,7 +28,7 @@ Canvas dimensions imply no title band, topology, or recurring chrome; reserve sp
 
 ## Typography Scale Start
 
-**Hard rule — normative owner**: this section owns the initial body-size anchor and sanity band for every registered or custom canvas. Strategist and Quick consume it directly; Confirm UI maintains an exact executable mirror and must not infer alternate canvas classes or values. Values are unitless SVG px.
+**Hard rule — normative owner**: this section owns the initial body-size anchor and sanity band for every registered or custom canvas. Strategist consumes it directly; Confirm UI maintains an exact executable mirror and must not infer alternate canvas classes or values. Values are unitless SVG px.
 
 | Canvas | Reading mode | Advisory body band | Initial body |
 |---|---|---:|---:|

@@ -67,7 +67,7 @@ class NativeExportGuardTests(unittest.TestCase):
         return ET.fromstring(xml)
 
     def _check(self) -> dict:
-        return SVGQualityChecker(quick_generate=True).check_file(str(self.svg_path))
+        return SVGQualityChecker().check_file(str(self.svg_path))
 
     @staticmethod
     def _shape_colors(slide: ET.Element) -> list[str]:

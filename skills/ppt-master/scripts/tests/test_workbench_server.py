@@ -150,7 +150,7 @@ class TaskLifecycleTests(unittest.TestCase):
         # defaults
         task = self.client.get(f'/api/tasks/{task_id}').get_json()
         self.assertEqual(task['status'], 'draft')
-        self.assertEqual(task['params']['profile'], 'quick')
+        self.assertNotIn('profile', task['params'])
         self.assertEqual(task['template_selection']['mode'], 'free_design')
         self.assertIn('indexes_sha256', task['template_selection'])
         # patch
@@ -183,7 +183,6 @@ class TaskLifecycleTests(unittest.TestCase):
     def test_patch_validates_params(self) -> None:
         task_id = self._create()
         for patch_payload in (
-            {'params': {'profile': 'turbo'}},
             {'params': {'canvas': 'poster99'}},
             {'params': {'page_count': 0}},
             {'params': {'page_count': 'ten'}},
@@ -325,7 +324,6 @@ class TaskLifecycleTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         data = response.get_json()
         self.assertTrue(any(item['id'] == 'ppt169' for item in data['canvas']))
-        self.assertTrue(data['profiles'])
         self.assertTrue(data['image_policies'])
         self.assertTrue(data['languages'])
         self.assertTrue(data['page_counts'])

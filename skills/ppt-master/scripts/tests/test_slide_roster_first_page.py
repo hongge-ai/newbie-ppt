@@ -12,15 +12,11 @@ SCRIPTS_DIR = Path(__file__).resolve().parents[1]
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from svg_quality.checker import SVGQualityChecker  # noqa: E402
-from svg_to_pptx.drawingml.theme_fonts import load_theme_font_spec_from_pages  # noqa: E402
 from svg_to_pptx.pptx_package.cli import _declared_primary_language  # noqa: E402
-
-NO_DECK_LANGUAGE = "Quick roster declares no deck language"
 
 
 def _page(title_family: str, body_family: str, language: str = "") -> str:
-    """One Quick page: root font-family is the body face, the 72px text the title face."""
+    """One page: root font-family is the body face, the 72px text the title face."""
     language_attribute = f' lang="{language}"' if language else ""
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720"'
@@ -58,20 +54,6 @@ class UnpaddedRosterTests(unittest.TestCase):
     def test_deck_language_comes_from_the_cover(self) -> None:
         self.assertEqual(_declared_primary_language(self.project), "ja-JP")
 
-    def test_theme_fonts_come_from_the_cover(self) -> None:
-        spec = load_theme_font_spec_from_pages(self.project, "ja-JP")
-        self.assertIsNotNone(spec)
-        self.assertEqual(spec.major_family, "Cover Title")
-        self.assertEqual(spec.minor_family, "Cover Body")
-
-    def test_the_deck_language_advisory_lands_on_the_cover(self) -> None:
-        _build_roster(self.pages, width=1, cover_language="")
-        checker = SVGQualityChecker(quick_generate=True)
-        cover = checker.check_file(str(self.pages / "1_cover.svg"))
-        last = checker.check_file(str(self.pages / "10_end.svg"))
-        self.assertTrue(any(NO_DECK_LANGUAGE in text for text in cover["warnings"]))
-        self.assertFalse(any(NO_DECK_LANGUAGE in text for text in last["warnings"]))
-
 
 class PaddedRosterTests(unittest.TestCase):
     """A zero-padded roster already agreed with name order and must not move."""
@@ -83,17 +65,5 @@ class PaddedRosterTests(unittest.TestCase):
         self.pages = self.project / "svg_output"
         _build_roster(self.pages, width=2)
 
-    def test_deck_language_and_theme_fonts_still_come_from_the_cover(self) -> None:
+    def test_deck_language_comes_from_the_cover(self) -> None:
         self.assertEqual(_declared_primary_language(self.project), "ja-JP")
-        spec = load_theme_font_spec_from_pages(self.project, "ja-JP")
-        self.assertIsNotNone(spec)
-        self.assertEqual(spec.major_family, "Cover Title")
-        self.assertEqual(spec.minor_family, "Cover Body")
-
-    def test_the_deck_language_advisory_lands_on_the_cover(self) -> None:
-        _build_roster(self.pages, width=2, cover_language="")
-        checker = SVGQualityChecker(quick_generate=True)
-        cover = checker.check_file(str(self.pages / "01_cover.svg"))
-        last = checker.check_file(str(self.pages / "10_end.svg"))
-        self.assertTrue(any(NO_DECK_LANGUAGE in text for text in cover["warnings"]))
-        self.assertFalse(any(NO_DECK_LANGUAGE in text for text in last["warnings"]))

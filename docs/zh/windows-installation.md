@@ -12,7 +12,7 @@
 
 Python 是唯一的硬性要求。
 
-1. 前往 **[python.org/downloads](https://www.python.org/downloads/)**，下载最新的 **Python 3.10+** 安装包。
+1. 前往 **[python.org/downloads](https://www.python.org/downloads/)**，下载最新的 **Python 3.14** 安装包。
 
 2. **⚠️ 关键步骤：安装时务必勾选 "Add python.exe to PATH"** — 这是 Windows 上最常见的安装失误，不勾的话后面每一步都会出问题。
 
@@ -22,9 +22,9 @@ Python 是唯一的硬性要求。
    python --version
    ```
 
-   应该看到 `Python 3.12.x` 之类的输出。如果提示「未找到」或弹出 Microsoft Store，见下方[常见问题](#python-未找到或弹出-microsoft-store)。
+   应该看到 `Python 3.14.x` 之类的输出。如果提示「未找到」或弹出 Microsoft Store，见下方[常见问题](#python-未找到或弹出-microsoft-store)。
 
-> **💡 提示**：Anaconda / Miniconda 安装的 Python 也可以用，只要 `python --version` 显示 3.10+ 即可。
+> **💡 提示**：Anaconda / Miniconda 安装的 Python 也可以用，只要 `python --version` 显示 3.14.x 即可。
 
 ---
 
@@ -80,16 +80,16 @@ uv run python -c "import pptx; import fitz; print('All core dependencies OK')"
 在支持 Agent 的 AI 工具（Claude Code、Codex、Cursor、VS Code agent 等）中打开 `newbie-ppt` 目录，在聊天面板输入：
 
 ```
-请快速生成一个 3 页测试 PPT，封面 + 内容页 + 封底，主题"Hello World"，不用跟我确认
+把下面的内容做成一个 3 页测试 PPT，封面 + 内容页 + 封底，主题"Hello World"
 ```
 
-这里显式要求**快速生成**是关键：AI 会跳过策略师分析和设计确认的来回，直接创作并导出。默认流程会先跟你确认设计规范——做正式 deck 时需要，但只是验证环境能不能跑通时太慢。完整说明 → [快速模式](./getting-started.md#快速模式)。
+Stage 1 与 Stage 2 询问时确认这份三页设计规范，随后 AI 会创作并导出。这项冒烟测试要验证的是项目初始化、SVG 创作、校验与导出整条链路能否跑通。
 
 跑完后应看到：
 
 - `exports/` 下出现由项目转换器从 `svg_output/` 生成的原生 DrawingML `.pptx`，并能在 PowerPoint 中打开、逐元素编辑。
 
-这一项满足 → **搞定了。** 注意快速生成会跳过 `finalize_svg.py`，因此不会生成 `svg_final/` 预览目录；默认流程才会生成，其中是可直接打开的自包含视觉预览 SVG，也可作为 SVG 图片手动插入 PowerPoint，但手工“转换为形状”不在支持范围。
+这一项满足 → **搞定了。** 流程还会生成 `svg_final/` 目录，其中是可直接打开的自包含视觉预览 SVG，也可作为 SVG 图片手动插入 PowerPoint，但手工“转换为形状”不在支持范围。
 
 ---
 

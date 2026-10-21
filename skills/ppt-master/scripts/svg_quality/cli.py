@@ -144,9 +144,6 @@ def print_usage() -> None:
     print("  --json-output <path>           Override the JSON report path")
     print("  --export                       Write a plain-text quality report")
     print("  --output <path>                Override the plain-text report path")
-    print("  --quick-generate               Validate lockless Quick SVGs; infer flat or")
-    print("                                 structured output from the complete roster;")
-    print("                                  ignore design_spec.md and spec_lock.md.")
     print("  --roundtrip                    Validate edited-text capacity on the resolved")
     print("                                  authoring-svg-flat/ output roster; uses")
     print("                                  page_plan.json when present and skips")
@@ -200,21 +197,16 @@ def main() -> None:
             print(f"[ERROR] Cannot read template slots: {exc}", file=sys.stderr)
             sys.exit(1)
         sys.exit(0)
-    quick_generate = "--quick-generate" in sys.argv
     canonical_authoring = "--canonical-authoring" in sys.argv
     roundtrip = "--roundtrip" in sys.argv
-    if template_mode and quick_generate:
-        print("[ERROR] --template-mode cannot be combined with --quick-generate")
-        sys.exit(1)
-    if roundtrip and (template_mode or quick_generate or canonical_authoring):
+    if roundtrip and (template_mode or canonical_authoring):
         print(
-            "[ERROR] --roundtrip cannot be combined with --template-mode, "
-            "--quick-generate, or --canonical-authoring"
+            "[ERROR] --roundtrip cannot be combined with --template-mode "
+            "or --canonical-authoring"
         )
         sys.exit(1)
     checker = SVGQualityChecker(
         template_mode=template_mode,
-        quick_generate=quick_generate,
         canonical_authoring=canonical_authoring,
     )
 
@@ -258,9 +250,6 @@ def main() -> None:
     if target == "--all":
         if roundtrip:
             print("[ERROR] --roundtrip does not support --all")
-            sys.exit(1)
-        if quick_generate:
-            print("[ERROR] --quick-generate does not support --all")
             sys.exit(1)
         if stage != "final":
             print(f"[ERROR] --stage {stage} does not support --all")
