@@ -2090,6 +2090,10 @@
         "reason": "Maintainer-only documentation for this audit tool."
       },
       {
+        "glob": "skills/ppt-master/scripts/docs/run-report.md",
+        "reason": "Maintainer-only documentation for the run measurement tool; never loaded by generation roles."
+      },
+      {
         "glob": "skills/ppt-master/scripts/docs/image.md",
         "reason": "Standalone image-tool command reference; generation roles load the owning image contracts directly, and its formula renderer section is legacy-only."
       },

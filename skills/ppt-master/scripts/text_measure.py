@@ -570,6 +570,62 @@ def _longest_planned_lines(
     return longest
 
 
+def _canvas_width(spec_lock_path: Path) -> float | None:
+    """Read the locked canvas width so paragraph-length planned fields stay distinguishable."""
+    try:
+        text = spec_lock_path.read_text(encoding='utf-8')
+    except OSError:
+        return None
+    match = re.search(r'^-\s*viewBox:\s*0\s+0\s+([\d.]+)\s+([\d.]+)\s*$', text, re.MULTILINE)
+    return float(match.group(1)) if match else None
+
+
+def _planned_widths_by_page(
+    project_path: Path,
+    roles: list[tuple[str, str, float]],
+    weights: dict[str, str] | None = None,
+    canvas_width: float | None = None,
+) -> list[dict[str, object]]:
+    """Measure the widest planned §IX line per role on each page.
+
+    A role whose planned field measures wider than the canvas is a paragraph,
+    not one line; it is marked so the zone is sized from the column width and
+    the rates instead of a meaningless single-line number.
+    """
+    weights = weights or {}
+    candidates = _outline_candidates(
+        project_path / 'design_spec.md',
+        {name for name, _family, _size in roles},
+    )
+    sizes = {name: (family, size) for name, family, size in roles}
+    widest: dict[str, dict[str, tuple[float, str]]] = {}
+    for name, _family, _size in roles:
+        family, size = sizes[name]
+        for slide, planned_line in candidates.get(name, []):
+            width = measure_text(
+                planned_line, size=size, family=family,
+                weight=weights.get(name, 'normal'),
+            )
+            page = widest.setdefault(slide, {})
+            best = page.get(name)
+            if best is None or width > best[0]:
+                page[name] = (width, planned_line)
+    report = []
+    for slide in sorted(widest):
+        rows: list[dict[str, object]] = []
+        for name, (width, text) in widest[slide].items():
+            row: dict[str, object] = {
+                'role': name,
+                'px': round(width, 1),
+                'text': _truncate_planned_line(text),
+            }
+            if canvas_width is not None and width > canvas_width:
+                row['wraps'] = True
+            rows.append(row)
+        report.append({'slide': slide, 'rows': rows})
+    return report
+
+
 def _calibration_payload(
     roles: list[tuple[str, str, float]],
     *,
@@ -585,6 +641,16 @@ def _calibration_payload(
         _longest_planned_lines(project_path, roles, weights)
         if include_outline
         else {name: None for name, _family, _size in roles}
+    )
+    page_widths = (
+        _planned_widths_by_page(
+            project_path,
+            roles,
+            weights,
+            _canvas_width(project_path / 'spec_lock.md'),
+        )
+        if include_outline
+        else []
     )
     planned_texts = list(samples or [])
     outline_candidates = _outline_candidates(
@@ -629,6 +695,7 @@ def _calibration_payload(
         }
     return {
         'roles': role_rows,
+        'page_widths': page_widths,
         'script_samples': script_samples,
         'source': source,
         'generated_at': datetime.now(timezone.utc)
@@ -695,6 +762,23 @@ def _render_calibration_table(payload: dict[str, object], *, include_outline: bo
                 else f'{planned["px"]:.1f}px, {planned["slide"]}, {planned["text"]}'
             )
         lines.append(' | '.join(row))
+    if include_outline:
+        page_widths = payload.get('page_widths') or []
+        if page_widths:
+            lines.append(
+                '[PLANNED WIDTHS] exact, checker estimator; widest §IX line per '
+                'role on each page'
+            )
+            for entry in page_widths:
+                cells = ' · '.join(
+                    f'{row["role"]} ' + (
+                        'wraps (paragraph field)'
+                        if row.get('wraps')
+                        else f'{row["px"]:.1f}px'
+                    )
+                    for row in entry['rows']
+                )
+                lines.append(f'  {entry["slide"]}  {cells}')
     for note in payload.get('notes') or []:
         lines.append(f'[NOTE] {note}')
     lines.append(
@@ -710,9 +794,13 @@ def _render_calibration_table(payload: dict[str, object], *, include_outline: bo
         )
     if include_outline:
         lines.append(
-            '[NOTE] the longest planned line is the §IX wording; a line rewritten '
-            'while authoring (an expanded title, a longer label) is re-estimated '
-            'with the rates — the outline column does not cover it.'
+            '[NOTE] PLANNED WIDTHS gives the exact width of each page\'s widest '
+            '§IX line per role, measured with the checker\'s estimator: set that '
+            'page\'s text-zone bounds from it instead of estimating. A role marked '
+            '"wraps" is a paragraph field, not one line — size that zone from the '
+            'column width and the rates. A line rewritten or added while authoring '
+            '(an expanded title, a longer label) is re-estimated with the rates; '
+            'neither table covers it.'
         )
     lines.append(
         '[NOTE] rates ignore letter-spacing and average a mixed-case sample: '

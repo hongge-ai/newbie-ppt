@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from xml.etree import ElementTree as ET
@@ -457,6 +458,64 @@ class TextMeasureTests(unittest.TestCase):
             '<text x="1.23" y="10">A &amp; B'
             '<tspan x="1.23" dy="20">&lt;C&gt;</tspan></text>',
         )
+
+
+class PlannedWidthsByPageTests(unittest.TestCase):
+    def _project(self, root: Path) -> list[tuple[str, str, float]]:
+        (root / 'design_spec.md').write_text(
+            '# Spec\n\n## IX. Content Outline\n'
+            '#### Slide 01 - Cover\n'
+            '- **Title**: 短标题\n'
+            '- **Core message**: 一句话说明\n'
+            '#### Slide 02 - Second\n'
+            '- **Title**: 这一页的标题明显更长一些用来触发整页最宽的一行文字\n'
+            '#### Slide 03 - Third\n'
+            '- **Core message**: ' + '这是一段会被换行处理的长段落文字，' * 8 + '\n',
+            encoding='utf-8',
+        )
+        (root / 'spec_lock.md').write_text(
+            '# Execution Lock\n\n## canvas\n- viewBox: 0 0 1280 720\n',
+            encoding='utf-8',
+        )
+        return [('title', 'Arial', 46.0), ('body', 'Arial', 24.0)]
+
+    def test_page_widths_cover_each_page_in_order(self) -> None:
+        from text_measure import _calibration_payload
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            roles = self._project(root)
+            payload = _calibration_payload(
+                roles,
+                project_path=root,
+                source='spec_lock.md',
+                include_outline=True,
+            )
+
+        pages = payload['page_widths']
+        self.assertEqual([page['slide'] for page in pages], ['P01', 'P02', 'P03'])
+        first = {row['role']: row for row in pages[0]['rows']}
+        self.assertEqual(set(first), {'title', 'body'})
+        self.assertGreater(first['title']['px'], 0)
+
+    def test_paragraph_field_is_marked_wraps(self) -> None:
+        from text_measure import _calibration_payload, _render_calibration_table
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            roles = self._project(root)
+            payload = _calibration_payload(
+                roles,
+                project_path=root,
+                source='spec_lock.md',
+                include_outline=True,
+            )
+
+        third = {row['role']: row for row in payload['page_widths'][2]['rows']}
+        self.assertTrue(third['body'].get('wraps'))
+        rendered = _render_calibration_table(payload, include_outline=True)
+        self.assertIn('[PLANNED WIDTHS]', rendered)
+        self.assertIn('wraps (paragraph field)', rendered)
 
 
 if __name__ == '__main__':
