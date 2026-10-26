@@ -258,7 +258,7 @@ python3 ${SKILL_DIR}/scripts/svg_editor/server.py <project_path> --live --daemon
 
 Default first free port from `6060` (`--port N` binds strictly); read the URL from output or `<project_path>/live_preview/lock.json` and report it — or the launch failure, or that the user or run instructions forbade starting it — before the first SVG. It is a side process: never wait for it or for user confirmation, and keep it running until the user clicks **Exit preview** or asks in chat. Do not read or apply submitted annotations during generation; that window opens after Step 7 ([`live-preview.md`](stages/live-preview.md), which also describes staged direct edits).
 
-**Cadence (Mandatory)**: P01–P05 → early gate (a planned roster of six or fewer pages skips it) → remaining pages → final gate, in one context. Every checker invocation follows one of two events: a gate point whose covered pages all exist, or the end of one consolidated repair pass. A run with neither predecessor is a pacing violation; validating an authoring pattern early is not a reason, because the same issues surface at the gate and are fixed in the same pass. Reload under Context validity above after context invalidation.
+**Cadence (Mandatory)**: P01 → first-page probe → P02–P05 → early gate (a planned roster of six or fewer pages skips the early gate) → remaining pages → final gate, in one context. Every checker invocation follows one of three events: the first-page probe, a gate point whose covered pages all exist, or the end of one consolidated repair pass. A run with none of them is a pacing violation; re-checking an authoring pattern beyond the probe is not a reason, because the same issues surface at the gate and are fixed in the same pass. Reload under Context validity above after context invalidation.
 
 **Visual Construction Phase**: generate pages sequentially into `<project_path>/svg_output/`. Each SVG carries the slide's complete visible design (a JSON-first Chart/Table is the sole exception: inline JSON authoritative, visible subtree an approximate preview). Native shapes follow [`native-shape-authoring.md`](../references/native-shape-authoring.md), loaded at the first contour beyond basic primitives while the preset vocabulary is read before page one: independent atoms first, Merge Shapes only when contour semantics require it, freeform last.
 
@@ -268,6 +268,15 @@ Default first free port from `6060` (`--port N` binds strictly); read the URL fr
 | `style`, free design, brand-only | Flat per `executor-base.md` and [`semantic-svg.md`](../references/semantic-svg.md). |
 
 **Motion endpoints**: when custom motion is active — an explicit user motion instruction, an enabled Custom Animations outcome in §I, or an existing `animations.json` — author the visible endpoint states now under [`executor-base.md`](../references/executor-base.md) §1; a §IX suggestion alone activates nothing.
+
+**First-page probe (Mandatory)** — after P01 exists, before page 2; a one-page roster skips it in favour of the final gate:
+
+```bash
+python3 ${SKILL_DIR}/scripts/svg_quality_checker.py <project_path> \
+  --canonical-authoring --stage first-page --json
+```
+
+`--json` writes `validation/svg_quality_first_page_report.json`; stdout stays the human-readable summary and is never parsed as JSON. The probe settles P01's page contract — `data-pptx-bounds` on every visible root group including `data-pptx-role="decoration"`, canonical authoring syntax, band overlap, text extents — before the same fault is copied onto every later page. Repair P01 until the probe reports 0 errors; never author page 2 on a failing probe. Warnings stay advisory and carry forward. The probe settles the page contract only: the early gate after P05 still resolves method-level bias.
 
 **Early gate (Mandatory)** — after the fifth SVG, before page 6; a planned roster of six or fewer pages skips this gate and goes straight to the final gate:
 
@@ -307,7 +316,7 @@ python3 ${SKILL_DIR}/scripts/svg_quality_checker.py <project_path> \
 
 **Logic Construction Phase (conditional)**: when the effective Speaker Notes outcome in §I is enabled, load [`executor-notes.md`](../references/executor-notes.md): validate a frozen `notes/total.md` against every information-bearing final SVG group (repair the page or the plan, never the script), or otherwise ground each page's narration in its final SVG and write `notes/total.md`. When disabled, load nothing and create no notes.
 
-**✅ Internal checkpoint** — preview launched in time, early gate after P05 (skipped on a roster of six or fewer pages), uninterrupted remaining pages, consolidated repair, exact §IX coverage, one-frame prose, final checker 0 errors, `notes/total.md` only when enabled. Do not print. Then run the applicable conditional gates and proceed to Step 7.
+**✅ Internal checkpoint** — preview launched in time, first-page probe green before page 2, early gate after P05 (skipped on a roster of six or fewer pages), uninterrupted remaining pages, consolidated repair, exact §IX coverage, one-frame prose, final checker 0 errors, `notes/total.md` only when enabled. Do not print. Then run the applicable conditional gates and proceed to Step 7.
 
 > **Chart pages?** Run [`verify-charts`](stages/verify-charts.md) before Step 7 to calibrate coordinates; skip without chart pages.
 >
