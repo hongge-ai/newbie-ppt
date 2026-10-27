@@ -31,7 +31,7 @@ file or its directory. `--root` shortens absolute read paths in the output.
 | `steps` | Model turns in the session; a page batch with fewer steps usually means fewer repair loops |
 | `Reads` | Distinct files opened with `read`, with a count per file. Compare against the load set the route declares |
 | `Authored pages` | First write of each `svg_output/*.svg`, as a minute offset |
-| `Quality gates` | Every checker call in order, with the stage, how many pages existed at that moment, and the `With errors:` count it returned |
+| `Quality gates` | Every checker call in order, with the stage, how many pages existed at that moment, `failed_pages` (the checker's `With errors:` page count) and `blocking` (its hard-finding count) |
 
 The gate rows are the main signal: a gate that runs when every page already
 exists can only find faults deck-wide, while a first-page probe that reports

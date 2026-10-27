@@ -65,7 +65,11 @@ def session() -> list[dict[str, object]]:
             'c3',
             '{"command": "python skills/ppt-master/scripts/svg_quality_checker.py x --stage first-page"}',
         ),
-        tool_result(63, 'c3', 'Pages: 1\n  [ERROR] With errors: 2 (100%)'),
+        tool_result(
+            63,
+            'c3',
+            'Pages: 1\n  [ERROR] With errors: 2 (100%)\n  blocking: 3          hard findings',
+        ),
         tool_call('pwsh', 90, 'c4', '{"command": "svg_quality_checker.py --help"}'),
         tool_result(91, 'c4', 'usage'),
         record('turn/end', 120),
@@ -94,7 +98,15 @@ class RunReportTests(unittest.TestCase):
 
         self.assertEqual(
             report['gates'],
-            [{'minute': 1.0, 'stage': 'first-page', 'pages': 1, 'errors': 2}],
+            [
+                {
+                    'minute': 1.0,
+                    'stage': 'first-page',
+                    'pages': 1,
+                    'failed_pages': 2,
+                    'blocking': 3,
+                }
+            ],
         )
 
     def test_help_invocation_is_not_a_gate(self) -> None:

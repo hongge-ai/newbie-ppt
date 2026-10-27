@@ -1130,8 +1130,17 @@ python3 scripts/text_measure.py measure "Editable DrawingML text" --size 22
 python3 scripts/text_measure.py measure --size 22 -- "34.5%" "-1.3%"   # values that start with "-" go after --; a paragraph over 255 characters goes through --stdin
 python3 scripts/text_measure.py wrap "Editable DrawingML text stays measurable" --size 22 --max-width 240 --x 96 --dy 30 --y 140
 python3 scripts/text_measure.py box "First line" "Second line" --x 96 --y 140 --size 22 --lines 2 --dy 30
+python3 scripts/text_measure.py box --project projects/example --role title --x 96 --y 140 --lines 2 --dy 30 --width 520
 python3 scripts/text_measure.py calibrate projects/example --outline
 ```
+
+A text zone is only as good as its family: with no `--family`, `box` falls back
+to `Calibri`, so a serif or CJK face measures smaller than the checker's own
+estimate and the zone later fails the gate. For authoring, pass `--project` with
+`--role` and the command reads `family` and `size` from that project's
+`spec_lock.md`; an explicit `--family` or `--size` still overrides the role, for
+a one-off probe. The printed line echoes `family=`, so the assumption stays
+visible next to the numbers.
 
 ## `svg_quality_checker.py`
 

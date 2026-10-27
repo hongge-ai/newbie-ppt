@@ -41,6 +41,7 @@ from console_encoding import configure_utf8_stdio  # noqa: E402
 SESSIONS_ROOT = Path.home() / '.dsh' / 'sessions'
 SESSION_FILENAME = 'session.v4.jsonl.zstd'
 _ERROR_COUNT_RE = re.compile(r'With errors:\s*(\d+)')
+_BLOCKING_RE = re.compile(r'blocking:\s*(\d+)')
 _CHECKER_STAGE_RE = re.compile(r'--stage\s+(first-page|early|page|final)')
 
 
@@ -169,14 +170,16 @@ def summarize(records: list[dict[str, Any]], *, context: bool = False) -> dict[s
             match = _CHECKER_STAGE_RE.search(command)
             stage = match.group(1) if match else 'final'
             output = results.get(str(data.get('callId')), '')
-            errors = _ERROR_COUNT_RE.search(output)
+            failed_pages = _ERROR_COUNT_RE.search(output)
+            blocking = _BLOCKING_RE.search(output)
             existing = sum(1 for written in pages.values() if written <= minute)
             gates.append(
                 {
                     'minute': round(minute, 1),
                     'stage': stage,
                     'pages': existing,
-                    'errors': int(errors.group(1)) if errors else None,
+                    'failed_pages': int(failed_pages.group(1)) if failed_pages else None,
+                    'blocking': int(blocking.group(1)) if blocking else None,
                 }
             )
 
@@ -240,10 +243,11 @@ def render(report: dict[str, Any], *, root: Path | None = None) -> str:
         lines.append('')
         lines.append('Quality gates')
         for gate in report['gates']:
-            errors = '?' if gate['errors'] is None else gate['errors']
+            failed = '?' if gate['failed_pages'] is None else gate['failed_pages']
+            blocking = '?' if gate['blocking'] is None else gate['blocking']
             lines.append(
                 f"  +{gate['minute']:5.1f} min  {gate['stage']:10s} "
-                f"pages={gate['pages']:2d}  errors={errors}"
+                f"pages={gate['pages']:2d}  failed_pages={failed}  blocking={blocking}"
             )
     return '\n'.join(lines) + '\n'
 

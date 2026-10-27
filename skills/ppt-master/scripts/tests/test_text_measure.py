@@ -415,6 +415,15 @@ class TextMeasureTests(unittest.TestCase):
         self.assertEqual(result['warnings'], [])
         self.assertEqual(result['errors'], [])
 
+    def test_box_accepts_zero_dy_for_a_single_line(self) -> None:
+        result = _run_cli(
+            'box', '--x', '100', '--y', '300', '--size', '44',
+            '--lines', '1', '--dy', '0', '--width', '200',
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('data-pptx-bounds="', result.stdout)
+
     def test_box_arithmetic_and_anchor_adjustment(self) -> None:
         expected_x = {'start': 100.0, 'middle': 60.0, 'end': 20.0}
         for anchor, left in expected_x.items():
@@ -442,7 +451,8 @@ class TextMeasureTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(
             result.stdout,
-            'data-pptx-bounds="60 33 80 48"\ttop=33\tbottom=81\n',
+            'data-pptx-bounds="60 33 80 48"\ttop=33\tbottom=81'
+            '\tfamily=Calibri\tweight=normal\n',
         )
 
     def test_wrapped_svg_escapes_xml_text(self) -> None:
@@ -458,6 +468,67 @@ class TextMeasureTests(unittest.TestCase):
             '<text x="1.23" y="10">A &amp; B'
             '<tspan x="1.23" dy="20">&lt;C&gt;</tspan></text>',
         )
+
+
+class RoleResolutionTests(unittest.TestCase):
+    """`--role` must supply family and size so nobody transcribes them."""
+
+    LOCK = (
+        '<!-- ppt-master-schema: spec-lock/v1 -->\n'
+        '# Execution Lock\n\n'
+        '## canvas\n- viewBox: 0 0 1280 720\n\n'
+        '## typography\n'
+        '- font_family: Microsoft YaHei, Arial\n'
+        '- title_family: SimSun, Cambria\n'
+        '- body_family: Microsoft YaHei, Arial\n'
+        '- title: 42\n'
+        '- body: 24\n'
+    )
+
+    def _project(self, root: Path) -> Path:
+        (root / 'spec_lock.md').write_text(self.LOCK, encoding='utf-8')
+        return root
+
+    def test_role_supplies_family_and_size(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            project = self._project(Path(tmp))
+            result = _run_cli(
+                'box', '--project', str(project), '--role', 'title',
+                '--x', '100', '--y', '300', '--lines', '1', '--width', '300',
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('family=SimSun, Cambria', result.stdout)
+        self.assertIn('50.4"', result.stdout)  # 1.2 × 42
+
+    def test_explicit_size_overrides_the_role(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            project = self._project(Path(tmp))
+            result = _run_cli(
+                'box', '--project', str(project), '--role', 'title', '--size', '20',
+                '--x', '100', '--y', '300', '--lines', '1', '--width', '300',
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(' 24"', result.stdout)  # 1.2 × 20
+
+    def test_role_without_project_is_rejected(self) -> None:
+        result = _run_cli('box', '--role', 'title', '--x', '1', '--y', '2', '--lines', '1')
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('--role requires --project', result.stderr)
+
+    def test_unknown_role_lists_the_declared_ones(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            project = self._project(Path(tmp))
+            result = _run_cli(
+                'box', '--project', str(project), '--role', 'missing',
+                '--x', '1', '--y', '2', '--lines', '1',
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('body', result.stderr)
+        self.assertIn('title', result.stderr)
 
 
 class PlannedWidthsByPageTests(unittest.TestCase):

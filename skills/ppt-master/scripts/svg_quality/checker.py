@@ -4948,7 +4948,9 @@ class SVGQualityChecker:
                         'declares them'
                         if module.get('data-pptx-placeholder') is not None
                         else 'expand the root module bounds into available '
-                        'non-overlapping space; otherwise reflow the text'
+                        'non-overlapping space, taking the new top and bottom '
+                        'from text_measure.py box rather than arithmetic; '
+                        'otherwise reflow the text'
                     ),
                     width_diagnostic=self._text_width_diagnostic(
                         text_element,

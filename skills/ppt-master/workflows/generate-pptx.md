@@ -258,9 +258,11 @@ python3 ${SKILL_DIR}/scripts/svg_editor/server.py <project_path> --live --daemon
 
 Default first free port from `6060` (`--port N` binds strictly); read the URL from output or `<project_path>/live_preview/lock.json` and report it — or the launch failure, or that the user or run instructions forbade starting it — before the first SVG. It is a side process: never wait for it or for user confirmation, and keep it running until the user clicks **Exit preview** or asks in chat. Do not read or apply submitted annotations during generation; that window opens after Step 7 ([`live-preview.md`](stages/live-preview.md), which also describes staged direct edits).
 
-**Cadence (Mandatory)**: P01 → first-page probe → P02–P05 → early gate (a planned roster of six or fewer pages skips the early gate) → remaining pages → final gate, in one context. Every checker invocation follows one of three events: the first-page probe, a gate point whose covered pages all exist, or the end of one consolidated repair pass. A run with none of them is a pacing violation; re-checking an authoring pattern beyond the probe is not a reason, because the same issues surface at the gate and are fixed in the same pass. Reload under Context validity above after context invalidation.
+**Cadence (Mandatory)**: P01 → first-page probe → P02–P05 → early gate (once five pages exist and no later than the seventh; a planned roster of six or fewer pages skips the early gate) → remaining pages → final gate, in one context. Every checker invocation follows one of three events: the first-page probe, a gate point whose covered pages all exist, or the end of one consolidated repair pass. A run with none of them is a pacing violation; re-checking an authoring pattern beyond the probe is not a reason, because the same issues surface at the gate and are fixed in the same pass. Reload under Context validity above after context invalidation.
 
 **Visual Construction Phase**: generate pages sequentially into `<project_path>/svg_output/`. Each SVG carries the slide's complete visible design (a JSON-first Chart/Table is the sole exception: inline JSON authoritative, visible subtree an approximate preview). Native shapes follow [`native-shape-authoring.md`](../references/native-shape-authoring.md), loaded at the first contour beyond basic primitives while the preset vocabulary is read before page one: independent atoms first, Merge Shapes only when contour semantics require it, freeform last.
+
+Every visible root `<g>` declares `data-pptx-bounds` on both axes. A text zone spans its first baseline − 0.85 × size to its last baseline + 0.35 × size, and a multi-line or display-size zone takes both numbers from `python3 ${SKILL_DIR}/scripts/text_measure.py box --project <project_path> --role <lock role> --x <x> --y <first baseline> --lines <n> --width <width>`, which reads family and size from `spec_lock.md` and prints the paste-ready attribute. Never derive a multi-line height by hand: the probe and both gates measure real glyph extents and fail any zone the text leaves on either axis.
 
 | Structure | Page authoring |
 |---|---|
@@ -278,7 +280,7 @@ python3 ${SKILL_DIR}/scripts/svg_quality_checker.py <project_path> \
 
 `--json` writes `validation/svg_quality_first_page_report.json`; stdout stays the human-readable summary and is never parsed as JSON. The probe settles P01's page contract — `data-pptx-bounds` on every visible root group including `data-pptx-role="decoration"`, canonical authoring syntax, band overlap, text extents — before the same fault is copied onto every later page. Repair P01 until the probe reports 0 errors; never author page 2 on a failing probe. Warnings stay advisory and carry forward. The probe settles the page contract only: the early gate after P05 still resolves method-level bias.
 
-**Early gate (Mandatory)** — after the fifth SVG, before page 6; a planned roster of six or fewer pages skips this gate and goes straight to the final gate:
+**Early gate (Mandatory)** — once the fifth SVG exists, and before an eighth is authored; a planned roster of six or fewer pages skips this gate and goes straight to the final gate:
 
 ```bash
 python3 ${SKILL_DIR}/scripts/svg_quality_checker.py <project_path> \
@@ -316,7 +318,7 @@ python3 ${SKILL_DIR}/scripts/svg_quality_checker.py <project_path> \
 
 **Logic Construction Phase (conditional)**: when the effective Speaker Notes outcome in §I is enabled, load [`executor-notes.md`](../references/executor-notes.md): validate a frozen `notes/total.md` against every information-bearing final SVG group (repair the page or the plan, never the script), or otherwise ground each page's narration in its final SVG and write `notes/total.md`. When disabled, load nothing and create no notes.
 
-**✅ Internal checkpoint** — preview launched in time, first-page probe green before page 2, early gate after P05 (skipped on a roster of six or fewer pages), uninterrupted remaining pages, consolidated repair, exact §IX coverage, one-frame prose, final checker 0 errors, `notes/total.md` only when enabled. Do not print. Then run the applicable conditional gates and proceed to Step 7.
+**✅ Internal checkpoint** — preview launched in time, first-page probe green before page 2, early gate once five pages exist (skipped on a roster of six or fewer pages), uninterrupted remaining pages, consolidated repair, exact §IX coverage, one-frame prose, final checker 0 errors, `notes/total.md` only when enabled. Do not print. Then run the applicable conditional gates and proceed to Step 7.
 
 > **Chart pages?** Run [`verify-charts`](stages/verify-charts.md) before Step 7 to calibrate coordinates; skip without chart pages.
 >
@@ -365,7 +367,7 @@ python3 ${SKILL_DIR}/scripts/finalize_svg.py <project_path>
 | Deck-wide motion setting | Append the resolved [`animations.md`](../references/animations.md) flags |
 | Explicit Custom Animations disable | Keep the sidecar and append `-a none` |
 | Explicit all-motion disable | `--no-animations` |
-| Final Stage-2 `false` | Neither flag |
+| Final Stage-2 `false` | `--no-animations` — the exporter's page transition defaults to `fade`, so an animations-off outcome without the flag still ships transitions; pass neither flag only when the user explicitly wants the default transition with no object animation |
 | Conversion trace | Do not add `--conversion-trace` to every base export; an explicit `--conversion-trace <path>` writes to that destination instead of the default |
 
 Sound: the optional post-motion pass is [`animations.md`](../references/animations.md) §2.2. For a narrated MP4, [`generate-audio`](stages/generate-audio.md) owns the delivery choice.
@@ -379,7 +381,7 @@ A delivered project that comes back with a change stays in this route; planning 
 ## ✅ Generate PPTX Complete
 
 - [x] Image readiness gate passed
-- [x] Every checker invocation followed a gate point (early after P05 on a roster of seven or more pages, final after the complete roster) or one consolidated repair pass — never a page in progress or an individual fix
+- [x] Every checker invocation followed a gate point (early once five pages existed, never later than the seventh, on a roster of seven or more pages; final after the complete roster) or one consolidated repair pass — never a page in progress or an individual fix
 - [x] Carrier receipt compared with the retained page decisions; contradictions repaired without treating counts as quotas
 - [x] Notes split when enabled; disabled exports used `--no-notes`
 - [x] `svg_final/` preview built

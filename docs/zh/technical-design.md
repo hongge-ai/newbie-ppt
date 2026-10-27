@@ -432,7 +432,7 @@ Generate 路由会在加载流程前选定一份权威：[`workflows/generate-pp
 
 全路由通用的停止 / 继续规则以 [`failure-recovery.md`](../../skills/ppt-master/workflows/governance/failure-recovery.md) 为准；其中具体故障矩阵与续跑入口目前覆盖 Generate PPTX。本节不复制这些规则。
 
-其中三条边界尤其关键。第一，页面 SVG 必须由当前主代理逐页手写；禁止写 Python / Node / shell 生成器批量吐 SVG，因为这种输出会丢失跨页判断和视觉连续性。第二，流程节奏是 `P01 → first-page probe → P02–P05 → early gate（roster 不超过 6 页时跳过）→ 不间断生成其余页面 → final gate`。first-page probe 先在首页把页面契约（根组 bounds、canonical 语法、带状重叠、文本外延）定死，避免同一处错误被抄满全册；前五页随后作为方法样本：执行者先输出 `gate-signal`，再把已解决的方法规则带入后续页面；其余页面之间不分批，也不插入 checker，每次 checker 调用都必须紧跟探针、gate 点或一轮合并修复。第三，路由是确定性的：原生 PPTX 模板、beautify、Edit Native PPTX、自定义动画、live preview 等触发条件已经在仓库里定义清楚时，不再额外抛给用户一个开放式路线选择题。
+其中三条边界尤其关键。第一，页面 SVG 必须由当前主代理逐页手写；禁止写 Python / Node / shell 生成器批量吐 SVG，因为这种输出会丢失跨页判断和视觉连续性。第二，流程节奏是 `P01 → first-page probe → P02–P05 → early gate（五页之后、最迟第七页；roster 不超过 6 页时跳过）→ 不间断生成其余页面 → final gate`。first-page probe 先在首页把页面契约（根组 bounds、canonical 语法、带状重叠、文本外延）定死，避免同一处错误被抄满全册；前五页随后作为方法样本：执行者先输出 `gate-signal`，再把已解决的方法规则带入后续页面；其余页面之间不分批，也不插入 checker，每次 checker 调用都必须紧跟探针、gate 点或一轮合并修复。第三，路由是确定性的：原生 PPTX 模板、beautify、Edit Native PPTX、自定义动画、live preview 等触发条件已经在仓库里定义清楚时，不再额外抛给用户一个开放式路线选择题。
 
 默认流程的角色切换协议（切换模式前必须读取 `references/<role>.md`）有两个互相支撑的作用：把新鲜的角色指令载入上下文，覆盖前一模式的漂移；对话 transcript 中的可见标记构成审计轨迹，让用户能看到 agent 何时切换了模式——回看一个具体决策为什么这样做时，这条线索很关键。
 

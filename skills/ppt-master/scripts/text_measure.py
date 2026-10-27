@@ -923,15 +923,61 @@ def _run_calibrate(args: argparse.Namespace) -> int:
 
 
 def _add_style_arguments(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument('--size', type=_positive_float, required=True)
-    parser.add_argument('--family', default='Calibri')
+    parser.add_argument(
+        '--size',
+        type=_positive_float,
+        help='Font size in px; taken from --role when omitted.',
+    )
+    parser.add_argument(
+        '--family',
+        help='Font stack; taken from --role, otherwise Calibri.',
+    )
     parser.add_argument('--weight', choices=_WEIGHTS, default='normal')
     parser.add_argument('--letter-spacing', type=_bounded_float, default=0.0)
+    parser.add_argument(
+        '--project',
+        type=Path,
+        help='Project directory whose spec_lock.md owns the typography role.',
+    )
+    parser.add_argument(
+        '--role',
+        help='Typography role resolved from --project/spec_lock.md; supplies '
+             'family and size so the author transcribes neither.',
+    )
     parser.add_argument(
         '--no-headroom',
         action='store_true',
         help='Use the raw estimator instead of DrawingML wrapping headroom.',
     )
+
+
+def _resolve_style_arguments(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None:
+    """Fill family and size, preferring the lock over transcription."""
+    if args.role is None:
+        if args.size is None:
+            parser.error('pass --size, or --role with --project')
+        if args.family is None:
+            args.family = 'Calibri'
+        return
+    if args.project is None:
+        parser.error('--role requires --project so its spec_lock.md can be read')
+    lock_path = Path(args.project) / 'spec_lock.md'
+    if not lock_path.is_file():
+        parser.error(f'no spec_lock.md under {args.project}')
+    try:
+        roles = _roles_from_spec_lock(lock_path)
+    except (OSError, ValueError) as exc:
+        parser.error(' '.join(str(exc).splitlines()))
+    if args.role not in roles:
+        parser.error(
+            f'spec_lock.md declares no typography role {args.role!r}; '
+            f"known roles: {', '.join(sorted(roles)) or 'none'}"
+        )
+    family, size = roles[args.role]
+    if args.family is None:
+        args.family = family
+    if args.size is None:
+        args.size = size
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -957,7 +1003,7 @@ def build_parser() -> argparse.ArgumentParser:
     box.add_argument('--x', type=_bounded_float, required=True)
     box.add_argument('--y', type=_bounded_float, required=True)
     box.add_argument('--lines', type=_positive_int, required=True)
-    box.add_argument('--dy', type=_positive_float)
+    box.add_argument('--dy', type=_nonnegative_float)
     box.add_argument('--width', type=_nonnegative_float)
     box.add_argument('--anchor', choices=('start', 'middle', 'end'), default='start')
 
@@ -996,6 +1042,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.command == 'calibrate':
         return _run_calibrate(args)
+    _resolve_style_arguments(args, parser)
     style = dict(
         size=args.size,
         family=args.family,
@@ -1050,11 +1097,16 @@ def main(argv: list[str] | None = None) -> int:
     )
     rounded = {key: round(value, 2) for key, value in bounds.items()}
     if args.json:
+        rounded['family'] = args.family
+        rounded['weight'] = args.weight or 'normal'
         print(json.dumps(rounded, ensure_ascii=False))
     else:
         values = ' '.join(_format_number(bounds[key]) for key in ('x', 'y', 'width', 'height'))
         top, bottom = _format_number(bounds['top']), _format_number(bounds['bottom'])
-        print(f'data-pptx-bounds="{values}"\ttop={top}\tbottom={bottom}')
+        print(
+            f'data-pptx-bounds="{values}"\ttop={top}\tbottom={bottom}'
+            f'\tfamily={args.family}\tweight={args.weight or "normal"}'
+        )
     return 0
 
 
