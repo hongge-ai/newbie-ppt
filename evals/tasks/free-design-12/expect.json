@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "stage": "final",
+  "description": "Free design from a fixed brief: 10-14 pages, a clean final gate, no blocking findings.",
+  "max_blocking": 0,
+  "max_failed_pages": 0,
+  "pages": {
+    "min": 10,
+    "max": 14
+  }
+}
