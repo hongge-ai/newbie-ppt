@@ -17,6 +17,7 @@ This directory contains user-facing scripts for conversion, project setup, SVG p
 - `scripts/docs/`: topic-focused script documentation
 - `scripts/prompt_audit.py` + `scripts/prompt_audit_manifest.json`: maintainer-only prompt budget/governance lint (see [`docs/prompt_audit.md`](docs/prompt_audit.md)); the manifest is audit-only and never loaded as prompt context
 - `scripts/run_report.py`: maintainer-only run metrics read from a harness session transcript — wall clock, reads, and the quality-gate timeline (see [`docs/run-report.md`](docs/run-report.md)); never runs during generation
+- `scripts/eval_score.py`: maintainer-only scorer that runs the checker against a finished project and applies a task's `expect.json` pass conditions; the tasks and the recorded baselines live under `evals/`, and model runs stay manual
 - `scripts/assets/`: static assets consumed by scripts
 
 ## Quick Start

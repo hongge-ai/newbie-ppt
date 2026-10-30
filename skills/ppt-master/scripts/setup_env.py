@@ -50,6 +50,7 @@ GROUP_DESCRIPTIONS: dict[str, str] = {
     "office": "Office/iPython import + chart workbooks / 文档导入与图表工作簿",
     "media": "Narration audio + timing tools / 旁白音频与计时工具",
     "ai-image": "Gemini AI image backend / Gemini AI 图像后端",
+    "dev": "Maintainer tools: prompt audit token counts / 维护工具：提示词审计分词计数",
 }
 ALL_GROUPS: tuple[str, ...] = ("core",) + tuple(GROUP_DESCRIPTIONS)
 
@@ -61,6 +62,7 @@ GROUP_IMPORTS: dict[str, tuple[str, ...]] = {
     "office": ("mammoth", "markdownify", "ebooklib", "nbconvert", "openpyxl", "xlsxwriter"),
     "media": ("edge_tts", "numpy"),
     "ai-image": ("google.genai",),
+    "dev": ("tiktoken",),
 }
 
 # Index used only for the pip bootstrap fallback (uv itself reads the

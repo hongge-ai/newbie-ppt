@@ -34,6 +34,7 @@ uv 会在仓库根目录维护 `.venv`，后续统一用 `uv run python ...` 调
 | `office` | mammoth、markdownify、ebooklib、nbconvert、openpyxl、XlsxWriter | docx/html/epub/ipynb/xlsx 导入与导出图表工作簿 |
 | `media` | edge-tts、numpy | 旁白音频、计时校准、切片等媒体工具 |
 | `ai-image` | google-genai | Gemini AI 图像后端（`IMAGE_BACKEND=gemini`） |
+| `dev` | tiktoken | 维护工具：`prompt_audit.py` 的 o200k_base 精确分词计数，生成链路从不导入 |
 
 ## 参数
 

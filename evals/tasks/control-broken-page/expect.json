@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "stage": "first-page",
+  "description": "A page with a malformed data-pptx-bounds value. The scorer must fail it; a green result here means the grader stopped grading.",
+  "expectation": "fail",
+  "min_blocking": 1
+}

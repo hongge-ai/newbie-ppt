@@ -7,11 +7,23 @@ change helped: wall clock, steps, tool mix, the files the model actually read,
 optional context growth, and the quality-gate timeline with the page count and
 error count of every checker call.
 
-Maintainer tool. It reads a DeepSeek Harness session transcript, so it never
-runs during generation and is not part of the authoring pipeline.
+Maintainer tool. It never runs during generation and is not part of the
+authoring pipeline, so it reads whatever transcript the harness left behind.
+
+Two input shapes are accepted, detected per record:
+
+* DeepSeek Harness — `session.v4.jsonl.zstd`, records keyed `type` + `time`
+  (epoch ms) + `data`, tools named `read` / `write` / `pwsh`.
+* Generic JSONL — one event per line using the same event names or their
+  snake_case aliases (`tool_call`, `tool_result`, `step_start`, …), `time` as
+  epoch ms, epoch seconds, or an ISO-8601 string, tool name in `name` / `tool`,
+  and the gate output either in `data.message` or a plain `text` field.
+
+Tools are classified by behaviour, not by name, so `Bash`, `bash`, `shell` and
+`pwsh` all count as shell calls and any call carrying a `command` counts too.
 
 Usage:
-    python3 scripts/run_report.py --session <session.v4.jsonl.zstd> [--json] [--context]
+    python3 scripts/run_report.py --session <file.jsonl[.zstd]> [--json] [--context]
     python3 scripts/run_report.py --latest [--json] [--context]
 
 Examples:
@@ -28,7 +40,7 @@ import argparse
 import json
 import re
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -43,6 +55,38 @@ SESSION_FILENAME = 'session.v4.jsonl.zstd'
 _ERROR_COUNT_RE = re.compile(r'With errors:\s*(\d+)')
 _BLOCKING_RE = re.compile(r'blocking:\s*(\d+)')
 _CHECKER_STAGE_RE = re.compile(r'--stage\s+(first-page|early|page|final)')
+
+# Event names a generic transcript may use for the canonical ones. Both the
+# snake_case and the bare form are accepted so a harness that emits
+# `{"type": "tool_call"}` or `{"type": "tool_call_event"}` needs no adapter.
+_EVENT_ALIASES = {
+    'tool_call': 'tool/call',
+    'tool_use': 'tool/call',
+    'tool_result': 'tool/result',
+    'tool_response': 'tool/result',
+    'turn_start': 'turn/start',
+    'turn_end': 'turn/end',
+    'step_start': 'step/start',
+    'step_end': 'step/end',
+    'assistant_message': 'assistant/message',
+    'user_message': 'user/message',
+    'system_message': 'system/message',
+    'session_start': 'session',
+}
+
+# Canonical event names, used to tell an already-normalized record apart from a
+# generic one without guessing from the payload.
+_CANONICAL_EVENTS = set(_EVENT_ALIASES.values()) | {'tool/call', 'tool/result'}
+
+_SHELL_NAMES = {
+    'shell', 'bash', 'sh', 'zsh', 'pwsh', 'powershell', 'cmd',
+    'run_command', 'execute_command', 'exec', 'terminal',
+}
+_READ_NAMES = {'read', 'read_file', 'file_read', 'view', 'cat', 'open_file'}
+_WRITE_NAMES = {
+    'write', 'write_file', 'file_write', 'create_file', 'edit', 'edit_file',
+    'multi_edit', 'str_replace', 'str_replace_editor', 'apply_patch',
+}
 
 
 def session_path(raw: str) -> Path:
@@ -68,23 +112,119 @@ def latest_session(root: Path = SESSIONS_ROOT) -> Path:
 
 
 def load_records(path: Path) -> list[dict[str, Any]]:
-    """Decode a session transcript, compressing only when the file is zstd."""
+    """Decode a transcript and normalize it to the canonical event shape."""
     blob = path.read_bytes()
     if path.suffix == '.zstd':
         from compression import zstd
 
         blob = zstd.decompress(blob)
     text = blob.decode('utf-8', 'replace')
-    return [json.loads(line) for line in text.splitlines() if line.strip()]
+    raw = [json.loads(line) for line in text.splitlines() if line.strip()]
+    return normalize_records(raw)
+
+
+def _parse_time(raw: Any) -> float | None:
+    """Return epoch milliseconds for a timestamp in any supported shape."""
+    if isinstance(raw, bool):
+        return None
+    if isinstance(raw, (int, float)):
+        # Seconds are ~1.7e9 today; milliseconds ~1.7e12. The 1e11 line
+        # separates them for any date between 1973 and 5138.
+        return float(raw) * 1000.0 if abs(raw) < 1e11 else float(raw)
+    if isinstance(raw, str) and raw.strip():
+        text = raw.strip().replace('Z', '+00:00')
+        try:
+            parsed = datetime.fromisoformat(text)
+        except ValueError:
+            return None
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed.timestamp() * 1000.0
+    return None
+
+
+def _canonical_kind(kind: Any) -> str:
+    """Map a generic event name onto the canonical one."""
+    name = str(kind or '').replace('-', '_').replace('/', '_')
+    if name in _EVENT_ALIASES:
+        return _EVENT_ALIASES[name]
+    if name.replace('_', '/') in _CANONICAL_EVENTS:
+        return name.replace('_', '/')
+    return str(kind or '')
 
 
 def _result_text(message: dict[str, Any]) -> str:
     content = message.get('content')
+    if isinstance(content, str):
+        return content
     if not isinstance(content, list):
         return ''
     return '\n'.join(
         block.get('text', '') for block in content if isinstance(block, dict)
     )
+
+
+def normalize_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Fold any accepted transcript into `type` / `time` / `data` records.
+
+    DeepSeek Harness records already have that shape and pass through untouched.
+    A generic record may name the event `type` or `event`, carry its payload at
+    the top level, the tool name in `name` / `tool`, and the result text as
+    `text` / `output` / `result` / `message`. A record with no parseable time
+    inherits the previous one, so ordering alone is enough to place it.
+    """
+    normalized: list[dict[str, Any]] = []
+    previous = 0.0
+    for record in records:
+        if not isinstance(record, dict):
+            continue
+        kind = _canonical_kind(record.get('type') or record.get('event'))
+        stamp = _parse_time(record.get('time', record.get('timestamp')))
+        if stamp is not None:
+            previous = stamp
+        data: dict[str, Any] = {}
+        payload = record.get('data') or record.get('payload')
+        if isinstance(payload, dict):
+            data.update(payload)
+        if kind == 'tool/call':
+            call_id = (
+                (payload or {}).get('callId')
+                or record.get('callId')
+                or record.get('id')
+                or record.get('tool_call_id')
+            )
+            if call_id:
+                data.setdefault('callId', call_id)
+            name = record.get('name') or record.get('tool') or record.get('tool_name')
+            if name:
+                data.setdefault('name', name)
+            arguments = record.get('arguments', record.get('input', record.get('args')))
+            if arguments is not None:
+                data.setdefault(
+                    'arguments',
+                    arguments if isinstance(arguments, str) else json.dumps(arguments),
+                )
+        elif kind == 'tool/result':
+            call_id = (
+                (payload or {}).get('callId')
+                or record.get('toolCallId')
+                or record.get('callId')
+                or record.get('tool_call_id')
+                or record.get('id')
+            )
+            message = data.get('message')
+            if not isinstance(message, dict):
+                message = {}
+            if call_id and not message.get('toolCallId'):
+                message['toolCallId'] = call_id
+            if not message.get('content'):
+                content = record.get('text', record.get('output', record.get('result')))
+                if isinstance(content, str):
+                    message['content'] = [{'type': 'text', 'text': content}]
+            data['message'] = message
+        normalized.append({'type': kind, 'time': previous, 'data': data,
+                           'id': record.get('id') or record.get('session_id')})
+    return normalized
 
 
 def _message_text(message: dict[str, Any]) -> str:
@@ -104,6 +244,8 @@ def _message_text(message: dict[str, Any]) -> str:
 
 
 def _arguments(raw: Any) -> dict[str, Any]:
+    if isinstance(raw, dict):
+        return raw
     try:
         value = json.loads(raw or '{}')
     except (TypeError, json.JSONDecodeError):
@@ -111,10 +253,23 @@ def _arguments(raw: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
 
+def _tool_kind(name: str, arguments: dict[str, Any]) -> str:
+    """Classify a tool by what it does, not by the name one harness gave it."""
+    lowered = name.strip().lower()
+    if lowered in _READ_NAMES:
+        return 'read'
+    if lowered in _WRITE_NAMES:
+        return 'write'
+    if lowered in _SHELL_NAMES or 'command' in arguments:
+        return 'shell'
+    return 'other'
+
+
 def summarize(records: list[dict[str, Any]], *, context: bool = False) -> dict[str, Any]:
     """Fold a session's records into the report payload."""
-    stamps = [record['time'] for record in records if 'time' in record]
-    start, end = min(stamps), max(stamps)
+    records = normalize_records(records)
+    stamps = [record['time'] for record in records if isinstance(record.get('time'), (int, float))]
+    start, end = (min(stamps), max(stamps)) if stamps else (0.0, 0.0)
 
     tools: dict[str, int] = {}
     reads: dict[str, int] = {}
@@ -156,14 +311,15 @@ def summarize(records: list[dict[str, Any]], *, context: bool = False) -> dict[s
         arguments = _arguments(data.get('arguments'))
         tools[name] = tools.get(name, 0) + 1
         minute = (record['time'] - start) / 60000
-        if name == 'read':
+        kind = _tool_kind(name, arguments)
+        if kind == 'read':
             target = str(arguments.get('file_path') or arguments.get('path') or '?')
             reads[target] = reads.get(target, 0) + 1
-        elif name in ('write', 'edit'):
+        elif kind == 'write':
             target = str(arguments.get('file_path') or '').replace('\\', '/')
             if target.endswith('.svg') and 'svg_output' in target:
                 pages.setdefault(target.rsplit('/', 1)[-1], minute)
-        elif name == 'pwsh':
+        elif kind == 'shell':
             command = str(arguments.get('command') or '')
             if 'svg_quality_checker.py' not in command or '--help' in command:
                 continue

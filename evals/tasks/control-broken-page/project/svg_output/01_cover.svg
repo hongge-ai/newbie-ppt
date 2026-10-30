@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
+  <rect id="bg" data-pptx-role="background" x="0" y="0" width="1280" height="720" fill="#FFFFFF"/>
+  <g id="hero" data-pptx-bounds="x:100 y:100 w:400 h:80">
+    <text x="100" y="160" font-size="40" fill="#111111">Hello</text>
+  </g>
+</svg>

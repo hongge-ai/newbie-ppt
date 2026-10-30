@@ -79,6 +79,13 @@ media = [
 ai-image = [
     "google-genai>=1.0.0",
 ]
+# Maintainer-only tools / 仅维护者工具
+# tiktoken: exact o200k_base token counts for prompt_audit.py; generation
+# roles never import it, so it stays out of core / tiktoken 只供 prompt_audit.py
+# 的精确分词计数，生成链路从不导入，因此不放进 core
+dev = [
+    "tiktoken>=0.7.0",
+]
 
 [tool.uv]
 # Scripts repository, not an installable package / 脚本仓库，非可安装包
