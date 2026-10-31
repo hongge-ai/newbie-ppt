@@ -1,0 +1,97 @@
+{
+  "task": "free-design-12",
+  "model": "claude-opus-5-5[1m]",
+  "model_note": "The trial agents were launched on the `opus` alias rather than a pinned model id, because the orchestrating session has no way to pass a pinned id through. The id above is what the session environment reports for the parent; treat it as the nearest attribution available, not a guarantee that every trial resolved to the same weights.",
+  "recorded_at": "2026-10-31",
+  "settings": {
+    "route": "Generate PPTX, Steps 1-7",
+    "template": "none (free design)",
+    "ai_images": false,
+    "image_search": false,
+    "language": "en",
+    "canvas": "ppt169",
+    "page_range": "10-14",
+    "stage1_confirmation": "bypassed: no human present; the contract was derived from the brief and recorded in design_spec.md",
+    "canonical_authoring": true
+  },
+  "runs": [
+    {
+      "run": 1,
+      "project": "projects/eval-fd12-r1_ppt169_20261031",
+      "verdict": "pass",
+      "wall_minutes": 32.8,
+      "pages": 12,
+      "page_names": [
+        "01_cover", "02_problem", "03_mechanism", "04_claim-one-key",
+        "05_claim-write-invalidation", "06_claim-staleness-dial",
+        "07_evidence-numbers", "08_objection-redis",
+        "09_objection-invalidation", "10_objection-repetition",
+        "11_rollout", "12_next-step"
+      ],
+      "final_gate": {"blocking": 0, "failed_pages": 0, "warnings": 0},
+      "export": {"delivered": true, "slides": 12},
+      "checker_calls": 12,
+      "text_measure_calls": 104,
+      "early_gate_first": {"pages": 6, "failed_pages": 5, "blocking": 17}
+    },
+    {
+      "run": 2,
+      "project": "projects/eval-fd12-r2_ppt169_20261031",
+      "verdict": "fail",
+      "failure": "the final gate passed, but Step 7 export never ran; exports/ is empty",
+      "wall_minutes": 52.8,
+      "pages": 13,
+      "page_names": [
+        "01_cover", "02_position", "03_audience", "04_problem",
+        "05_claim-key-format", "06_claim-invalidation", "07_claim-staleness",
+        "08_evidence", "09_rollout", "10_objection-redis",
+        "11_objection-invalidation", "12_objection-repetition", "13_closing"
+      ],
+      "final_gate": {"blocking": 0, "failed_pages": 0, "warnings": 13},
+      "export": {"delivered": false, "slides": 0},
+      "checker_calls": 9,
+      "text_measure_calls": 156,
+      "early_gate_first": {"pages": 6, "failed_pages": 5, "blocking": 15}
+    },
+    {
+      "run": 3,
+      "project": "projects/eval-fd12-r3_ppt169_20261031",
+      "verdict": "pass",
+      "wall_minutes": 44.5,
+      "pages": 12,
+      "page_names": [
+        "01_cover", "02_drift", "03_placement", "04_claim-one-key",
+        "05_claim-write", "06_claim-staleness", "07_workload",
+        "08_objection-redis", "09_objection-invalidation",
+        "10_objection-repeat", "11_adoption", "12_close"
+      ],
+      "final_gate": {"blocking": 0, "failed_pages": 0, "warnings": 2},
+      "export": {"delivered": true, "slides": 12},
+      "checker_calls": 8,
+      "text_measure_calls": 19,
+      "early_gate_first": {"pages": 5, "failed_pages": 4, "blocking": 9}
+    }
+  ],
+  "summary": {
+    "runs": 3,
+    "passed": 2,
+    "delivered": 2,
+    "pages": {"min": 12, "max": 13},
+    "wall_minutes": {"min": 32.8, "max": 52.8},
+    "checker_calls": {"min": 8, "max": 12},
+    "text_measure_calls": {"min": 19, "max": 156},
+    "early_gate_first_blocking": {"min": 9, "max": 17}
+  },
+  "observations": [
+    "Every run passed its first-page probe with few or no findings, then hit 9-17 blocking findings at the first early gate (pages 5-6). Two error families dominate: sibling root groups whose data-pptx-bounds overlap, and text exceeding its group bounds on one or both axes. The single-page probe cannot see either, because both are cross-module properties.",
+    "Every run reached a clean final gate, so the repair loop closes; the cost is 2-4 gate cycles between the early gate and the final one.",
+    "text_measure.py call counts differ by an order of magnitude (19 vs 156) with no visible relationship to wall clock or repair rounds. Three samples cannot separate a strategy difference from noise.",
+    "Both delivered decks open as editable DrawingML: r1 has 12 slides, 142 native text frames, 78 freeforms and 79 groups, and no pictures. The export is not a screenshot skin."
+  ],
+  "limits": [
+    "The trials did not run under the dsh harness, so run_report.py could not read step counts or read lists; checker_calls and text_measure_calls were recovered from each project's validation/workflow.log as the nearest cost proxy.",
+    "Stage 1 (communication contract and template choice) was bypassed and AI image generation was disabled. Neither is measured by this baseline.",
+    "Visual quality was not reviewed by a human; the verdict covers the checker and delivery only.",
+    "two of three runs completed, and the third stopped before export. The pass rate therefore says nothing about a longer session."
+  ]
+}

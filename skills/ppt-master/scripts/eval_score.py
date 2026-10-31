@@ -29,9 +29,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 import tempfile
+import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -44,6 +46,7 @@ from console_encoding import configure_utf8_stdio  # noqa: E402
 
 CHECKER = _SCRIPTS_DIR / 'svg_quality_checker.py'
 EXPECT_NAME = 'expect.json'
+_SLIDE_PART_RE = re.compile(r'ppt/slides/slide\d+\.xml')
 
 
 @dataclass(frozen=True)
@@ -86,6 +89,9 @@ def run_checker(project: Path, stage: str) -> dict[str, Any]:
                 sys.executable,
                 str(CHECKER),
                 str(project),
+                # The route runs every gate with this flag; scoring without it
+                # would pass a project the real pipeline would have failed.
+                '--canonical-authoring',
                 '--stage',
                 stage,
                 '--json',
@@ -106,17 +112,42 @@ def run_checker(project: Path, stage: str) -> dict[str, Any]:
         return json.loads(report_path.read_text(encoding='utf-8'))
 
 
-def numbers_from(report: dict[str, Any]) -> dict[str, int]:
-    """Pull the four numbers a condition can reference."""
+def numbers_from(report: dict[str, Any], project: Path | None = None) -> dict[str, int]:
+    """Pull the four checker numbers, plus the export delivery when asked."""
     summary = report.get('summary') or {}
     categories = report.get('categories') or {}
     blocking = categories.get('blocking') or {}
-    return {
+    numbers = {
         'pages': int(summary.get('total') or 0),
         'failed_pages': int(summary.get('errors') or 0),
         'warnings': int(summary.get('warnings') or 0),
         'blocking': int(blocking.get('count') or 0),
+        'exports': 0,
+        'slides': 0,
     }
+    if project is not None:
+        exports = sorted(
+            (project / 'exports').glob('*.pptx'),
+            key=lambda item: item.stat().st_mtime,
+            reverse=True,
+        )
+        numbers['exports'] = len(exports)
+        if exports:
+            numbers['slides'] = count_slides(exports[0])
+    return numbers
+
+
+def count_slides(pptx: Path) -> int:
+    """Count slide XML parts without loading the file through python-pptx."""
+    try:
+        with zipfile.ZipFile(pptx) as archive:
+            return sum(
+                1
+                for name in archive.namelist()
+                if _SLIDE_PART_RE.fullmatch(name)
+            )
+    except (OSError, zipfile.BadZipFile):
+        return 0
 
 
 def evaluate(expect: dict[str, Any], numbers: dict[str, int]) -> list[Condition]:
@@ -155,6 +186,23 @@ def evaluate(expect: dict[str, Any], numbers: dict[str, int]) -> list[Condition]
         conditions.append(
             Condition('pages', low <= numbers['pages'] <= high, numbers['pages'], f'{low}-{high}')
         )
+    if expect.get('require_export'):
+        conditions.append(
+            Condition(
+                'export',
+                numbers['exports'] >= 1,
+                numbers['exports'],
+                '>=1 deck in exports/',
+            )
+        )
+        conditions.append(
+            Condition(
+                'slides',
+                numbers['slides'] == numbers['pages'],
+                numbers['slides'],
+                f"=={numbers['pages']} authored pages",
+            )
+        )
     return conditions
 
 
@@ -163,7 +211,7 @@ def score(task_dir: Path, project: Path) -> dict[str, Any]:
     expect = load_expect(task_dir)
     stage = str(expect.get('stage') or 'final')
     report = run_checker(project, stage)
-    numbers = numbers_from(report)
+    numbers = numbers_from(report, project)
     conditions = evaluate(expect, numbers)
     return {
         'task': task_dir.name,

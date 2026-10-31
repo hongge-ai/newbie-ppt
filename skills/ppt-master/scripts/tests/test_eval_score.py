@@ -7,13 +7,14 @@ import json
 import sys
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 
 SCRIPTS_DIR = Path(__file__).resolve().parents[1]
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from eval_score import evaluate, load_expect, numbers_from, score  # noqa: E402
+from eval_score import count_slides, evaluate, load_expect, numbers_from, score  # noqa: E402
 
 REPO_ROOT = SCRIPTS_DIR.parents[2]
 CONTROL_TASK = REPO_ROOT / 'evals' / 'tasks' / 'control-broken-page'
@@ -74,6 +75,54 @@ class ConditionTests(unittest.TestCase):
 
         self.assertTrue(broken[0].passed)
         self.assertFalse(clean[0].passed)
+
+
+class ExportConditionTests(unittest.TestCase):
+    """A green checker report is not delivery: the deck must exist and match."""
+
+    def numbers(self, *, pages: int, exports: int, slides: int) -> dict[str, int]:
+        numbers = numbers_from(report(total=pages, errors=0, warnings=0, blocking=0))
+        numbers['exports'] = exports
+        numbers['slides'] = slides
+        return numbers
+
+    def test_an_unexported_project_fails_when_export_is_required(self) -> None:
+        conditions = evaluate({'require_export': True}, self.numbers(pages=13, exports=0, slides=0))
+        export = next(item for item in conditions if item.name == 'export')
+
+        self.assertFalse(export.passed)
+
+    def test_a_slide_count_mismatch_fails(self) -> None:
+        conditions = evaluate({'require_export': True}, self.numbers(pages=12, exports=1, slides=11))
+        slides = next(item for item in conditions if item.name == 'slides')
+
+        self.assertFalse(slides.passed)
+
+    def test_export_is_not_checked_unless_the_task_asks(self) -> None:
+        conditions = evaluate({'max_blocking': 0}, self.numbers(pages=12, exports=0, slides=0))
+
+        self.assertEqual([item.name for item in conditions], ['blocking'])
+
+
+class SlideCountTests(unittest.TestCase):
+    def test_a_missing_or_corrupt_deck_counts_as_zero(self) -> None:
+        with tempfile.TemporaryDirectory() as scratch:
+            bad = Path(scratch) / 'bad.pptx'
+            bad.write_bytes(b'not a zip')
+
+            self.assertEqual(count_slides(bad), 0)
+            self.assertEqual(count_slides(Path(scratch) / 'absent.pptx'), 0)
+
+    def test_slide_parts_are_counted_from_the_package(self) -> None:
+        with tempfile.TemporaryDirectory() as scratch:
+            deck = Path(scratch) / 'deck.pptx'
+            with zipfile.ZipFile(deck, 'w') as archive:
+                archive.writestr('[Content_Types].xml', '<Types/>')
+                for index in (1, 2, 10):
+                    archive.writestr(f'ppt/slides/slide{index}.xml', '<p:sld/>')
+                archive.writestr('ppt/slides/_rels/slide1.xml.rels', '<Relationships/>')
+
+            self.assertEqual(count_slides(deck), 3)
 
 
 class ExpectFileTests(unittest.TestCase):

@@ -35,6 +35,10 @@ python3 skills/ppt-master/scripts/eval_score.py evals/tasks/<task-id> <project_p
 The command runs the checker against the project, applies `expect.json`, prints
 a JSON verdict, and exits non-zero when the task fails.
 
+With `require_export` set, a clean checker report is not enough: the task also
+requires a deck under `exports/` whose slide count equals the authored page
+count. A run that stops before Step 7 has not delivered, and the scorer says so.
+
 ## What counts as evidence
 
 | Layer | Signal | Cost |
