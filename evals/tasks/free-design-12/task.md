@@ -26,6 +26,8 @@ re-record.
 ## Scoring
 
 `expect.json` holds the pass conditions: zero blocking findings, zero pages
-with errors at the final gate, and a page count inside the range. The verdict
-is pass/fail per condition, plus the raw numbers so two passing runs can still
-be compared on cost.
+with errors at the final gate, a page count inside the range, and a delivered
+deck whose slide count matches the authored pages. A clean checker report is
+not delivery — a run that stops before export fails the task even when every
+page passes. The verdict is pass/fail per condition, plus the raw numbers so
+two passing runs can still be compared on cost.

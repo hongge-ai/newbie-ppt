@@ -1,11 +1,12 @@
 {
   "schema_version": 1,
   "stage": "final",
-  "description": "Free design from a fixed brief: 10-14 pages, a clean final gate, no blocking findings.",
+  "description": "Free design from a fixed brief: 10-14 pages, a clean final gate, no blocking findings, and a delivered deck whose slide count matches the authored pages.",
   "max_blocking": 0,
   "max_failed_pages": 0,
   "pages": {
     "min": 10,
     "max": 14
-  }
+  },
+  "require_export": true
 }
