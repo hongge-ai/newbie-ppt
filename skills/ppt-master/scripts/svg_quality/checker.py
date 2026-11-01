@@ -4267,6 +4267,37 @@ class SVGQualityChecker:
         )
 
     @classmethod
+    def _bounds_separation_hint(
+        cls,
+        first: Tuple[float, float, float, float],
+        second: Tuple[float, float, float, float],
+        second_label: str,
+    ) -> str:
+        """Return the smallest single-axis shift that clears the overlap.
+
+        The failure states the intersection but not the repair, so a run fixes
+        the reported page and re-derives the same arithmetic on the next one.
+        The needed shift is the overlap minus the tolerance on the cheaper
+        axis, which for a 400x2 overlap is 1.0px rather than 399.0px.
+        """
+        overlap_width, overlap_height = cls._bounds_overlap_dimensions(first, second)
+        shift_x = max(overlap_width - _BOUNDS_OVERFLOW_TOLERANCE, 0.0)
+        shift_y = max(overlap_height - _BOUNDS_OVERFLOW_TOLERANCE, 0.0)
+        second_cx = (second[0] + second[2]) / 2
+        second_cy = (second[1] + second[3]) / 2
+        first_cx = (first[0] + first[2]) / 2
+        first_cy = (first[1] + first[3]) / 2
+        vertical = (
+            f"{'down' if second_cy >= first_cy else 'up'} {shift_y:.1f}px on y"
+        )
+        horizontal = (
+            f"{'right' if second_cx >= first_cx else 'left'} {shift_x:.1f}px on x"
+        )
+        if shift_y <= shift_x:
+            return f'smallest repair: move {second_label} {vertical} (or {horizontal})'
+        return f'smallest repair: move {second_label} {horizontal} (or {vertical})'
+
+    @classmethod
     def _is_off_canvas_morph_group(
         cls,
         group: ET.Element,
@@ -4741,7 +4772,12 @@ class SVGQualityChecker:
                     f'{_element_label(second_group)} {_BOUNDS_ATTR} by '
                     f'{overlap_width:.1f}px x {overlap_height:.1f}px; keep '
                     'ordinary direct-root module zones disjoint beyond the '
-                    f'{_BOUNDS_OVERFLOW_TOLERANCE:.0f}px tolerance'
+                    f'{_BOUNDS_OVERFLOW_TOLERANCE:.0f}px tolerance; '
+                    + self._bounds_separation_hint(
+                        first_bounds,
+                        second_bounds,
+                        _element_label(second_group),
+                    )
                 )
 
         if missing:

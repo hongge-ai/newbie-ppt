@@ -454,6 +454,40 @@ class SVGQualityCheckerBoundsTests(unittest.TestCase):
                 self.assertEqual(bool(overlap_errors), expects_overlap_error)
 
 
+class OverlapRepairHintTests(unittest.TestCase):
+    """An overlap error names the cheapest shift, not just the intersection."""
+
+    @staticmethod
+    def _overlap_error(first: str, second: str) -> str:
+        root = _parse_svg(
+            f'<g id="first" data-pptx-bounds="{first}"/>'
+            f'<g id="second" data-pptx-bounds="{second}"/>'
+        )
+        result = _empty_result()
+        SVGQualityChecker()._check_module_bounds_contract(root, result)
+        errors = [error for error in result['errors'] if 'overlaps' in error]
+        assert errors, result
+        return errors[0]
+
+    def test_a_thin_vertical_overlap_is_repaired_on_the_vertical_axis(self) -> None:
+        # The observed failure: a 400x2px eyebrow/title overlap.
+        error = self._overlap_error('56 96 400 24', '56 118 900 56')
+
+        self.assertIn('400.0px x 2.0px', error)
+        self.assertIn('move <g id="second"> down 1.0px on y', error)
+        self.assertIn('or right 399.0px on x', error)
+
+    def test_the_hint_prefers_the_cheaper_axis(self) -> None:
+        error = self._overlap_error('0 0 100 100', '50 0 100 100')
+
+        self.assertIn('move <g id="second"> right 49.0px on x', error)
+
+    def test_the_direction_follows_the_second_group(self) -> None:
+        error = self._overlap_error('0 100 100 100', '0 50 100 100')
+
+        self.assertIn('move <g id="second"> up 49.0px on y', error)
+
+
 if __name__ == '__main__':
     unittest.main()
 

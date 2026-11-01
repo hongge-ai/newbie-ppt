@@ -439,7 +439,10 @@ helper-authored preset atom declares root-coordinate
 `data-pptx-bounds="x y width height"`. The checker fails ordinary root-group
 overlap exceeding `1px` on both axes (structured slots, structural-role groups,
 and off-canvas Morph staging groups are exempt; structured Slide-local groups
-are not). It compares each subcanvas with the root `viewBox`, and estimable
+are not). The failure names the cheapest single-axis shift that clears it —
+overlap minus the tolerance on that axis, with the direction derived from the
+two groups — so a run repairs the geometry instead of re-deriving the same
+arithmetic on the next page. It compares each subcanvas with the root `viewBox`, and estimable
 descendant text — including both multiline `<tspan>` forms — with the
 subcanvas using the shared per-run width estimate, inline-formula height
 envelope, and DrawingML wrapping headroom; it separately compares estimable
