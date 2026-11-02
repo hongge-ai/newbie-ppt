@@ -105,23 +105,27 @@ headers with 403, matching the other local preview servers.
 
 ## Page map
 
-Every screen shares one shell: a top bar (brand, current page, connection state,
-one global **新建任务** action), a left rail holding the task list, and the
-workspace on the right.
+One shell for every screen: a top bar (brand, one **新建任务** action, connection
+state), a left rail holding the task list, and the workspace on the right. A task
+is a single workspace with tabs rather than several pages that link to each other.
 
-| Route | Workspace | Rail | Note |
-|---|---|---|---|
-| `#/new` (also the fallback) | compose form: topic + optional title | task list | the only place a task starts |
-| `#/task/<id>` — draft | editable form: params, requirements, uploads, template hint | active item | 保存修改 / 提交生成 |
-| `#/task/<id>` — submitted | read-only summary + 查看生成进度 | active item | template choice no longer appears here |
-| `#/task/<id>/progress` | **概览**: stage, progress, events, pending question, page thumbnails, exports, feedback | active item | tabs switch the workspace |
-| progress → 页面预览 / 阶段确认 / 规格评审 | the mounted surface fills the workspace | active item | iframe lives outside the polled view, so the 2 s refresh never reloads it |
+| Route | Workspace | Tabs shown |
+|---|---|---|
+| `#/new` (fallback) | compose form: topic + optional title | — |
+| `#/task/<id>/task` | parameters: form while draft, read-only summary once submitted | 任务 (+ 概览 once submitted) |
+| `#/task/<id>/overview` | stage stepper, pending question, deliverables, activity, feedback | 任务 · 概览 · surfaces |
+| `#/task/<id>/preview` | page preview editor | 任务 · 概览 · surfaces |
+| `#/task/<id>/confirm` | Stage 1 / Stage 2 confirmation | 任务 · 概览 · surfaces |
+| `#/task/<id>/spec` | design-spec review | 任务 · 概览 · surfaces |
 
-Shared interaction rules: the rail item is the only task switcher and marks the
-current task; the page title in the bar follows the view; the workspace scrolls
-independently of the rail; the mount tabs keep their state while the overview
-keeps polling. The three surface editors keep their own editor palette inside
-the frame; the shell around them stays light.
+Surface tabs appear only once the run is bound to a project. The workspace is the
+only scrolling region; switching tabs reloads nothing else, and the overview's
+two-second poll never touches a surface frame.
+
+**One owner per fact**: the status badge lives in the page header only (the rail
+shows a colour dot), the stage lives in the header and the stepper, page previews
+appear only in the preview tab, exports only in the overview, and there is no
+second task list or duplicate "open progress" button.
 
 ## Project surfaces
 

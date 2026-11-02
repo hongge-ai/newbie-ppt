@@ -3,52 +3,36 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>牛鼻 PPT 工作台</title>
+  <title>牛鼻 PPT</title>
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-  <div class="app-shell">
-    <header class="app-bar">
-      <div class="app-brand">
-        <span class="brand-mark">PM</span>
-        <span class="brand-name">牛鼻 PPT</span>
-      </div>
-      <div class="app-title" id="app-title">任务</div>
-      <div class="app-actions">
-        <span class="conn-state" id="conn-state" hidden>连接中断,重试中…</span>
-        <button class="btn btn-primary" id="btn-new-task" type="button">+ 新建任务</button>
-      </div>
-    </header>
+  <header class="app-bar">
+    <a class="brand" href="#/new">
+      <span class="brand-mark">PM</span>
+      <span class="brand-name">牛鼻 PPT</span>
+    </a>
+    <span class="conn" id="conn" hidden>连接中断，正在重试</span>
+    <button class="btn btn-primary" id="new-task" type="button">新建任务</button>
+  </header>
 
-    <div class="app-body">
-      <aside class="app-rail">
-        <div class="rail-head">
-          <span>任务</span>
-          <span class="rail-count" id="rail-count"></span>
-        </div>
-        <nav class="rail-tasks" id="rail-tasks">
-          <div class="empty">加载中…</div>
-        </nav>
-        <footer class="rail-foot" id="rail-foot">本地服务 · 7070</footer>
-      </aside>
-
-      <main class="app-workspace">
-        <div class="workspace-tabs" id="workspace-tabs" hidden></div>
-        <div class="workspace-body">
-          <div id="view" class="workspace-view">
-            <section class="placeholder">
-              <h1>工作台已启动</h1>
-              <p>加载中…</p>
-            </section>
-          </div>
-          <div id="surface-panel" class="surface-host" hidden></div>
-        </div>
-      </main>
-    </div>
+  <div class="app-body">
+    <aside class="rail">
+      <div class="rail-head">
+        <span>任务</span>
+        <span class="rail-count" id="rail-count"></span>
+      </div>
+      <nav class="rail-list" id="rail-list">
+        <div class="rail-empty">加载中…</div>
+      </nav>
+    </aside>
+    <main class="workspace" id="workspace">
+      <div class="loading">加载中…</div>
+    </main>
   </div>
 
-  <div id="notify" class="notify" hidden></div>
+  <div class="toast" id="toast" hidden></div>
   <script src="/static/app.js"></script>
 </body>
 </html>

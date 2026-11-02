@@ -552,6 +552,7 @@ def _list_task_summaries(projects_root: Path) -> list:
         summaries.append({
             'task_id': task.get('task_id') or entry.name,
             'display_title': task.get('display_title'),
+            'topic': task.get('topic'),
             'status': _derived_state(task, runtime),
             'created_at': task.get('created_at'),
             'submitted_at': task.get('submitted_at'),

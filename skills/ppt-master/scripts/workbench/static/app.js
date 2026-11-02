@@ -1,18 +1,45 @@
-/* Workbench frontend application (IIFE, no build chain). */
+/* Workbench single-page app: one shell, one workspace, no duplicate views. */
 (function () {
   'use strict';
 
-  // ---------- tiny helpers ----------
+  var STATUS_LABELS = {
+    draft: '草稿', submitted: '待处理', processing: '生成中',
+    interrupted: '已中断', done: '已完成', failed: '失败', error: '损坏'
+  };
 
-  function $(selector, root) {
-    return (root || document).querySelector(selector);
-  }
+  var STEPS = [
+    ['init', '初始化'], ['source', '素材'], ['template_prep', '模板'],
+    ['confirm_stage1', '确认'], ['spec', '规格'], ['lock', '锁定'],
+    ['execute', '页面'], ['finalize', '收尾'], ['export', '导出'], ['done', '完成']
+  ];
+
+  var STAGE_LABELS = STEPS.reduce(function (map, item) {
+    map[item[0]] = item[1];
+    return map;
+  }, {});
+
+  var TABS = [
+    ['task', '任务'], ['overview', '概览'],
+    ['preview', '页面预览'], ['confirm', '阶段确认'], ['spec', '规格评审']
+  ];
+
+  var SURFACE_TABS = { preview: 'preview', confirm: 'confirm', spec: 'spec' };
+  var workspace = document.getElementById('workspace');
+  var optionsCache = null;
+  var pollTimer = null;
+  var lastOverviewSig = '';
+
+  // ---------- helpers ----------
+
+  function $(selector) { return document.querySelector(selector); }
 
   function esc(value) {
-    return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
-    });
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
+
+  function enc(value) { return encodeURIComponent(value); }
 
   function fmtSize(bytes) {
     if (!bytes && bytes !== 0) return '';
@@ -21,637 +48,516 @@
     return (bytes / 1024 / 1024).toFixed(1) + ' MB';
   }
 
+  function setConn(bad) {
+    var node = $('#conn');
+    if (node) node.hidden = !bad;
+  }
+
+  function toast(message, isError) {
+    var node = $('#toast');
+    if (!node) return;
+    node.textContent = message;
+    node.className = 'toast' + (isError ? ' is-error' : '');
+    node.hidden = false;
+    window.setTimeout(function () { node.hidden = true; }, isError ? 6000 : 2600);
+  }
+
   function api(method, path, body) {
-    var init = { method: method, headers: {} };
-    if (body !== undefined) {
-      init.headers['Content-Type'] = 'application/json';
-      init.body = JSON.stringify(body);
-    }
-    return fetch(path, init).then(function (resp) {
-      return resp.json().catch(function () { return {}; }).then(function (data) {
-        if (!resp.ok) {
-          var message = data && data.error ? data.error : ('HTTP ' + resp.status);
-          var error = new Error(message);
-          error.status = resp.status;
-          error.body = data;
-          throw error;
+    var options = { method: method, headers: { 'Content-Type': 'application/json' } };
+    if (body !== undefined) options.body = JSON.stringify(body);
+    return fetch(path, options).then(function (response) {
+      return response.text().then(function (text) {
+        var data = null;
+        try { data = text ? JSON.parse(text) : null; } catch (error) { data = null; }
+        if (!response.ok) {
+          var failure = new Error((data && data.error) || ('HTTP ' + response.status));
+          failure.body = data;
+          throw failure;
         }
         return data;
       });
     });
   }
 
-  function setConnState(broken) {
-    var badge = $('#conn-state');
-    if (badge) badge.hidden = !broken;
+  function poll(seconds, fn) {
+    stopPoll();
+    pollTimer = window.setInterval(fn, seconds * 1000);
   }
 
-  // ---------- option labels ----------
+  function stopPoll() {
+    if (pollTimer) { window.clearInterval(pollTimer); pollTimer = null; }
+  }
 
-  var optionsCache = null;
+  function statusBadge(status) {
+    return '<span class="status status-' + esc(status) + '">' +
+      esc(STATUS_LABELS[status] || status) + '</span>';
+  }
 
-  function loadOptions(force) {
-    if (optionsCache && !force) return Promise.resolve(optionsCache);
+  // ---------- options ----------
+
+  function loadOptions() {
+    if (optionsCache) return Promise.resolve(optionsCache);
     return api('GET', '/api/options').then(function (data) {
       optionsCache = data;
       return data;
-    });
+    }).catch(function () { return null; });
+  }
+
+  function options(list, value) {
+    return (list || []).map(function (item) {
+      var id = item.value != null ? item.value : item.id;
+      var selected = String(id) === String(value) ? ' selected' : '';
+      return '<option value="' + esc(id) + '"' + selected + '>' + esc(item.label || id) + '</option>';
+    }).join('');
   }
 
   function optionLabel(list, value) {
-    if (!list) return value == null ? '' : String(value);
-    for (var i = 0; i < list.length; i++) {
-      if (String(list[i].value) === String(value)) return list[i].label;
-    }
-    return value == null ? '' : String(value);
+    var found = (list || []).filter(function (item) {
+      var id = item.value != null ? item.value : item.id;
+      return String(id) === String(value);
+    })[0];
+    return found ? (found.label || value) : (value == null ? '—' : String(value));
   }
 
-  // ---------- task status vocabulary ----------
-
-  var STATUS_LABELS = {
-    draft: '草稿',
-    submitted: '待处理',
-    processing: '生成中',
-    interrupted: '已中断',
-    done: '已完成',
-    failed: '失败',
-    error: '损坏'
-  };
-
-  function statusLabel(status) {
-    return STATUS_LABELS[status] || status || '未知';
-  }
-
-  // ---------- polling ----------
-
-  var pollTimer = null;
-
-  function stopPolling() {
-    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
-  }
-
-  function pollEvery(seconds, fn) {
-    stopPolling();
-    pollTimer = setInterval(fn, seconds * 1000);
-  }
-
-  // ---------- view shell ----------
-
-  var viewEl = null;
-
-  function render(html) {
-    viewEl.innerHTML = html;
-  }
-
-  function setAppTitle(text) {
-    var node = $('#app-title');
-    if (node) node.textContent = text;
-  }
-
-  function notify(message, isError) {
-    var bar = $('#notify');
-    if (!bar) return;
-    bar.textContent = message;
-    bar.className = 'notify' + (isError ? ' notify-error' : ' notify-ok');
-    bar.hidden = false;
-    window.setTimeout(function () { bar.hidden = true; }, isError ? 6000 : 3000);
-  }
-
-  // ---------- tasks list view ----------
+  // ---------- rail ----------
 
   function railItem(task, activeId) {
     var title = task.display_title || task.topic || task.task_id;
     var runtime = task.runtime || {};
-    var meta = [];
-    if (runtime.blocking) meta.push('待你回答');
-    else if (runtime.stage_label) meta.push(runtime.stage_label);
-    else if (task.status === 'draft') meta.push('待配置');
-    else if (task.created_at) meta.push(task.created_at);
-    return (
-      '<a class="rail-item' + (task.task_id === activeId ? ' is-active' : '') +
-      '" href="#/task/' + encodeURIComponent(task.task_id) + '">' +
-      '<span class="rail-item-head">' +
-      '<span class="rail-item-title">' + esc(title) + '</span>' +
-      '<span class="badge badge-' + esc(task.status) + '">' + esc(statusLabel(task.status)) + '</span>' +
-      '</span>' +
-      '<span class="rail-item-meta">' + esc(meta.join(' · ')) + '</span>' +
-      '</a>'
-    );
+    var meta = '';
+    if (runtime.blocking) meta = '待你回答';
+    else if (task.status === 'draft') meta = '待配置';
+    return '<a class="rail-item' + (task.task_id === activeId ? ' is-active' : '') +
+      '" href="#/task/' + enc(task.task_id) + '">' +
+      '<span class="rail-title"><i class="dot dot-' + esc(task.status) + '"></i>' +
+      esc(title) + '</span>' +
+      (meta ? '<span class="rail-meta">' + esc(meta) + '</span>' : '') +
+      '</a>';
   }
 
-  function refreshTaskList(activeId) {
+  function refreshRail(activeId) {
     return api('GET', '/api/tasks').then(function (data) {
-      setConnState(false);
-      var list = $('#rail-tasks');
+      setConn(false);
+      var list = $('#rail-list');
       if (!list) return;
       var count = $('#rail-count');
-      if (count) count.textContent = data.tasks.length ? data.tasks.length + ' 个' : '';
-      if (!data.tasks.length) {
-        list.innerHTML = '<div class="empty">还没有任务</div>';
-        return;
-      }
-      list.innerHTML = data.tasks.map(function (task) {
-        return railItem(task, activeId || '');
-      }).join('');
-    }).catch(function (err) {
-      setConnState(true);
-      var list = $('#rail-tasks');
-      if (list) list.innerHTML = '<div class="empty">加载失败:' + esc(err.message) + '</div>';
+      if (count) count.textContent = data.tasks.length ? String(data.tasks.length) : '';
+      list.innerHTML = data.tasks.length
+        ? data.tasks.map(function (task) { return railItem(task, activeId || ''); }).join('')
+        : '<div class="rail-empty">还没有任务</div>';
+    }).catch(function () {
+      setConn(true);
+      var list = $('#rail-list');
+      if (list) list.innerHTML = '<div class="rail-empty">任务列表加载失败</div>';
     });
   }
 
-  function showNewTask() {
-    setAppTitle('新建任务');
-    refreshTaskList('');
-    render(
-      '<section class="panel panel-compose">' +
-      '<h2>新建任务</h2>' +
-      '<p class="hint">写下主题或需求，创建后配置参数并提交；模板在确认页的 Stage 1 里选。</p>' +
-      '<form id="create-form">' +
-      '<label class="field"><span>主题 / 需求描述 *</span>' +
-      '<textarea id="create-topic" rows="4" placeholder="例如:基于这份季度报告做一份 10 页的汇报 PPT" required></textarea></label>' +
-      '<div class="field-row">' +
-      '<label class="field"><span>任务标题(可选)</span>' +
-      '<input id="create-title" type="text" maxlength="200" placeholder="展示在左侧任务列表里"></label>' +
-      '</div>' +
-      '<button type="submit" class="btn btn-primary">创建并配置</button>' +
-      '</form>' +
-      '</section>'
-    );
+  // ---------- new task ----------
 
-    loadOptions();
+  function renderNewTask() {
+    refreshRail('');
+    workspace.innerHTML =
+      '<div class="page-head"><div><h1>新建任务</h1>' +
+      '<div class="page-sub">写清主题或需求，创建后配置参数并提交。模板在确认页的 Stage 1 里选。</div></div></div>' +
+      '<div class="card"><form id="create-form">' +
+      '<label class="field"><span>主题 / 需求描述</span>' +
+      '<textarea id="create-topic" rows="5" placeholder="例如：根据这份季度报告做一份 10 页的汇报 PPT" required></textarea></label>' +
+      '<div class="field-row"><label class="field"><span>任务标题（可选）</span>' +
+      '<input id="create-title" type="text" maxlength="200" placeholder="显示在左侧任务列表"></label></div>' +
+      '<div class="actions"><button class="btn btn-primary" type="submit">创建并配置</button></div>' +
+      '</form></div>';
 
     $('#create-form').addEventListener('submit', function (event) {
       event.preventDefault();
       var topic = $('#create-topic').value.trim();
-      if (!topic) { notify('请填写主题', true); return; }
+      if (!topic) { toast('请填写主题', true); return; }
       api('POST', '/api/tasks', {
         topic: topic,
         display_title: $('#create-title').value.trim() || null
       }).then(function (data) {
-        location.hash = '#/task/' + encodeURIComponent(data.task_id);
-      }).catch(function (err) { notify('创建失败:' + err.message, true); });
+        location.hash = '#/task/' + enc(data.task_id) + '/task';
+      }).catch(function (error) { toast('创建失败：' + error.message, true); });
     });
-
-    pollEvery(5, function () { refreshTaskList(''); });
+    poll(5, function () { refreshRail(''); });
   }
 
-  // ---------- task detail view ----------
+  // ---------- task page ----------
 
-  function selectOptions(list, value) {
-    return (list || []).map(function (item) {
-      var selected = String(item.value) === String(value) ? ' selected' : '';
-      return '<option value="' + esc(item.value) + '"' + selected + '>' + esc(item.label) + '</option>';
-    }).join('');
+  function availableTabs(task) {
+    var hasRun = !!(task.runtime && task.runtime.slug);
+    return TABS.filter(function (item) {
+      if (item[0] === 'overview') return task.status !== 'draft';
+      if (SURFACE_TABS[item[0]]) return hasRun;
+      return true;
+    });
   }
 
-  function uploadRow(item, editable) {
-    return (
-      '<li class="upload-row"><span class="upload-name" title="' + esc(item.name) + '">' +
-      esc(item.name) + '</span><span class="upload-size">' + esc(fmtSize(item.size)) + '</span>' +
-      (editable
-        ? '<button class="btn btn-danger btn-small" data-del-upload="' + esc(item.name) + '">删除</button>'
-        : '') +
-      '</li>'
-    );
+  function loadTaskPage(taskId, tab) {
+    lastOverviewSig = '';
+    Promise.all([
+      api('GET', '/api/tasks/' + enc(taskId)),
+      loadOptions()
+    ]).then(function (results) {
+      var task = results[0];
+      var tabs = availableTabs(task);
+      var allowed = tabs.map(function (item) { return item[0]; });
+      var active = tab && allowed.indexOf(tab) >= 0
+        ? tab
+        : (task.status === 'draft' ? 'task' : 'overview');
+      var title = task.display_title || task.topic || task.task_id;
+      refreshRail(taskId);
+      renderTaskPage(task, tabs, active);
+    }).catch(function (error) {
+      setConn(true);
+      workspace.innerHTML = '<div class="card"><h2>加载失败</h2><p class="hint">' +
+        esc(error.message) + '</p><a class="btn" href="#/new">新建任务</a></div>';
+    });
   }
 
-  function renderTaskForm(task, options, uploads) {
-    var p = task.params || {};
-    var r = task.requirements || {};
-    return (
-      '<section class="panel">' +
-      '<div class="task-head">' +
-      '<div><h2>' + esc(task.display_title || task.topic) + '</h2>' +
-      '<div class="task-sub">' + esc(task.task_id) + ' · ' + esc(statusLabel(task.status)) + '</div></div>' +
-      '<a class="btn" href="#/new">+ 新建任务</a>' +
-      '</div>' +
-      '</section>' +
-
-      '<section class="panel">' +
-      '<h3>基本信息</h3>' +
-      '<label class="field"><span>任务标题</span>' +
-      '<input id="f-title" type="text" maxlength="200" value="' + esc(task.display_title || '') + '"></label>' +
-      '<label class="field"><span>主题 / 需求描述 *</span>' +
-      '<textarea id="f-topic" rows="3">' + esc(task.topic) + '</textarea></label>' +
-      '<div class="field-row">' +
-      '<label class="field"><span>面向受众</span>' +
-      '<input id="f-audience" type="text" placeholder="例如:公司管理层" value="' + esc(r.audience || '') + '"></label>' +
-      '<label class="field"><span>语气风格</span>' +
-      '<input id="f-tone" type="text" placeholder="例如:正式、简洁" value="' + esc(r.tone || '') + '"></label>' +
-      '</div>' +
-      '<label class="field"><span>附加要求</span>' +
-      '<textarea id="f-extra" rows="2" placeholder="其他希望满足的要求">' + esc(r.extra || '') + '</textarea></label>' +
-      '</section>' +
-
-      '<section class="panel">' +
-      '<h3>生成参数</h3>' +
-      '<div class="field-row">' +
-      '<label class="field"><span>画幅</span>' +
-      '<select id="f-canvas">' + selectOptions(options.canvas, p.canvas) + '</select></label>' +
-      '</div>' +
-      '<div class="field-row">' +
-      '<label class="field"><span>页数</span>' +
-      '<select id="f-page-count">' + selectOptions(options.page_counts, p.page_count == null ? 'null' : p.page_count) + '</select></label>' +
-      '<label class="field"><span>语言</span>' +
-      '<select id="f-language">' + selectOptions(options.languages, p.primary_language) + '</select></label>' +
-      '</div>' +
-      '<div class="field-row">' +
-      '<label class="field"><span>配图策略</span>' +
-      '<select id="f-image-policy">' + selectOptions(options.image_policies, p.image_policy) + '</select></label>' +
-      '<label class="field field-check"><input id="f-notes" type="checkbox"' +
-      (p.speaker_notes ? ' checked' : '') + '><span>生成讲者备注</span></label>' +
-      '</div>' +
-      '</section>' +
-
-      '<section class="panel">' +
-      '<h3>参考材料</h3>' +
-      '<p class="hint">可上传 PDF / Word / PPT / 图片等源材料;生成时由 AI 读取。仅草稿状态可修改。</p>' +
-      '<ul id="upload-list" class="upload-list">' +
-      (uploads.length ? uploads.map(function (item) { return uploadRow(item, true); }).join('')
-        : '<li class="empty">尚未上传材料(可选)</li>') +
-      '</ul>' +
-      '<label class="btn upload-btn">上传材料<input id="f-files" type="file" multiple hidden></label>' +
-      '</section>' +
-
-      '<section class="panel">' +
-      '<h3>模板 / 品牌 / 风格</h3>' +
-      '<p class="hint">这里不选模板。提交之后，在「阶段确认」页的 Stage 1 里选择模板工作区，或改用自由设计。</p>' +
-      '</section>' +
-
-      '<section class="panel actions">' +
-      '<button id="save-btn" class="btn">保存修改</button>' +
-      '<button id="submit-btn" class="btn btn-primary">提交生成</button>' +
-      '</section>'
-    );
-  }
-
-  function readFormTask() {
-    var pageCountRaw = $('#f-page-count').value;
-    return {
-      display_title: $('#f-title').value.trim() || null,
-      topic: $('#f-topic').value.trim(),
-      requirements: {
-        audience: $('#f-audience').value.trim(),
-        tone: $('#f-tone').value.trim(),
-        extra: $('#f-extra').value.trim()
-      },
-      params: {
-        canvas: $('#f-canvas').value || null,
-        page_count: pageCountRaw === 'null' || pageCountRaw === '' ? null : parseInt(pageCountRaw, 10),
-        primary_language: $('#f-language').value,
-        speaker_notes: $('#f-notes').checked,
-        image_policy: $('#f-image-policy').value
-      }
-    };
-  }
-
-  function wireTaskForm(task) {
-    function currentUploadNames() {
-      return Array.prototype.slice.call($('#upload-list').querySelectorAll('[data-del-upload]'))
-        .map(function (btn) { return btn.getAttribute('data-del-upload'); });
+  function renderTaskPage(task, tabs, active) {
+    var title = task.display_title || task.topic || task.task_id;
+    var runtime = task.runtime || {};
+    var sub = [task.task_id];
+    if (runtime.stage && task.status !== 'done' && task.status !== 'failed') {
+      sub.push('阶段：' + (STAGE_LABELS[runtime.stage] || runtime.stage));
     }
+    if (runtime.project_dir) sub.push(runtime.project_dir);
+    var tabButtons = tabs.map(function (item) {
+      return '<button type="button" class="tab' + (item[0] === active ? ' is-active' : '') +
+        '" data-tab="' + item[0] + '">' + item[1] + '</button>';
+    }).join('');
 
-    $('#f-files').addEventListener('change', function (event) {
-      var files = Array.prototype.slice.call(event.target.files || []);
-      if (!files.length) return;
-      var form = new FormData();
-      files.forEach(function (file) { form.append('files', file, file.name); });
-      fetch('/api/tasks/' + encodeURIComponent(task.task_id) + '/uploads', { method: 'POST', body: form })
-        .then(function (resp) { return resp.json(); })
-        .then(function (data) {
-          if (data.error) throw new Error(data.error);
-          notify('已上传 ' + (data.uploads || []).length + ' 个文件');
-          showTask(task.task_id);
-        })
-        .catch(function (err) { notify('上传失败:' + err.message, true); });
+    workspace.innerHTML =
+      '<div class="page-head"><div><h1>' + esc(title) + '</h1>' +
+      '<div class="page-sub">' + esc(sub.join(' · ')) + '</div></div>' +
+      statusBadge(task.status) + '</div>' +
+      '<div class="tabs">' + tabButtons + '</div>' +
+      '<div id="pane"></div>';
+
+    Array.prototype.forEach.call(workspace.querySelectorAll('.tab'), function (button) {
+      button.addEventListener('click', function () {
+        location.hash = '#/task/' + enc(task.task_id) + '/' + button.getAttribute('data-tab');
+      });
     });
 
-    $('#upload-list').addEventListener('click', function (event) {
-      var btn = event.target.closest('[data-del-upload]');
-      if (!btn) return;
-      api('DELETE', '/api/tasks/' + encodeURIComponent(task.task_id) + '/uploads/' + encodeURIComponent(btn.getAttribute('data-del-upload')))
-        .then(function () { showTask(task.task_id); })
-        .catch(function (err) { notify('删除失败:' + err.message, true); });
-    });
-
-    $('#save-btn').addEventListener('click', function () {
-      var payload = readFormTask();
-      if (!payload.topic) { notify('主题不能为空', true); return; }
-      api('PATCH', '/api/tasks/' + encodeURIComponent(task.task_id), payload)
-        .then(function () { notify('已保存'); })
-        .catch(function (err) { notify('保存失败:' + err.message, true); });
-    });
-
-    $('#submit-btn').addEventListener('click', function () {
-      var payload = readFormTask();
-      if (!payload.topic) { notify('主题不能为空', true); return; }
-      api('PATCH', '/api/tasks/' + encodeURIComponent(task.task_id), payload)
-        .then(function () {
-          return api('POST', '/api/tasks/' + encodeURIComponent(task.task_id) + '/submit');
-        })
-        .then(function (data) {
-          render(
-            '<section class="panel">' +
-            '<h2>任务已提交 ✓</h2>' +
-            '<p>接下来,把下面这句话复制到 AI 对话窗口触发生成:</p>' +
-            '<pre class="agent-hint">' + esc(data.agent_hint) + '</pre>' +
-            '<button id="copy-hint" class="btn btn-primary">复制触发语</button>' +
-            '<a class="btn" href="#/task/' + encodeURIComponent(task.task_id) + '">查看任务</a>' +
-            '<a class="btn" href="#/new">+ 新建任务</a>' +
-            '</section>'
-          );
-          $('#copy-hint').addEventListener('click', function () {
-            var text = data.agent_hint;
-            if (navigator.clipboard) navigator.clipboard.writeText(text);
-            notify('已复制,去粘贴到 AI 对话窗口');
-          });
-        })
-        .catch(function (err) { notify('提交失败:' + err.message, true); });
-    });
+    if (active === 'task') {
+      renderTaskPane(task);
+    } else if (active === 'overview') {
+      renderOverview(task);
+      poll(2, function () { renderOverview(task, true); });
+    } else {
+      renderSurface(task, active);
+    }
   }
 
-  function renderTaskReadonly(task) {
+  // ---------- pane: task (form or summary) ----------
+
+  function renderTaskPane(task) {
+    var pane = $('#pane');
+    if (task.status === 'draft') {
+      renderForm(pane, task);
+    } else {
+      pane.innerHTML = summaryHtml(task);
+    }
+  }
+
+  function summaryHtml(task) {
     var p = task.params || {};
     var r = task.requirements || {};
+    var opts = optionsCache || {};
+    var canvasItem = (opts.canvas || []).filter(function (item) { return item.id === p.canvas; })[0];
     var rows = [
-      ['状态', statusLabel(task.status)],
-      ['画幅', optionLabel(optionsCache && optionsCache.canvas, p.canvas)],
+      ['画幅', canvasItem
+        ? canvasItem.label + '（' + canvasItem.dimensions + '）'
+        : '由 AI 决定（Stage 1 确认）'],
       ['页数', p.page_count == null ? '由 AI 决定' : String(p.page_count)],
-      ['语言', optionLabel(optionsCache && optionsCache.languages, p.primary_language)],
-      ['配图策略', optionLabel(optionsCache && optionsCache.image_policies, p.image_policy)],
+      ['语言', optionLabel(opts.languages, p.primary_language)],
+      ['配图', optionLabel(opts.image_policies, p.image_policy)],
       ['讲者备注', p.speaker_notes ? '开启' : '关闭'],
       ['面向受众', r.audience || '—'],
       ['语气风格', r.tone || '—'],
       ['附加要求', r.extra || '—']
     ];
     var runtime = task.runtime || {};
-    if (runtime.error) rows.push(['错误信息', runtime.error.message || '']);
-    if (runtime.project_dir) rows.push(['项目目录', runtime.project_dir]);
-    if (runtime.stage_label) rows.push(['当前阶段', runtime.stage_label]);
-    return (
-      '<section class="panel">' +
-      '<div class="task-head">' +
-      '<div><h2>' + esc(task.display_title || task.topic) + '</h2>' +
-      '<div class="task-sub">' + esc(task.task_id) + ' · ' + esc(statusLabel(task.status)) + '</div></div>' +
-      '<a class="btn" href="#/new">+ 新建任务</a>' +
-      '</div>' +
-      '<p class="task-topic-full">' + esc(task.topic) + '</p>' +
-      '<table class="kv-table">' +
-      rows.map(function (row) {
-        return '<tr><th>' + esc(row[0]) + '</th><td>' + esc(row[1]) + '</td></tr>';
-      }).join('') +
-      '</table>' +
-      '<div class="actions"><a class="btn btn-primary" href="#/task/' +
-      encodeURIComponent(task.task_id) + '/progress">查看生成进度 →</a></div>' +
-      '</section>'
-    );
+    if (runtime.error) rows.push(['错误', runtime.error.message || '']);
+    return '<div class="card"><h2>任务参数</h2>' +
+      '<p class="card-hint">提交后参数冻结；要改请新建任务。</p>' +
+      '<dl class="meta">' + rows.map(function (row) {
+        return '<dt>' + esc(row[0]) + '</dt><dd>' + esc(row[1]) + '</dd>';
+      }).join('') + '</dl></div>';
   }
 
-  function showTask(taskId) {
-    Promise.all([
-      api('GET', '/api/tasks/' + encodeURIComponent(taskId)),
-      loadOptions()
-    ]).then(function (results) {
-      var task = results[0];
-      setConnState(false);
-      setAppTitle('任务');
-      refreshTaskList(taskId);
-      if (task.status === 'draft') {
-        render(renderTaskForm(task, optionsCache, task.uploads_present || []));
-        wireTaskForm(task);
-      } else {
-        render(renderTaskReadonly(task));
-        pollEvery(5, function () { showTask(taskId); });
-      }
-    }).catch(function (err) {
-      setConnState(true);
-      render('<section class="panel"><h2>加载失败</h2><p>' + esc(err.message) + '</p>' +
-        '<a class="btn" href="#/new">← 新建任务</a></section>');
+  function renderForm(pane, task) {
+    var p = task.params || {};
+    var r = task.requirements || {};
+    var opts = optionsCache || {};
+    pane.innerHTML =
+      '<div class="card"><h2>任务参数</h2>' +
+      '<p class="card-hint">画幅、页数、语言、配图与受众会影响整条生成链路。</p>' +
+      '<div class="field-row">' +
+      '<label class="field"><span>画幅</span><select id="f-canvas">' +
+      '<option value="">由 AI 决定</option>' + options(opts.canvas, p.canvas) + '</select></label>' +
+      '<label class="field"><span>页数</span><input id="f-pages" type="number" min="1" max="60" ' +
+      'value="' + esc(p.page_count == null ? '' : p.page_count) + '" placeholder="留空由 AI 决定"></label>' +
+      '</div>' +
+      '<div class="field-row">' +
+      '<label class="field"><span>语言</span><select id="f-lang">' +
+      options(opts.languages, p.primary_language) + '</select></label>' +
+      '<label class="field"><span>配图策略</span><select id="f-image">' +
+      options(opts.image_policies, p.image_policy) + '</select></label>' +
+      '</div>' +
+      '<label class="field"><span>面向受众</span>' +
+      '<input id="f-audience" type="text" value="' + esc(r.audience) + '" placeholder="谁会看这份演示"></label>' +
+      '<div class="field-row">' +
+      '<label class="field"><span>语气风格</span>' +
+      '<input id="f-tone" type="text" value="' + esc(r.tone) + '" placeholder="例如：教程 / 正式 / 轻松"></label>' +
+      '<label class="field"><span>附加要求</span>' +
+      '<input id="f-extra" type="text" value="' + esc(r.extra) + '" placeholder="可选"></label>' +
+      '</div>' +
+      '<label class="field-check"><input id="f-notes" type="checkbox"' +
+      (p.speaker_notes ? ' checked' : '') + '> 生成讲者备注</label>' +
+      '<div class="actions"><button class="btn" id="save-btn" type="button">保存修改</button>' +
+      '<button class="btn btn-primary" id="submit-btn" type="button">提交生成</button></div>' +
+      '</div>' +
+      '<div class="card"><h2>参考材料</h2>' +
+      '<p class="card-hint">可选。提交时会一起交给 AI。</p>' +
+      '<ul class="list" id="upload-list">' + uploadRows(task.uploads_present || []) + '</ul>' +
+      '<label class="btn" for="f-files">上传文件</label>' +
+      '<input id="f-files" type="file" multiple hidden></div>';
+
+    $('#save-btn').addEventListener('click', function () { saveTask(task.task_id, false); });
+    $('#submit-btn').addEventListener('click', function () { saveTask(task.task_id, true); });
+    $('#f-files').addEventListener('change', function (event) {
+      var files = Array.prototype.slice.call(event.target.files || []);
+      if (!files.length) return;
+      var form = new FormData();
+      files.forEach(function (file) { form.append('files', file); });
+      fetch('/api/tasks/' + enc(task.task_id) + '/uploads', { method: 'POST', body: form })
+        .then(function (response) {
+          if (!response.ok) throw new Error('HTTP ' + response.status);
+          toast('已上传 ' + files.length + ' 个文件');
+          loadTaskPage(task.task_id, 'task');
+        })
+        .catch(function (error) { toast('上传失败：' + error.message, true); });
+    });
+    Array.prototype.forEach.call(pane.querySelectorAll('[data-del-upload]'), function (button) {
+      button.addEventListener('click', function () {
+        api('DELETE', '/api/tasks/' + enc(task.task_id) + '/uploads/' +
+          enc(button.getAttribute('data-del-upload')))
+          .then(function () { loadTaskPage(task.task_id, 'task'); })
+          .catch(function (error) { toast('删除失败：' + error.message, true); });
+      });
     });
   }
 
-  // ---------- progress view ----------
-
-  var progressMtimes = {};
-
-  function slideThumb(taskId, slide) {
-    return (
-      '<figure class="roster-item"><figcaption>' + esc(slide.name) + '</figcaption>' +
-      '<div class="roster-svg" data-slide="' + esc(slide.name) + '" data-mtime="' +
-      slide.mtime + '">…</div></figure>'
-    );
+  function uploadRows(uploads) {
+    if (!uploads.length) return '<li class="empty">还没有上传材料</li>';
+    return uploads.map(function (item) {
+      return '<li><span class="grow">' + esc(item.name) + '</span>' +
+        '<span class="time">' + esc(fmtSize(item.size)) + '</span>' +
+        '<button class="btn btn-small btn-danger" data-del-upload="' + esc(item.name) +
+        '" type="button">删除</button></li>';
+    }).join('');
   }
 
-  function renderSlideBody(taskId, holder) {
-    var name = holder.getAttribute('data-slide');
-    fetch('/api/tasks/' + encodeURIComponent(taskId) + '/slides/' + encodeURIComponent(name))
-      .then(function (resp) {
-        if (!resp.ok) throw new Error('HTTP ' + resp.status);
-        return resp.text();
+  function formPayload() {
+    var pages = $('#f-pages').value.trim();
+    var payload = {
+      params: {
+        canvas: $('#f-canvas').value || null,
+        page_count: pages ? parseInt(pages, 10) : null,
+        primary_language: $('#f-lang').value,
+        speaker_notes: $('#f-notes').checked,
+        image_policy: $('#f-image').value
+      },
+      requirements: {
+        audience: $('#f-audience').value.trim(),
+        tone: $('#f-tone').value.trim(),
+        extra: $('#f-extra').value.trim()
+      }
+    };
+    if (!payload.params.canvas) delete payload.params.canvas;
+    return payload;
+  }
+
+  function saveTask(taskId, submit) {
+    api('PATCH', '/api/tasks/' + enc(taskId), formPayload())
+      .then(function () {
+        if (!submit) { toast('已保存'); return null; }
+        return api('POST', '/api/tasks/' + enc(taskId) + '/submit').then(function (data) {
+          toast('已提交，交给 AI 处理');
+          return data;
+        });
       })
-      .then(function (text) {
-        var prefix = '/api/tasks/' + encodeURIComponent(taskId);
-        text = text.replace(/\.\.\/images\//g, prefix + '/images/');
-        text = text.replace(/(["'])images\//g, '$1' + prefix + '/images/');
-        holder.innerHTML = text;
+      .then(function () {
+        if (submit) location.hash = '#/task/' + enc(taskId) + '/overview';
+        else loadTaskPage(taskId, 'task');
       })
-      .catch(function (err) {
-        holder.innerHTML = '<div class="empty">加载失败:' + esc(err.message) + '</div>';
-      });
+      .catch(function (error) { toast('保存失败：' + error.message, true); });
+  }
+
+  // ---------- pane: overview ----------
+
+  function stepper(runtime, status) {
+    var order = STEPS.map(function (item) { return item[0]; });
+    var current = order.indexOf(runtime.stage);
+    if (status === 'done' || runtime.state === 'done') current = order.length - 1;
+    if (status === 'failed' || status === 'interrupted') current = Math.max(current, 0);
+    return '<div class="stepper">' + STEPS.map(function (item, index) {
+      var cls = 'step';
+      if (index < current) cls += ' is-done';
+      else if (index === current) cls += (status === 'failed' || status === 'interrupted')
+        ? ' is-failed' : ' is-now';
+      return '<span class="' + cls + '">' + item[1] + '</span>';
+    }).join('') + '</div>';
+  }
+
+
+  function stageCaption(runtime, status) {
+    if (status === 'done') return '全部页面已交付';
+    if (status === 'failed') return '运行失败，见下方错误';
+    if (status === 'interrupted') return 'AI 已停止，等待接续';
+    if (runtime.stage_label && !STAGE_LABELS[runtime.stage_label]) {
+      return runtime.stage_label;
+    }
+    if (runtime.stage) return '当前阶段：' + (STAGE_LABELS[runtime.stage] || runtime.stage);
+    return '等待 AI 接管';
+  }
+
+  var EVENT_LABELS = {
+    'run/start': function (data) { return data.resume ? '恢复运行' : '开始运行'; },
+    'run/end': function (data) {
+      var outcomes = { done: '成功', failed: '失败', aborted: '中止' };
+      return '运行结束（' + (outcomes[data.outcome] || data.outcome || '成功') + '）';
+    },
+    'stage/enter': function (data) {
+      return '进入阶段：' + (STAGE_LABELS[data.stage] || data.stage || '');
+    },
+    'progress': function (data) {
+      return '进度 ' + data.done + (data.total ? '/' + data.total : '');
+    },
+    'ask/open': function (data) { return '等待回答：' + (data.prompt || ''); },
+    'ask/answered': function (data) {
+      return '已回答：' + ((data.choice || []).join('、') || data.status || '');
+    },
+    'takeover': function () { return '接管运行'; },
+    'error': function (data) { return '错误：' + (data.message || ''); },
+    'say': function (data) { return data.text || ''; }
+  };
+
+  function eventText(event) {
+    var label = EVENT_LABELS[event.type];
+    return label ? label(event.data || {}) : '';
   }
 
   function shortTime(value) {
-    if (!value) return '';
-    var match = String(value).match(/T(\d{2}:\d{2}:\d{2})/);
-    return match ? match[1] : String(value);
+    var match = String(value || '').match(/T(\d{2}:\d{2})/);
+    return match ? match[1] : '';
   }
 
-  function eventLine(event) {
-    var d = event.data || {};
-    switch (event.type) {
-      case 'run/start': return d.resume ? '恢复运行' : '开始运行';
-      case 'run/end': return '运行结束:' + (d.outcome || 'done');
-      case 'stage/enter': return '进入阶段 ' + (d.label || d.stage || '');
-      case 'progress': return '进度 ' + d.done + (d.total ? '/' + d.total : '') + ' ' + (d.unit || '');
-      case 'ask/open': return '等待回答:' + (d.prompt || '');
-      case 'ask/answered': return '已回答:' + ((d.choice || []).join(',') || d.status || '');
-      case 'ask/superseded': return '请求已被接管作废';
-      case 'takeover': return '接管运行(' + (d.reason || '') + ')';
-      case 'say': return d.text || '';
-      case 'error': return '错误:' + (d.message || '');
-      default: return event.type;
-    }
+  function openRequests(progress) {
+    return (progress.requests || []).filter(function (item) { return !item.response; });
   }
 
-  function stageSummary(progress) {
-    var runtime = progress.runtime || {};
-    var bits = [];
-    if (runtime.stage_label) bits.push('<strong>' + esc(runtime.stage_label) + '</strong>');
-    if (runtime.progress && runtime.progress.total) {
-      bits.push('进度 ' + runtime.progress.done + '/' + runtime.progress.total);
-    } else if (runtime.progress) {
-      bits.push('已产出 ' + runtime.progress.done + ' 页');
-    }
-    if (progress.quality && progress.quality.report_exists) bits.push('质检报告已生成');
-    if (runtime.state === 'interrupted') bits.push('AI 已停止,等待接续');
-    if (runtime.error) bits.push('<span class="err-text">' + esc(runtime.error.message || '') + '</span>');
-    return bits.join(' · ') || '等待 AI 处理…';
+  function renderOverview(task, quiet) {
+    api('GET', '/api/tasks/' + enc(task.task_id) + '/progress').then(function (progress) {
+      setConn(false);
+      var signature = JSON.stringify([
+        progress.status,
+        (progress.runtime || {}).updated_at,
+        (progress.requests || []).map(function (item) {
+          return [item.request.id, item.response ? item.response.status : null];
+        }),
+        (progress.exports || []).length,
+        (progress.events || []).length
+      ]);
+      if (signature === lastOverviewSig) return;
+      lastOverviewSig = signature;
+
+      var runtime = progress.runtime || {};
+      var requests = openRequests(progress);
+      var exports = progress.exports || [];
+      var events = (progress.events || []).filter(function (event) {
+        return !!EVENT_LABELS[event.type];
+      }).slice(-8).reverse();
+
+      var html =
+        '<div class="card"><h2>进度</h2>' +
+        '<p class="card-hint">' + esc(stageCaption(runtime, progress.status)) + '</p>' +
+        stepper(runtime, progress.status) +
+        (runtime.error ? '<p class="empty">错误：' + esc(runtime.error.message || '') + '</p>' : '') +
+        '</div>';
+
+      if (requests.length) {
+        html += requests.map(function (item) { return requestHtml(item.request); }).join('');
+      }
+
+      if (exports.length) {
+        html += '<div class="card"><h2>交付物</h2><ul class="list">' +
+          exports.map(function (file) {
+            return '<li><span class="grow">' + esc(file.name) + '</span>' +
+              '<span class="time">' + esc(fmtSize(file.size)) + '</span>' +
+              '<a class="btn btn-small" href="/api/tasks/' + enc(task.task_id) +
+              '/exports/' + enc(file.name) + '" download>下载</a></li>';
+          }).join('') + '</ul></div>';
+      }
+
+      html += '<div class="card"><h2>活动</h2>' +
+        (events.length ? '<ul class="list">' + events.map(function (event) {
+          return '<li><span class="time">' + esc(shortTime(event.at)) + '</span>' +
+            '<span class="grow">' + esc(eventText(event)) + '</span></li>';
+        }).join('') + '</ul>' : '<p class="empty">还没有活动记录</p>') +
+        '</div>';
+
+      if (progress.status === 'done' || progress.status === 'failed') {
+        html += '<div class="card" id="feedback-card"><h2>反馈</h2>' +
+          '<p class="card-hint">这次的结果符合预期吗？</p>' +
+          '<div class="stars" id="stars">' + [1, 2, 3, 4, 5].map(function (star) {
+            return '<button class="star" type="button" data-star="' + star + '">★</button>';
+          }).join('') + '</div>' +
+          '<label class="field"><span>评语（可选）</span>' +
+          '<textarea id="fb-comment" rows="2"></textarea></label>' +
+          '<label class="field-check"><input id="fb-revision" type="checkbox"> 希望进一步修订</label>' +
+          '<div class="actions"><button class="btn" id="fb-save" type="button">提交反馈</button>' +
+          '<span class="answered" id="fb-state"></span></div></div>';
+      }
+
+      $('#pane').innerHTML = html;
+      if (!quiet) wireOverview(task);
+      else wireOverview(task, true);
+    }).catch(function (error) {
+      setConn(true);
+      if (!quiet) {
+        $('#pane').innerHTML = '<div class="card"><h2>进度加载失败</h2>' +
+          '<p class="hint">' + esc(error.message) + '</p></div>';
+      }
+    });
   }
 
-  function timelineHtml(progress) {
-    var items = (progress.events || []).slice(-12).reverse().map(function (event) {
-      return '<li><span class="tl-time">' + esc(shortTime(event.at)) + '</span>' +
-        '<span class="tl-event">' + esc(eventLine(event)) + '</span></li>';
-    }).join('');
-    return '<div class="progress-state">' + stageSummary(progress) + '</div>' +
-      (items ? '<ol class="timeline">' + items + '</ol>' : '');
-  }
-
-  function askHtml(item) {
-    var request = item.request || {};
-    var response = item.response;
+  function requestHtml(request) {
     var options = (request.options || []).map(function (option) {
-      return '<button type="button" class="ask-option" data-choice="' + esc(option.id) + '">' +
+      return '<button class="option" type="button" data-choice="' + esc(option.id) + '">' +
         esc(option.label || option.id) +
-        (option.detail ? '<span class="ask-option-detail">' + esc(option.detail) + '</span>' : '') +
-        '</button>';
+        (option.detail ? '<small>' + esc(option.detail) + '</small>' : '') + '</button>';
     }).join('');
-    var answerLine = '';
-    if (response) {
-      var picked = (response.choice || []).join(', ');
-      answerLine = '<div class="ask-answer' + (response.status === 'superseded' ? ' is-stale' : '') + '">' +
-        '你的回答:' + esc(picked || response.status || '') +
-        (response.text ? '(' + esc(response.text) + ')' : '') + '</div>';
-    }
-    return '<div class="ask-card" data-request="' + esc(request.id) + '"' +
-      ' data-multi="' + (request.multi ? '1' : '') + '">' +
-      '<div class="ask-head"><span class="badge badge-processing">待回答</span>' +
-      '<span class="ask-title">' + esc(request.title || '需要你的决定') + '</span></div>' +
-      (request.body ? '<div class="ask-body">' + esc(request.body) + '</div>' : '') +
-      (options ? '<div class="ask-options">' + options + '</div>' : '') +
+    return '<div class="question" data-request="' + esc(request.id) + '" data-multi="' +
+      (request.multi ? '1' : '') + '">' +
+      '<h2>' + esc(request.title || '需要你的决定') + '</h2>' +
+      (request.body ? '<p>' + esc(request.body) + '</p>' : '') +
+      (options ? '<div class="options">' + options + '</div>' : '') +
       (request.allow_text === false ? '' :
-        '<label class="field"><span>补充说明(可选)</span>' +
-        '<textarea class="ask-text" rows="2"></textarea></label>') +
-      '<button type="button" class="btn btn-primary ask-submit">提交回答</button>' +
-      answerLine +
-      '</div>';
+        '<label class="field"><span>补充说明（可选）</span>' +
+        '<textarea class="request-text" rows="2"></textarea></label>') +
+      '<div class="question-actions">' +
+      '<button class="btn btn-primary request-send" type="button">提交回答</button></div></div>';
   }
 
-  function inboxHtml(progress) {
-    var items = progress.requests || [];
-    if (!items.length) return '';
-    var open = items.filter(function (item) { return !item.response; });
-    var answered = items.filter(function (item) { return item.response; }).slice(-3).reverse();
-    var body = open.map(askHtml).join('') ||
-      '<div class="hint">没有待回答的问题。</div>';
-    var history = answered.length
-      ? '<h4>已回答</h4>' + answered.map(function (item) {
-          var request = item.request || {};
-          var response = item.response || {};
-          return '<div class="ask-card" data-request="' + esc(request.id) + '">' +
-            '<div class="ask-head"><span class="badge badge-done">已回复</span>' +
-            '<span class="ask-title">' + esc(request.title || '') + '</span></div>' +
-            '<div class="ask-answer">' + esc((response.choice || []).join(', ') || response.status || '') +
-            (response.text ? '(' + esc(response.text) + ')' : '') + '</div></div>';
-        }).join('')
-      : '';
-    return '<section class="panel"><h3>需要你回答</h3>' + body + history + '</section>';
-  }
-
-  // ---------- mounted project surfaces ----------
-
-  // The task's run owns three project pages on this same port. They open as
-  // workspace tabs next to the overview, and the iframe lives outside #view so
-  // the two-second progress poll never reloads an open surface.
-  var SURFACES = [
-    ['preview', '页面预览'],
-    ['confirm', '阶段确认'],
-    ['spec', '规格评审']
-  ];
-
-  var surfaceHost = null;
-  var surfaceTabs = null;
-  var surfaceSlug = null;
-  var surfaceKind = null;
-
-  function surfaceUrl(slug, kind) {
-    return '/p/' + encodeURIComponent(slug) + '/' + kind + '/';
-  }
-
-  function activateSurface(kind) {
-    surfaceKind = kind;
-    if (!surfaceTabs || !surfaceHost || !viewEl) return;
-    var active = kind || 'overview';
-    Array.prototype.forEach.call(surfaceTabs.querySelectorAll('.workspace-tab'), function (button) {
-      button.classList.toggle('is-active', button.getAttribute('data-kind') === active);
-    });
-    if (!kind) {
-      surfaceHost.hidden = true;
-      viewEl.hidden = false;
-      return;
-    }
-    var frame = surfaceHost.querySelector('.surface-frame');
-    if (!frame) {
-      frame = document.createElement('iframe');
-      frame.className = 'surface-frame';
-      frame.title = '项目页面';
-      surfaceHost.appendChild(frame);
-    }
-    viewEl.hidden = true;
-    surfaceHost.hidden = false;
-    frame.src = surfaceUrl(surfaceSlug, kind);
-  }
-
-  function syncSurfaces(progress) {
-    if (!surfaceTabs) surfaceTabs = $('#workspace-tabs');
-    if (!surfaceHost) surfaceHost = $('#surface-panel');
-    if (!surfaceTabs || !surfaceHost) return;
-    var slug = (progress.runtime || {}).slug || null;
-    if (!slug) {
-      hideSurfaces();
-      return;
-    }
-    if (slug === surfaceSlug) return;
-    surfaceSlug = slug;
-    surfaceTabs.hidden = false;
-    surfaceTabs.innerHTML =
-      '<button type="button" class="workspace-tab" data-kind="overview">概览</button>' +
-      SURFACES.map(function (item) {
-        return '<button type="button" class="workspace-tab" data-kind="' + item[0] + '">' +
-          item[1] + '</button>';
-      }).join('');
-    Array.prototype.forEach.call(surfaceTabs.querySelectorAll('.workspace-tab'), function (button) {
-      button.addEventListener('click', function () {
-        var kind = button.getAttribute('data-kind');
-        activateSurface(kind === 'overview' ? null : kind);
-      });
-    });
-    activateSurface(null);
-  }
-
-  function hideSurfaces() {
-    if (!surfaceTabs) surfaceTabs = $('#workspace-tabs');
-    if (!surfaceHost) surfaceHost = $('#surface-panel');
-    if (surfaceTabs) {
-      surfaceTabs.hidden = true;
-      surfaceTabs.innerHTML = '';
-    }
-    if (surfaceHost) {
-      surfaceHost.hidden = true;
-      surfaceHost.innerHTML = '';
-    }
-    if (viewEl) viewEl.hidden = false;
-    surfaceSlug = null;
-    surfaceKind = null;
-  }
-
-  function wireInbox(taskId) {    Array.prototype.forEach.call(document.querySelectorAll('.ask-card'), function (card) {
+  function wireOverview(task, quietOnly) {
+    Array.prototype.forEach.call(document.querySelectorAll('.question'), function (card) {
       var requestId = card.getAttribute('data-request');
       var multi = card.getAttribute('data-multi') === '1';
-      var submit = card.querySelector('.ask-submit');
       var picked = [];
-      Array.prototype.forEach.call(card.querySelectorAll('.ask-option'), function (button) {
+      Array.prototype.forEach.call(card.querySelectorAll('.option'), function (button) {
         button.addEventListener('click', function () {
           var id = button.getAttribute('data-choice');
           if (multi) {
@@ -660,162 +566,96 @@
             else { picked.push(id); button.classList.add('is-picked'); }
           } else {
             picked = [id];
-            Array.prototype.forEach.call(card.querySelectorAll('.ask-option'), function (other) {
+            Array.prototype.forEach.call(card.querySelectorAll('.option'), function (other) {
               other.classList.remove('is-picked');
             });
             button.classList.add('is-picked');
           }
         });
       });
-      if (!submit) return;
-      submit.addEventListener('click', function () {
-        var textBox = card.querySelector('.ask-text');
-        submit.disabled = true;
-        api('POST', '/api/tasks/' + encodeURIComponent(taskId) + '/requests/' +
-          encodeURIComponent(requestId), {
-          status: 'answered',
-          choice: picked,
-          text: textBox ? textBox.value.trim() : null
+      var send = card.querySelector('.request-send');
+      if (!send) return;
+      send.addEventListener('click', function () {
+        var text = card.querySelector('.request-text');
+        send.disabled = true;
+        api('POST', '/api/tasks/' + enc(task.task_id) + '/requests/' + enc(requestId), {
+          status: 'answered', choice: picked,
+          text: text ? text.value.trim() : null
         }).then(function () {
-          notify('回答已提交');
-          showProgress(taskId);
-        }).catch(function (err) {
-          submit.disabled = false;
-          notify('提交失败:' + err.message, true);
+          toast('回答已提交');
+          lastOverviewSig = '';
+          renderOverview(task);
+        }).catch(function (error) {
+          send.disabled = false;
+          toast('提交失败：' + error.message, true);
         });
       });
     });
-  }
 
-  function exportsHtml(taskId, exports) {
-    if (!exports.length) return '<div class="empty">尚未导出文件</div>';
-    return exports.map(function (file) {
-      return (
-        '<a class="export-card" href="/api/tasks/' + encodeURIComponent(taskId) +
-        '/exports/' + encodeURIComponent(file.name) + '" download>' +
-        '<span class="export-name">📦 ' + esc(file.name) + '</span>' +
-        '<span class="upload-size">' + esc(fmtSize(file.size)) + '</span></a>'
-      );
-    }).join('');
-  }
-
-  function feedbackHtml(feedback) {
-    var stars = '';
-    for (var i = 1; i <= 5; i++) {
-      stars += '<button class="star' + (feedback && feedback.rating >= i ? ' star-on' : '') +
-        '" data-star="' + i + '" title="' + i + ' 星">★</button>';
+    var stars = document.getElementById('stars');
+    if (stars && !quietOnly) {
+      var rating = null;
+      Array.prototype.forEach.call(stars.querySelectorAll('.star'), function (star) {
+        star.addEventListener('click', function () {
+          rating = parseInt(star.getAttribute('data-star'), 10);
+          Array.prototype.forEach.call(stars.querySelectorAll('.star'), function (other) {
+            other.classList.toggle('is-on', parseInt(other.getAttribute('data-star'), 10) <= rating);
+          });
+        });
+      });
+      document.getElementById('fb-save').addEventListener('click', function () {
+        api('POST', '/api/tasks/' + enc(task.task_id) + '/feedback', {
+          rating: rating,
+          comment: document.getElementById('fb-comment').value.trim(),
+          wants_revision: document.getElementById('fb-revision').checked
+        }).then(function () {
+          document.getElementById('fb-state').textContent = '已记录';
+        }).catch(function (error) { toast('反馈失败：' + error.message, true); });
+      });
     }
-    return (
-      '<section class="panel" id="feedback-panel">' +
-      '<h3>反馈</h3>' +
-      '<div class="stars">' + stars + '</div>' +
-      '<label class="field"><span>评语(可选)</span>' +
-      '<textarea id="fb-comment" rows="2">' + esc(feedback && feedback.comment || '') + '</textarea></label>' +
-      '<label class="field-check"><input id="fb-revision" type="checkbox"' +
-      (feedback && feedback.wants_revision ? ' checked' : '') +
-      '><span>希望进一步修订</span></label>' +
-      '<button id="fb-submit" class="btn">提交反馈</button>' +
-      '</section>'
-    );
   }
 
-  function wireFeedback(taskId) {
-    var panel = $('#feedback-panel');
-    if (!panel) return;
-    var rating = null;
-    panel.addEventListener('click', function (event) {
-      var star = event.target.closest('[data-star]');
-      if (star) {
-        rating = parseInt(star.getAttribute('data-star'), 10);
-        Array.prototype.forEach.call(panel.querySelectorAll('.star'), function (el) {
-          el.classList.toggle('star-on', parseInt(el.getAttribute('data-star'), 10) <= rating);
-        });
-      }
-    });
-    $('#fb-submit').addEventListener('click', function () {
-      api('POST', '/api/tasks/' + encodeURIComponent(taskId) + '/feedback', {
-        rating: rating,
-        comment: $('#fb-comment').value.trim(),
-        wants_revision: $('#fb-revision').checked
-      }).then(function () { notify('反馈已提交'); })
-        .catch(function (err) { notify('提交失败:' + err.message, true); });
-    });
-  }
+  // ---------- pane: mounted surfaces ----------
 
-  function showProgress(taskId) {
-    setAppTitle('生成进度');
-    refreshTaskList(taskId);
-    api('GET', '/api/tasks/' + encodeURIComponent(taskId) + '/progress')
-      .then(function (progress) {
-        setConnState(false);
-        var closed = progress.status === 'done' || progress.status === 'failed';
-        var runtime = progress.runtime || {};
-        var slidesHtml = progress.slides.length
-          ? '<div class="roster-grid">' + progress.slides.map(function (slide) {
-              return slideThumb(taskId, slide);
-            }).join('') + '</div>'
-          : '<div class="empty">还没有页面产出。AI 开始生成后,这里会实时显示每一页。</div>';
-        render(
-          '<section class="panel">' +
-          '<div class="task-head">' +
-          '<div><h2>生成进度 <span class="badge badge-' + esc(progress.status) + '">' +
-          esc(statusLabel(progress.status)) + '</span></h2>' +
-          '<div class="task-sub">' + esc(taskId) +
-          (runtime.project_dir ? ' · ' + esc(runtime.project_dir) : '') + '</div></div>' +
-          '<a class="btn" href="#/task/' + encodeURIComponent(taskId) + '">任务详情</a>' +
-          '</div>' +
-          timelineHtml(progress) +
-          '</section>' +
-          inboxHtml(progress) +
-          '<section class="panel"><h3>页面预览(' + progress.slide_count + ')</h3>' + slidesHtml + '</section>' +
-          '<section class="panel"><h3>导出文件</h3>' + exportsHtml(taskId, progress.exports) + '</section>' +
-          (closed ? '' : '<section class="panel"><p class="hint">本页每 2 秒自动刷新。</p></section>')
-        );
-        wireInbox(taskId);
-        syncSurfaces(progress);
-        Array.prototype.forEach.call(document.querySelectorAll('[data-slide]'), function (holder) {
-          var name = holder.getAttribute('data-slide');
-          var mtime = holder.getAttribute('data-mtime');
-          if (progressMtimes[name] === mtime && holder.innerHTML !== '…') return;
-          progressMtimes[name] = mtime;
-          renderSlideBody(taskId, holder);
-        });
-        if (closed) {
-          api('GET', '/api/tasks/' + encodeURIComponent(taskId) + '/feedback')
-            .then(function (feedback) {
-              viewEl.insertAdjacentHTML('beforeend', feedbackHtml(feedback.exists === false ? null : feedback));
-              wireFeedback(taskId);
-            });
-        } else {
-          pollEvery(2, function () { showProgress(taskId); });
-        }
-      })
-      .catch(function (err) {
-        setConnState(true);
-        render('<section class="panel"><h2>进度加载失败</h2><p>' + esc(err.message) + '</p>' +
-          '<a class="btn" href="#/new">+ 新建任务</a></section>');
-      });
+  function renderSurface(task, kind) {
+    var slug = (task.runtime || {}).slug;
+    if (!slug) {
+      $('#pane').innerHTML = '<div class="card"><h2>还没有项目</h2>' +
+        '<p class="hint">AI 接管任务后，这里会打开对应页面。</p></div>';
+      return;
+    }
+    var url = '/p/' + enc(slug) + '/' + kind + '/';
+    $('#pane').innerHTML = '<div class="surface"><iframe src="' + esc(url) +
+      '" title="' + esc(kind) + '"></iframe></div>';
+    stopPoll();
   }
 
   // ---------- router ----------
 
-  function route() {
-    if (!viewEl) viewEl = $('#view');
-    stopPolling();
-    hideSurfaces();
-    var match = location.hash.match(/^#\/task\/([^/]+)\/progress\/?$/);
-    if (match) {
-      showProgress(decodeURIComponent(match[1]));
-      return;
+  function parseHash() {
+    var raw = location.hash.replace(/^#\/?/, '');
+    var parts = raw.split('/');
+    if (parts[0] === 'task' && parts[1]) {
+      return { taskId: decodeURIComponent(parts[1]), tab: parts[2] || '' };
     }
-    match = location.hash.match(/^#\/task\/([^/]+)\/?$/);
-    if (match) {
-      showTask(decodeURIComponent(match[1]));
-      return;
-    }
-    showNewTask();
+    return { taskId: null, tab: '' };
   }
 
+  function route() {
+    stopPoll();
+    var parsed = parseHash();
+    if (parsed.taskId) loadTaskPage(parsed.taskId, parsed.tab);
+    else renderNewTask();
+  }
+
+  // ---------- boot ----------
+
+  document.getElementById('new-task').addEventListener('click', function () {
+    location.hash = '#/new';
+  });
+
   window.addEventListener('hashchange', route);
-  document.addEventListener('DOMContentLoaded', route);
+  if (!location.hash) location.hash = '#/new';
+  route();
+  refreshRail('');
 })();
