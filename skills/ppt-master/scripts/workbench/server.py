@@ -54,8 +54,11 @@ _SCRIPTS_DIR = Path(__file__).resolve().parent.parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
+import agent_bridge  # noqa: E402
+from atomic_io import write_json_atomic  # noqa: E402
 from config import CANVAS_FORMATS  # noqa: E402
 from console_encoding import configure_utf8_stdio  # noqa: E402
+from surface_mount import mount_surfaces  # noqa: E402
 from server_common import (  # noqa: E402
     claim_lock as _claim_lock,
     clear_lock as _clear_lock,
@@ -83,30 +86,39 @@ TASKS_DIR_NAME = 'tasks'
 TASK_FILE_NAME = 'task.json'
 FEEDBACK_FILE_NAME = 'feedback.json'
 UPLOADS_DIR_NAME = 'uploads'
-TASK_SCHEMA_VERSION = 2
+TASK_SCHEMA_VERSION = 4
+# task.json carries the user's own decisions only. Run state — stage, progress,
+# errors, deliverables — lives in the project's `.runtime/` and is derived, so
+# the server and the agent never write the same file.
+USER_DOMAIN_FIELDS = (
+    'schema_version',
+    'task_id',
+    'created_at',
+    'updated_at',
+    'submitted_at',
+    'display_title',
+    'topic',
+    'requirements',
+    'params',
+    'uploads',
+)
 LOCK_FILE_NAME = 'workbench.lock'
 SERVER_LOG_NAME = 'server.log'
 
 # Task registry shape. Task ids are pure ASCII (generated); user text lives
 # only inside task.json values so Chinese titles never become path segments.
 TASK_ID_RE = re.compile(r't\d{8}-\d{6}-[0-9a-f]{4}\Z')
+# Project slugs are directory names under projects/; the agent-facing routes
+# resolve them against that root and never accept a separator. CJK is allowed
+# because project slugs are user-chosen (registered brand roots use it).
+_SLUG_RE = re.compile(r'[A-Za-z0-9._\-一-鿿]+\Z')
+# Inbox request ids are generated counters; a path separator must never pass.
+_REQUEST_ID_RE = re.compile(r'\d{1,9}\Z')
 # Saved custom templates ("我的模板") follow the same generated-id discipline:
 # one JSON file per record under .workbench/custom_templates/, name is data.
-CUSTOM_TEMPLATES_DIR_NAME = 'custom_templates'
-CUSTOM_TEMPLATE_ID_RE = re.compile(r'ct\d{8}-\d{6}-[0-9a-f]{4}\Z')
-CUSTOM_TEMPLATE_SCHEMA_VERSION = 1
-CUSTOM_TEMPLATE_NAME_MAX = 40
 IMAGE_POLICY_VALUES = {'auto', 'none', 'web', 'ai'}
 PAGE_COUNT_MIN = 1
 PAGE_COUNT_MAX = 60
-TEMPLATE_KINDS = ('brand', 'style', 'layout', 'deck')
-_TEMPLATE_LIBRARY_CONFIG = {
-    'brand': ('brands', 'brands_index.json'),
-    'style': ('styles', 'styles_index.json'),
-    'layout': ('layouts', 'layouts_index.json'),
-    'deck': ('decks', 'decks_index.json'),
-}
-_SAFE_TEMPLATE_ID_RE = re.compile(r'\w[\w.-]*\Z')
 AGENT_HINT_TEMPLATE = (
     '请处理工作台任务 {task_id}:读取 projects/.workbench/tasks/{task_id}/task.json '
     '并按其中的用户域参数生成 PPT。'
@@ -151,9 +163,6 @@ def _tasks_dir(projects_root: Path) -> Path:
     return _workbench_dir(projects_root) / TASKS_DIR_NAME
 
 
-def _custom_templates_dir(projects_root: Path) -> Path:
-    """Return the saved custom-template directory for a projects root."""
-    return _workbench_dir(projects_root) / CUSTOM_TEMPLATES_DIR_NAME
 
 
 def _read_json_object(path: Path, retries: int = 2, delay: float = 0.08) -> dict:
@@ -172,35 +181,6 @@ def _read_json_object(path: Path, retries: int = 2, delay: float = 0.08) -> dict
                 continue
             raise last_error
     raise last_error
-
-
-def _write_json_atomic(path: Path, data: dict) -> None:
-    """Write a JSON object with replace semantics so readers never see a partial file.
-
-    On Windows, os.replace fails with access-denied while real-time antivirus
-    briefly holds the target after a recent write; retry the replace briefly
-    instead of surfacing a 500 to the browser or agent.
-    """
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_name(f'.{path.name}.{os.getpid()}.tmp')
-    try:
-        tmp.write_text(
-            json.dumps(data, ensure_ascii=False, indent=2),
-            encoding='utf-8',
-        )
-        for attempt in range(5):
-            try:
-                os.replace(tmp, path)
-                return
-            except PermissionError:
-                if attempt == 4:
-                    raise
-                time.sleep(0.06)
-    finally:
-        try:
-            tmp.unlink(missing_ok=True)
-        except OSError:
-            pass
 
 
 def _count_tasks(tasks_dir: Path) -> int:
@@ -227,9 +207,6 @@ def _new_task_id() -> str:
     return f't{datetime.now().strftime("%Y%m%d-%H%M%S")}-{secrets.token_hex(2)}'
 
 
-def _new_custom_template_id() -> str:
-    """Generate a fresh ASCII custom-template id."""
-    return f'ct{datetime.now().strftime("%Y%m%d-%H%M%S")}-{secrets.token_hex(2)}'
 
 
 def _task_dir_path(projects_root: Path, task_id: str) -> Path:
@@ -242,168 +219,38 @@ def _task_file_path(projects_root: Path, task_id: str) -> Path:
     return _task_dir_path(projects_root, task_id) / TASK_FILE_NAME
 
 
-def _templates_dir() -> Path:
-    """Return the bundled template library root."""
-    return _SKILL_DIR / 'templates'
 
 
-def _template_index_path(kind: str) -> Path:
-    """Return the index file path for one registered template kind."""
-    kind_dir, index_name = _TEMPLATE_LIBRARY_CONFIG[kind]
-    return _templates_dir() / kind_dir / index_name
 
 
-def _load_template_index(kind: str) -> dict:
-    """Read one template kind index (the only enumeration source)."""
-    return _read_json_object(_template_index_path(kind), retries=0)
 
 
-def _indexes_sha256() -> dict:
-    """Fingerprint the four template indexes for staleness detection."""
-    digests = {}
-    for kind in TEMPLATE_KINDS:
-        try:
-            raw = _template_index_path(kind).read_bytes()
-        except OSError:
-            digests[kind] = None
-            continue
-        digests[kind] = hashlib.sha256(raw).hexdigest()
-    return digests
 
 
-def _safe_template_id(template_id: object) -> bool:
-    """Return whether an index key is one safe directory-segment id."""
-    return (
-        isinstance(template_id, str)
-        and _SAFE_TEMPLATE_ID_RE.fullmatch(template_id) is not None
-    )
 
 
-def _custom_template_file_path(projects_root: Path, ct_id: str) -> Path:
-    """Return one custom template's JSON path; callers validate the id first."""
-    return _custom_templates_dir(projects_root) / f'{ct_id}.json'
 
 
-def _custom_template_selection_pairs(record: dict) -> list[dict]:
-    """Return the stored (kind, id) pairs of a custom-template record."""
-    return [
-        {'kind': item.get('kind'), 'id': item.get('id')}
-        for item in record.get('selections', [])
-        if isinstance(item, dict)
-    ]
 
 
-def _custom_template_invalid(record: dict) -> list[str]:
-    """List selections whose id is no longer a key in its kind's index."""
-    invalid = []
-    for item in _custom_template_selection_pairs(record):
-        kind = item.get('kind')
-        template_id = item.get('id')
-        if (
-            kind not in TEMPLATE_KINDS
-            or not _safe_template_id(template_id)
-            or _template_index_entry(kind, template_id) is None
-        ):
-            invalid.append(f'{kind}/{template_id}')
-    return invalid
 
 
-def _custom_template_summary(record: dict) -> str:
-    """One-line combination summary for market cards."""
-    return ' + '.join(
-        f'{item["kind"]}/{item["id"]}'
-        for item in _custom_template_selection_pairs(record)
-    )
 
 
-def _custom_template_payload(record: dict) -> dict:
-    """API card for one saved custom template."""
-    return {
-        'id': record.get('id'),
-        'name': record.get('name'),
-        'summary': _custom_template_summary(record),
-        'selections': _custom_template_selection_pairs(record),
-        'invalid': _custom_template_invalid(record),
-        'created_at': record.get('created_at'),
-        'updated_at': record.get('updated_at'),
-    }
 
 
-def _load_custom_templates(projects_root: Path) -> list[dict]:
-    """Read every saved custom-template record, newest update first.
-
-    Unreadable or malformed files are skipped: the registry must keep serving
-    even when one record was damaged externally.
-    """
-    directory = _custom_templates_dir(projects_root)
-    records = []
-    if not directory.is_dir():
-        return records
-    try:
-        entries = sorted(directory.iterdir())
-    except OSError:
-        return records
-    for entry in entries:
-        if entry.suffix != '.json':
-            continue
-        if CUSTOM_TEMPLATE_ID_RE.fullmatch(entry.stem) is None:
-            continue
-        try:
-            record = _read_json_object(entry, retries=0)
-        except (OSError, json.JSONDecodeError, ValueError):
-            continue
-        record.setdefault('id', entry.stem)
-        records.append(record)
-    records.sort(key=lambda item: str(item.get('updated_at') or ''), reverse=True)
-    return records
 
 
-def _find_custom_template_by_name(records: list[dict], name: str) -> Optional[dict]:
-    """Return the record using exactly this name, if any."""
-    for record in records:
-        if record.get('name') == name:
-            return record
-    return None
 
 
-def _validate_custom_template_fields(
-    records: list[dict],
-    name: object,
-    selections: object,
-    exclude_id: Optional[str],
-) -> tuple[Optional[str], Optional[str], Optional[list], Optional[dict]]:
-    """Validate name + selections for create/update.
-
-    Returns (name, error, resolved_selections, name_clash). ``name_clash`` is
-    the colliding record when the name is already taken by another record.
-    """
-    if not isinstance(name, str):
-        return None, 'name must be a string', None, None
-    name = name.strip()
-    if not name:
-        return None, 'name must be non-empty', None, None
-    if len(name) > CUSTOM_TEMPLATE_NAME_MAX:
-        return None, f'name must be at most {CUSTOM_TEMPLATE_NAME_MAX} characters', None, None
-    clash = _find_custom_template_by_name(records, name)
-    if clash is not None and clash.get('id') != exclude_id:
-        return name, None, None, clash
-    if selections is None:
-        return name, None, None, None
-    resolved, error = _resolve_library_selections(selections)
-    if error:
-        return name, error, None, None
-    if not resolved:
-        return name, 'at least one selection is required', None, None
-    return name, None, resolved, None
 
 
 def _default_task(task_id: str, topic: str, display_title: Optional[str]) -> dict:
-    """Build a fresh draft task record with the default user choices."""
+    """Build a fresh draft task record holding only the user domain."""
     now = _now_iso()
     return {
         'schema_version': TASK_SCHEMA_VERSION,
         'task_id': task_id,
-        'status': 'draft',
         'created_at': now,
         'submitted_at': None,
         'updated_at': now,
@@ -417,20 +264,27 @@ def _default_task(task_id: str, topic: str, display_title: Optional[str]) -> dic
             'speaker_notes': False,
             'image_policy': 'auto',
         },
-        'template_selection': {
-            'mode': 'free_design',
-            'selections': [],
-            'indexes_sha256': _indexes_sha256(),
-            'selected_at': now,
-        },
         'uploads': [],
-        'project_dir': None,
-        'started_at': None,
-        'finished_at': None,
-        'error': None,
-        'deliverables': [],
-        'agent_log': [],
     }
+
+
+def _normalize_task(raw: dict) -> dict:
+    """Rebuild a task record from its user domain, dropping anything else.
+
+    Older records carried run state (``status``, ``agent_log``, ``project_dir``
+    …). Run state is now derived from the project's ``.runtime/``, so those
+    keys are discarded on read instead of being carried forward.
+    """
+    task = _default_task(
+        str(raw.get('task_id') or ''),
+        str(raw.get('topic') or ''),
+        raw.get('display_title'),
+    )
+    for key in USER_DOMAIN_FIELDS:
+        if key in raw:
+            task[key] = raw[key]
+    task['schema_version'] = TASK_SCHEMA_VERSION
+    return task
 
 
 def _apply_params_patch(params: dict, patch: object) -> Optional[str]:
@@ -463,67 +317,8 @@ def _apply_params_patch(params: dict, patch: object) -> Optional[str]:
     return None
 
 
-def _resolve_library_selections(raw_selections: object) -> tuple[Optional[list], Optional[str]]:
-    """Resolve (kind, id) pairs against the library indexes.
-
-    Selections are accepted as (kind, id) pairs only; each workspace_root is
-    resolved server-side from the registered indexes so a browser can never
-    submit an arbitrary path. Shared by task selection updates and custom-
-    template saves. Returns (resolved_entries, error_message).
-    """
-    if not isinstance(raw_selections, list):
-        return None, 'selections must be a list'
-    resolved = []
-    kinds_seen = set()
-    for item in raw_selections:
-        if not isinstance(item, dict):
-            return None, 'each selection must be a JSON object'
-        kind = item.get('kind')
-        template_id = item.get('id')
-        if kind not in TEMPLATE_KINDS:
-            return None, f'unknown template kind: {kind}'
-        if not _safe_template_id(template_id):
-            return None, f'invalid template id: {template_id!r}'
-        if kind in kinds_seen:
-            return None, f'at most one {kind} selection is allowed'
-        try:
-            index = _load_template_index(kind)
-        except (OSError, json.JSONDecodeError, ValueError) as exc:
-            return None, f'cannot read {kind} index: {exc}'
-        if template_id not in index:
-            return None, f'unknown {kind} template id: {template_id}'
-        kind_dir, _index_name = _TEMPLATE_LIBRARY_CONFIG[kind]
-        resolved.append({
-            'source': 'library',
-            'kind': kind,
-            'id': template_id,
-            'workspace_root': str(_templates_dir() / kind_dir / template_id),
-        })
-        kinds_seen.add(kind)
-    return resolved, None
 
 
-def _apply_template_selection(task: dict, selection: object) -> Optional[str]:
-    """Validate and store one template selection update."""
-    if not isinstance(selection, dict):
-        return 'template_selection must be a JSON object'
-    mode = selection.get('mode')
-    if mode not in ('free_design', 'templates'):
-        return 'template_selection.mode must be free_design or templates'
-    resolved, error = _resolve_library_selections(selection.get('selections', []))
-    if error:
-        return f'template_selection.{error}'
-    if mode == 'templates' and not resolved:
-        return 'templates mode requires at least one selection'
-    if mode == 'free_design' and resolved:
-        return 'free_design mode must have no selections'
-    task['template_selection'] = {
-        'mode': mode,
-        'selections': resolved,
-        'indexes_sha256': _indexes_sha256(),
-        'selected_at': _now_iso(),
-    }
-    return None
 
 
 def _apply_user_patch(task: dict, payload: object) -> Optional[str]:
@@ -556,10 +351,6 @@ def _apply_user_patch(task: dict, payload: object) -> Optional[str]:
         error = _apply_params_patch(task['params'], payload['params'])
         if error:
             return error
-    if 'template_selection' in payload:
-        error = _apply_template_selection(task, payload['template_selection'])
-        if error:
-            return error
     return None
 
 
@@ -567,12 +358,6 @@ def _submit_error(task: dict) -> Optional[str]:
     """Return the blocking error for a draft submission, or None."""
     if not str(task.get('topic') or '').strip():
         return 'topic is required before submitting'
-    selection = task.get('template_selection') or {}
-    mode = selection.get('mode')
-    if mode not in ('free_design', 'templates'):
-        return 'template_selection.mode is invalid'
-    if mode == 'templates' and not selection.get('selections'):
-        return 'templates mode requires at least one selection'
     return None
 
 
@@ -629,12 +414,116 @@ def _uploads_listing(task_dir: Path) -> list:
     return listed
 
 
+def _list_project_views(projects_root: Path) -> list:
+    """Read one run view per project directory, newest activity first.
+
+    A project is listed when it has a `.runtime/` (the agent reported on it) or
+    an `svg_output/` (it produced pages). Nothing here writes to the project.
+    """
+    views = []
+    try:
+        children = sorted(projects_root.iterdir())
+    except OSError:
+        return views
+    for child in children:
+        if not child.is_dir() or child.name.startswith('.'):
+            continue
+        if not (child / agent_bridge.RUNTIME_DIRNAME).is_dir() and not (child / 'svg_output').is_dir():
+            continue
+        try:
+            view = agent_bridge.effective_state(agent_bridge.Paths(child))
+        except (OSError, ValueError, json.JSONDecodeError):
+            continue
+        views.append({
+            'slug': child.name,
+            'project_dir': str(child),
+            'view': view,
+        })
+    views.sort(key=lambda item: (item['view'] or {}).get('updated_at') or '', reverse=True)
+    return views
+
+
+def _runtime_index(projects_root: Path) -> dict:
+    """Map task id -> project view for every project that declares a binding.
+
+    The binding is written by the agent (`agent_bridge.py run start --task`),
+    so the server never has to remember where a task's project went. This is
+    the only join between the user domain and the run state.
+    """
+    return {
+        entry['view']['task_id']: entry
+        for entry in _list_project_views(projects_root)
+        if entry['view'].get('task_id')
+    }
+
+
+def _resolve_project_path(projects_root: Path, slug: str) -> tuple[Optional[Path], Optional[tuple]]:
+    """Resolve one project directory by slug, refusing anything outside the root."""
+    if _SLUG_RE.fullmatch(slug) is None or slug in ('.', '..'):
+        return None, (jsonify({'error': 'invalid project slug'}), 404)
+    candidate = (projects_root / slug).resolve()
+    try:
+        candidate.relative_to(projects_root.resolve())
+    except ValueError:
+        return None, (jsonify({'error': 'invalid project slug'}), 404)
+    if not candidate.is_dir():
+        return None, (jsonify({'error': 'unknown project'}), 404)
+    return candidate, None
+
+
+def _derived_state(task: dict, runtime: Optional[dict]) -> str:
+    """Derive the task state: user facts first, then the run's own view."""
+    if not task.get('submitted_at'):
+        return 'draft'
+    if not runtime:
+        return 'submitted'
+    return {
+        'idle': 'submitted',
+        'running': 'processing',
+        'waiting_user': 'processing',
+        'interrupted': 'interrupted',
+        'failed': 'failed',
+        'done': 'done',
+    }.get((runtime.get('view') or {}).get('state'), 'submitted')
+
+
+def _runtime_summary(runtime: Optional[dict]) -> dict:
+    """Return the compact run view carried by task responses."""
+    if not runtime:
+        return {
+            'slug': None,
+            'project_dir': None,
+            'stage': None,
+            'stage_index': None,
+            'stage_label': None,
+            'state': None,
+            'progress': None,
+            'blocking': None,
+            'error': None,
+            'updated_at': None,
+        }
+    view = runtime.get('view') or {}
+    return {
+        'slug': runtime.get('slug'),
+        'project_dir': runtime.get('project_dir'),
+        'stage': view.get('stage'),
+        'stage_index': view.get('stage_index'),
+        'stage_label': view.get('stage_label'),
+        'state': view.get('state'),
+        'progress': view.get('progress'),
+        'blocking': view.get('blocking'),
+        'error': view.get('error'),
+        'updated_at': view.get('updated_at'),
+    }
+
+
 def _list_task_summaries(projects_root: Path) -> list:
     """Summarize every task record, newest first, skipping junk entries."""
     registry = _tasks_dir(projects_root)
     summaries = []
     if not registry.is_dir():
         return summaries
+    runtime_index = _runtime_index(projects_root)
     try:
         entries = list(registry.iterdir())
     except OSError:
@@ -654,157 +543,40 @@ def _list_task_summaries(projects_root: Path) -> list:
                 'created_at': None,
                 'submitted_at': None,
                 'updated_at': None,
-                'project_dir': None,
-                'error': 'invalid task.json',
+                'runtime': _runtime_summary(None),
             })
             continue
+        task = _normalize_task(data)
+        runtime = runtime_index.get(task.get('task_id') or entry.name)
+        summary = _runtime_summary(runtime)
         summaries.append({
-            'task_id': data.get('task_id') or entry.name,
-            'display_title': data.get('display_title'),
-            'status': data.get('status'),
-            'created_at': data.get('created_at'),
-            'submitted_at': data.get('submitted_at'),
-            'updated_at': data.get('updated_at'),
-            'project_dir': data.get('project_dir'),
-            'error': data.get('error'),
+            'task_id': task.get('task_id') or entry.name,
+            'display_title': task.get('display_title'),
+            'status': _derived_state(task, runtime),
+            'created_at': task.get('created_at'),
+            'submitted_at': task.get('submitted_at'),
+            'updated_at': task.get('updated_at'),
+            'runtime': summary,
         })
     summaries.sort(key=lambda item: item.get('created_at') or '', reverse=True)
     return summaries
 
 
 # Template market catalog cache, keyed on the four index file mtimes.
-_TEMPLATE_MARKET_CACHE = {'mtimes': None, 'catalog': None}
-_TEMPLATE_MARKET_LOCK = threading.Lock()
 
 
-def _index_mtimes() -> tuple:
-    """Fingerprint the four template index files by mtime."""
-    stamps = []
-    for kind in TEMPLATE_KINDS:
-        path = _template_index_path(kind)
-        try:
-            stamps.append(path.stat().st_mtime_ns)
-        except OSError:
-            stamps.append(0)
-    return tuple(stamps)
 
 
-def _template_market() -> dict:
-    """Build the four-kind template catalog from the library indexes.
-
-    Indexes are the only enumeration source; directory scanning is never used
-    for discovery. Entries whose index key is not a safe id are skipped.
-    """
-    with _TEMPLATE_MARKET_LOCK:
-        mtimes = _index_mtimes()
-        if _TEMPLATE_MARKET_CACHE['catalog'] is not None and _TEMPLATE_MARKET_CACHE['mtimes'] == mtimes:
-            return _TEMPLATE_MARKET_CACHE['catalog']
-        catalog = {}
-        for kind in TEMPLATE_KINDS:
-            kind_dir, _index_name = _TEMPLATE_LIBRARY_CONFIG[kind]
-            try:
-                index = _load_template_index(kind)
-            except (OSError, json.JSONDecodeError, ValueError):
-                catalog[kind] = []
-                continue
-            entries = []
-            for template_id, meta in index.items():
-                if not _safe_template_id(template_id) or not isinstance(meta, dict):
-                    continue
-                card = {
-                    'kind': kind,
-                    'id': template_id,
-                    'summary': meta.get('summary'),
-                    'workspace_root': str(_templates_dir() / kind_dir / template_id),
-                }
-                for field in ('primary_color', 'keywords', 'canvas_format', 'page_count', 'page_types'):
-                    if field in meta:
-                        card[field] = meta[field]
-                entries.append(card)
-            entries.sort(key=lambda card: card['id'])
-            catalog[kind] = entries
-        _TEMPLATE_MARKET_CACHE['mtimes'] = mtimes
-        _TEMPLATE_MARKET_CACHE['catalog'] = catalog
-        return catalog
 
 
-def _template_index_entry(kind: str, template_id: str) -> Optional[dict]:
-    """Return one validated index entry for a whitelisted template file route."""
-    if kind not in _TEMPLATE_LIBRARY_CONFIG:
-        return None
-    if not _safe_template_id(template_id):
-        return None
-    try:
-        index = _load_template_index(kind)
-    except (OSError, json.JSONDecodeError, ValueError):
-        return None
-    meta = index.get(template_id)
-    return meta if isinstance(meta, dict) else None
 
 
-def _template_workspace_root(kind: str, template_id: str) -> Path:
-    """Return the workspace root for one registered template."""
-    kind_dir, _index_name = _TEMPLATE_LIBRARY_CONFIG[kind]
-    return _templates_dir() / kind_dir / template_id
 
 
-_FRONTMATTER_LINE_RE = re.compile(r'^([A-Za-z_][\w-]*)\s*:\s*(.*?)\s*$')
 
 
-def _parse_design_spec_frontmatter(kind: str, template_id: str) -> dict:
-    """Extract the key/value frontmatter of one template's design_spec.md."""
-    spec_path = _template_workspace_root(kind, template_id) / 'templates' / 'design_spec.md'
-    try:
-        lines = spec_path.read_text(encoding='utf-8-sig').splitlines()
-    except OSError:
-        return {}
-    if not lines or lines[0].strip() != '---':
-        return {}
-    frontmatter = {}
-    for line in lines[1:]:
-        if line.strip() == '---':
-            break
-        match = _FRONTMATTER_LINE_RE.match(line)
-        if match and match.group(1) not in frontmatter:
-            value = match.group(2).strip()
-            if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
-                value = value[1:-1]
-            frontmatter[match.group(1)] = value
-    return frontmatter
 
 
-def _template_preview_payload(kind: str, template_id: str) -> Optional[dict]:
-    """Build the preview payload: roster SVG urls or an identity card."""
-    meta = _template_index_entry(kind, template_id)
-    if meta is None:
-        return None
-    payload = {
-        'kind': kind,
-        'id': template_id,
-        'summary': meta.get('summary'),
-        'frontmatter': _parse_design_spec_frontmatter(kind, template_id),
-    }
-    for field in ('primary_color', 'keywords', 'canvas_format', 'page_count', 'page_types'):
-        if field in meta:
-            payload[field] = meta[field]
-    roster = []
-    templates_dir = _template_workspace_root(kind, template_id) / 'templates'
-    if templates_dir.is_dir():
-        base = f'/templates/{urllib.parse.quote(kind, safe="")}/{urllib.parse.quote(template_id, safe="")}/templates'
-        try:
-            svg_files = sorted(templates_dir.glob('*.svg'))
-        except OSError:
-            svg_files = []
-        for svg_file in svg_files:
-            roster.append({
-                'name': svg_file.name,
-                'svg_url': f'{base}/{urllib.parse.quote(svg_file.name, safe="")}',
-            })
-    payload['roster'] = roster
-    payload['images_url_prefix'] = (
-        f'/templates/{urllib.parse.quote(kind, safe="")}/{urllib.parse.quote(template_id, safe="")}'
-    )
-    return payload
 
 
 def _file_listing(directory: Path, name_pattern: re.Pattern) -> list:
@@ -834,26 +606,32 @@ def _slide_sort_key(name: str):
     return (int(digits.group(1)) if digits else 0, name)
 
 
-def _task_progress_payload(task: dict, task_dir: Path) -> dict:
-    """Derive the read-only progress view from the project tree."""
+def _task_progress_payload(task: dict, runtime: Optional[dict]) -> dict:
+    """Derive the read-only progress view from the run view and project tree.
+
+    Nothing here is written by the agent: the run view comes from
+    `.runtime/status.json`, the requests from `inbox/`, and everything else is
+    read off the artifacts the project itself produced.
+    """
+    view = (runtime or {}).get('view') or {}
+    project_dir = (runtime or {}).get('project_dir')
     payload = {
         'task_id': task.get('task_id'),
-        'status': task.get('status'),
-        'error': task.get('error'),
-        'project_dir': task.get('project_dir'),
+        'status': _derived_state(task, runtime),
+        'runtime': _runtime_summary(runtime),
+        'events': [],
+        'requests': [],
         'slides': [],
         'slide_count': 0,
         'quality': {'report_exists': False},
         'exports': [],
         'confirm': None,
-        'agent_log': task.get('agent_log') or [],
-        'deliverables': task.get('deliverables') or [],
-        'finished_at': task.get('finished_at'),
     }
-    project_dir = task.get('project_dir')
     if not project_dir:
         return payload
     project_path = Path(project_dir)
+    payload['events'] = agent_bridge.recent_events(project_path)
+    payload['requests'] = agent_bridge.list_requests(project_path)
     slides = _file_listing(project_path / 'svg_output', _SLIDE_NAME_RE)
     slides.sort(key=lambda item: _slide_sort_key(item['name']))
     payload['slides'] = slides
@@ -1118,6 +896,18 @@ def create_app(
     def index():
         return send_from_directory(app.static_folder, 'index.html')
 
+    @app.route('/static/style_previews/<path:filename>', methods=['GET'])
+    def style_preview_asset(filename: str):
+        """Serve the confirmation page's shared preset previews.
+
+        Those SVGs are package-wide assets owned by `confirm_ui`, not project
+        files; the mounted page asks for them at this absolute path, so the
+        workbench answers instead of the surface.
+        """
+        return send_from_directory(
+            _SCRIPTS_DIR / 'confirm_ui' / 'static' / 'style_previews', filename,
+        )
+
     @app.route('/api/health')
     def health():
         """Expose a cheap readiness probe for the daemon launcher."""
@@ -1185,7 +975,7 @@ def create_app(
         task_dir = _task_dir_path(projects_path, task_id)
         task_dir.mkdir(parents=True, exist_ok=True)
         (task_dir / UPLOADS_DIR_NAME).mkdir(exist_ok=True)
-        _write_json_atomic(_task_file_path(projects_path, task_id), task)
+        write_json_atomic(_task_file_path(projects_path, task_id), task)
         return jsonify({'task_id': task_id}), 201
 
     def _load_task_or_abort(task_id: str):
@@ -1197,18 +987,25 @@ def create_app(
         if not task_file.is_file():
             return None, task_dir, (jsonify({'error': 'task not found'}), 404)
         try:
-            task = _read_json_object(task_file)
+            task = _normalize_task(_read_json_object(task_file))
         except (OSError, json.JSONDecodeError, ValueError) as exc:
             return None, task_dir, (jsonify({'error': f'invalid task.json: {exc}'}), 500)
         return task, task_dir, None
 
+    def _runtime_for(task_id: str) -> Optional[dict]:
+        """Return the project run view bound to this task, if any."""
+        return _runtime_index(projects_path).get(task_id)
+
     @app.route('/api/tasks/<task_id>', methods=['GET'])
     def get_task(task_id: str):
-        """Return the full task record plus the staged uploads listing."""
+        """Return the user domain, its derived status, and the run view."""
         task, task_dir, error = _load_task_or_abort(task_id)
         if error:
             return error
+        runtime = _runtime_for(task_id)
         payload = dict(task)
+        payload['status'] = _derived_state(task, runtime)
+        payload['runtime'] = _runtime_summary(runtime)
         payload['uploads_present'] = _uploads_listing(task_dir)
         resp = jsonify(payload)
         resp.headers['Cache-Control'] = 'no-store'
@@ -1220,13 +1017,13 @@ def create_app(
         task, task_dir, error = _load_task_or_abort(task_id)
         if error:
             return error
-        if task.get('status') != 'draft':
+        if task.get('submitted_at'):
             return jsonify({'error': 'only draft tasks can be edited'}), 409
         error = _apply_user_patch(task, request.get_json(silent=True))
         if error:
             return jsonify({'error': error}), 400
         task['updated_at'] = _now_iso()
-        _write_json_atomic(task_dir / TASK_FILE_NAME, task)
+        write_json_atomic(task_dir / TASK_FILE_NAME, task)
         return jsonify({'status': 'ok'})
 
     @app.route('/api/tasks/<task_id>/uploads', methods=['POST'])
@@ -1235,7 +1032,7 @@ def create_app(
         task, task_dir, error = _load_task_or_abort(task_id)
         if error:
             return error
-        if task.get('status') != 'draft':
+        if task.get('submitted_at'):
             return jsonify({'error': 'only draft tasks accept uploads'}), 409
         files = list(request.files.values()) if request.files else []
         if not files:
@@ -1251,7 +1048,7 @@ def create_app(
             storage.save(target)
             saved.append({'name': target.name, 'size': target.stat().st_size})
         task['updated_at'] = _now_iso()
-        _write_json_atomic(task_dir / TASK_FILE_NAME, task)
+        write_json_atomic(task_dir / TASK_FILE_NAME, task)
         return jsonify({'uploads': saved}), 201
 
     @app.route('/api/tasks/<task_id>/uploads/<path:name>', methods=['DELETE'])
@@ -1260,7 +1057,7 @@ def create_app(
         task, task_dir, error = _load_task_or_abort(task_id)
         if error:
             return error
-        if task.get('status') != 'draft':
+        if task.get('submitted_at'):
             return jsonify({'error': 'only draft tasks accept upload changes'}), 409
         uploads_dir = task_dir / UPLOADS_DIR_NAME
         target = (uploads_dir / name).resolve()
@@ -1271,7 +1068,7 @@ def create_app(
         except OSError as exc:
             return jsonify({'error': f'cannot delete file: {exc}'}), 500
         task['updated_at'] = _now_iso()
-        _write_json_atomic(task_dir / TASK_FILE_NAME, task)
+        write_json_atomic(task_dir / TASK_FILE_NAME, task)
         return jsonify({'status': 'ok'})
 
     @app.route('/api/tasks/<task_id>/submit', methods=['POST'])
@@ -1280,177 +1077,44 @@ def create_app(
         task, task_dir, error = _load_task_or_abort(task_id)
         if error:
             return error
-        if task.get('status') != 'draft':
-            return jsonify({'error': f'task is already {task.get("status")}'}), 409
+        if task.get('submitted_at'):
+            return jsonify({'error': 'task is already submitted'}), 409
         error = _submit_error(task)
         if error:
             return jsonify({'error': error}), 400
-        task['status'] = 'submitted'
         task['submitted_at'] = _now_iso()
         task['updated_at'] = task['submitted_at']
         task['uploads'] = _uploads_listing(task_dir)
-        _write_json_atomic(task_dir / TASK_FILE_NAME, task)
+        write_json_atomic(task_dir / TASK_FILE_NAME, task)
         return jsonify({
             'status': 'submitted',
             'task_id': task_id,
             'agent_hint': AGENT_HINT_TEMPLATE.format(task_id=task_id),
         })
 
-    @app.route('/api/templates', methods=['GET'])
-    def get_templates():
-        """Serve the four-kind template catalog from the library indexes."""
-        resp = jsonify(_template_market())
-        resp.headers['Cache-Control'] = 'no-store'
-        return resp
-
-    @app.route('/api/templates/<kind>/<template_id>/preview', methods=['GET'])
-    def get_template_preview(kind: str, template_id: str):
-        """Serve one template's preview payload (roster urls or identity card)."""
-        payload = _template_preview_payload(kind, template_id)
-        if payload is None:
-            return jsonify({'error': 'unknown template'}), 404
-        resp = jsonify(payload)
-        resp.headers['Cache-Control'] = 'no-store'
-        return resp
-
-    @app.route('/templates/<kind>/<template_id>/<path:filename>', methods=['GET'])
-    def get_template_file(kind: str, template_id: str, filename: str):
-        """Serve one whitelisted file from a registered template workspace.
-
-        The gate is the index itself: kind must be one of the four library
-        directories and template_id must be a key in that kind's index. Deck
-        SVG ``../images/*`` references resolve through this route.
-        """
-        if _template_index_entry(kind, template_id) is None:
-            return jsonify({'error': 'unknown template'}), 404
-        workspace_root = _template_workspace_root(kind, template_id)
-        if not workspace_root.is_dir():
-            return jsonify({'error': 'unknown template'}), 404
-        return send_from_directory(workspace_root, filename)
-
-    @app.route('/api/custom-templates', methods=['GET'])
-    def list_custom_templates():
-        """List saved custom templates (combination presets), newest first."""
-        records = _load_custom_templates(projects_path)
-        resp = jsonify({'custom_templates': [
-            _custom_template_payload(record) for record in records
-        ]})
-        resp.headers['Cache-Control'] = 'no-store'
-        return resp
-
-    @app.route('/api/custom-templates', methods=['POST'])
-    def create_custom_template():
-        """Save a new custom template from (kind, id) selection pairs."""
-        data = request.get_json(silent=True) or {}
-        records = _load_custom_templates(projects_path)
-        name, error, resolved, clash = _validate_custom_template_fields(
-            records, data.get('name'), data.get('selections'), None,
-        )
-        if clash is not None:
-            return jsonify({
-                'error': 'name already exists',
-                'existing_id': clash.get('id'),
-            }), 409
-        if error:
-            return jsonify({'error': error}), 400
-        if not resolved:
-            return jsonify({'error': 'selections is required'}), 400
-        now = _now_iso()
-        record = {
-            'schema_version': CUSTOM_TEMPLATE_SCHEMA_VERSION,
-            'id': _new_custom_template_id(),
-            'name': name,
-            'selections': [
-                {'kind': item['kind'], 'id': item['id']} for item in resolved
-            ],
-            'indexes_sha256': _indexes_sha256(),
-            'created_at': now,
-            'updated_at': now,
-        }
-        _write_json_atomic(
-            _custom_template_file_path(projects_path, record['id']), record,
-        )
-        return jsonify(_custom_template_payload(record)), 201
-
-    @app.route('/api/custom-templates/<ct_id>', methods=['PUT'])
-    def update_custom_template(ct_id: str):
-        """Rename and/or re-pick one saved custom template."""
-        if CUSTOM_TEMPLATE_ID_RE.fullmatch(ct_id) is None:
-            return jsonify({'error': 'unknown custom template'}), 404
-        path = _custom_template_file_path(projects_path, ct_id)
-        if not path.is_file():
-            return jsonify({'error': 'unknown custom template'}), 404
-        record = _read_json_object(path)
-        data = request.get_json(silent=True) or {}
-        records = _load_custom_templates(projects_path)
-        new_name = record.get('name') if 'name' not in data else data.get('name')
-        selections = (
-            record.get('selections') if 'selections' not in data
-            else data.get('selections')
-        )
-        name, error, resolved, clash = _validate_custom_template_fields(
-            records, new_name, selections, exclude_id=ct_id,
-        )
-        if clash is not None:
-            return jsonify({
-                'error': 'name already exists',
-                'existing_id': clash.get('id'),
-            }), 409
-        if error:
-            return jsonify({'error': error}), 400
-        record['name'] = name
-        if resolved:
-            record['selections'] = [
-                {'kind': item['kind'], 'id': item['id']} for item in resolved
-            ]
-        record['updated_at'] = _now_iso()
-        _write_json_atomic(path, record)
-        return jsonify(_custom_template_payload(record))
-
-    @app.route('/api/custom-templates/<ct_id>', methods=['DELETE'])
-    def delete_custom_template(ct_id: str):
-        """Delete one saved custom template."""
-        if CUSTOM_TEMPLATE_ID_RE.fullmatch(ct_id) is None:
-            return jsonify({'error': 'unknown custom template'}), 404
-        path = _custom_template_file_path(projects_path, ct_id)
-        if not path.is_file():
-            return jsonify({'error': 'unknown custom template'}), 404
-        for attempt in range(5):
-            try:
-                path.unlink()
-                return jsonify({'deleted': ct_id})
-            except PermissionError:
-                if attempt == 4:
-                    raise
-                time.sleep(0.06)
-        return jsonify({'error': 'unable to delete'}), 500
-
-    def _project_dir_or_abort(task: dict):
-        """Return the task's project Path or a 409 response tuple."""
-        project_dir = task.get('project_dir')
-        if not project_dir or not Path(project_dir).is_dir():
-            return None, (jsonify({'error': 'task has no project directory yet'}), 404)
-        return Path(project_dir), None
+    def _project_or_abort(task_id: str):
+        """Return (project Path, runtime view, error_response)."""
+        runtime = _runtime_for(task_id)
+        if not runtime:
+            return None, None, (jsonify({'error': 'task has no project yet'}), 404)
+        return Path(runtime['project_dir']), runtime, None
 
     @app.route('/api/tasks/<task_id>/progress', methods=['GET'])
     def get_task_progress(task_id: str):
-        """Derive the read-only progress view from the project tree."""
-        task, task_dir, error = _load_task_or_abort(task_id)
+        """Derive the read-only progress view from the run view and tree."""
+        task, _task_dir, error = _load_task_or_abort(task_id)
         if error:
             return error
-        resp = jsonify(_task_progress_payload(task, task_dir))
+        resp = jsonify(_task_progress_payload(task, _runtime_for(task_id)))
         resp.headers['Cache-Control'] = 'no-store'
         return resp
 
     @app.route('/api/tasks/<task_id>/slides/<name>', methods=['GET'])
     def get_task_slide(task_id: str, name: str):
         """Serve one generated page SVG from the project's svg_output/."""
-        task, _task_dir, error = _load_task_or_abort(task_id)
-        if error:
-            return error
         if _SLIDE_NAME_RE.fullmatch(name) is None:
             return jsonify({'error': 'invalid slide name'}), 404
-        project_path, error = _project_dir_or_abort(task)
+        project_path, _runtime, error = _project_or_abort(task_id)
         if error:
             return error
         return send_from_directory(project_path / 'svg_output', name)
@@ -1458,12 +1122,9 @@ def create_app(
     @app.route('/api/tasks/<task_id>/exports/<name>', methods=['GET'])
     def get_task_export(task_id: str, name: str):
         """Serve one exported PPTX from the project's exports/."""
-        task, _task_dir, error = _load_task_or_abort(task_id)
-        if error:
-            return error
         if _EXPORT_NAME_RE.fullmatch(name) is None:
             return jsonify({'error': 'invalid export name'}), 404
-        project_path, error = _project_dir_or_abort(task)
+        project_path, _runtime, error = _project_or_abort(task_id)
         if error:
             return error
         return send_from_directory(project_path / 'exports', name, as_attachment=True)
@@ -1471,13 +1132,18 @@ def create_app(
     @app.route('/api/tasks/<task_id>/images/<path:filename>', methods=['GET'])
     def get_task_image(task_id: str, filename: str):
         """Serve one image asset so inline page SVG previews resolve."""
-        task, _task_dir, error = _load_task_or_abort(task_id)
-        if error:
-            return error
-        project_path, error = _project_dir_or_abort(task)
+        project_path, _runtime, error = _project_or_abort(task_id)
         if error:
             return error
         return send_from_directory(project_path / 'images', filename)
+
+    @app.route('/api/tasks/<task_id>/requests/<req_id>', methods=['POST'])
+    def answer_task_request(task_id: str, req_id: str):
+        """Answer one inbox request through the task the browser is looking at."""
+        project_path, _runtime, error = _project_or_abort(task_id)
+        if error:
+            return error
+        return _answer(project_path, req_id)
 
     @app.route('/api/tasks/<task_id>/feedback', methods=['GET'])
     def get_task_feedback(task_id: str):
@@ -1507,7 +1173,7 @@ def create_app(
         wants_revision = data.get('wants_revision')
         if wants_revision is not None and not isinstance(wants_revision, bool):
             return jsonify({'error': 'wants_revision must be a boolean'}), 400
-        _write_json_atomic(task_dir / FEEDBACK_FILE_NAME, {
+        write_json_atomic(task_dir / FEEDBACK_FILE_NAME, {
             'schema_version': 1,
             'rating': rating,
             'comment': comment if comment is not None else '',
@@ -1515,6 +1181,105 @@ def create_app(
             'submitted_at': _now_iso(),
         })
         return jsonify({'status': 'ok'})
+
+    # ---- agent-facing run surface: read state, answer a request -----------
+
+    def _answer(project_path: Path, req_id: str):
+        """Write the one allowed answer for an inbox request."""
+        if _REQUEST_ID_RE.fullmatch(req_id) is None:
+            return jsonify({'error': 'invalid request id'}), 404
+        payload = request.get_json(silent=True) or {}
+        status = str(payload.get('status') or 'answered')
+        choice = payload.get('choice') or []
+        if isinstance(choice, str):
+            choice = [choice]
+        try:
+            response = agent_bridge.answer_request(
+                project_path,
+                req_id,
+                status=status,
+                choice=[str(item) for item in choice],
+                text=payload.get('text'),
+                by='user',
+                surface='web',
+            )
+        except agent_bridge.BridgeError as exc:
+            code = 409 if exc.code == agent_bridge.EXIT_VERSION_CONFLICT else 400
+            return jsonify({'error': str(exc)}), code
+        return jsonify({'response': response})
+
+    @app.route('/api/projects', methods=['GET'])
+    def list_projects():
+        """One row per project, derived from its runtime directory."""
+        rows = []
+        for entry in _list_project_views(projects_path):
+            view = entry['view']
+            rows.append({
+                'slug': entry['slug'],
+                'project_dir': entry['project_dir'],
+                'task_id': view.get('task_id'),
+                'state': view.get('state'),
+                'stage': view.get('stage'),
+                'stage_index': view.get('stage_index'),
+                'stage_label': view.get('stage_label'),
+                'progress': view.get('progress'),
+                'route': view.get('route'),
+                'profile': view.get('profile'),
+                'blocking': view.get('blocking'),
+                'error': view.get('error'),
+                'run_id': (view.get('run') or {}).get('run_id'),
+                'updated_at': view.get('updated_at'),
+                'lease_expires_at': view.get('lease_expires_at'),
+            })
+        resp = jsonify({'projects': rows})
+        resp.headers['Cache-Control'] = 'no-store'
+        return resp
+
+    @app.route('/__wb/project-links/<slug>', methods=['GET'])
+    def project_links(slug: str):
+        """Return the workbench links for one mounted surface page."""
+        entry = next(
+            (item for item in _list_project_views(projects_path) if item['slug'] == slug),
+            None,
+        )
+        if entry is None:
+            return jsonify({'error': 'unknown project'}), 404
+        task_id = (entry['view'] or {}).get('task_id')
+        return jsonify({
+            'slug': slug,
+            'task_id': task_id,
+            'task_url': f'/#/task/{task_id}' if task_id else '/#/tasks',
+            'preview_url': f'/p/{slug}/preview/',
+        })
+
+    @app.route('/api/projects/<slug>', methods=['GET'])
+    def get_project(slug: str):
+        """Return one project's run view, recent events, and inbox."""
+        project_path, error = _resolve_project_path(projects_path, slug)
+        if error:
+            return error
+        view = agent_bridge.effective_state(agent_bridge.Paths(project_path))
+        resp = jsonify({
+            'slug': slug,
+            'project_dir': str(project_path),
+            'status': view,
+            'events': agent_bridge.recent_events(project_path),
+            'requests': agent_bridge.list_requests(project_path),
+        })
+        resp.headers['Cache-Control'] = 'no-store'
+        return resp
+
+    @app.route('/api/projects/<slug>/requests/<req_id>', methods=['POST'])
+    def answer_project_request(slug: str, req_id: str):
+        """Answer one inbox request addressed by project slug."""
+        project_path, error = _resolve_project_path(projects_path, slug)
+        if error:
+            return error
+        return _answer(project_path, req_id)
+
+    # One service, one port: the per-project confirmation, preview, and spec
+    # surfaces are mounted here instead of running their own servers.
+    mount_surfaces(app, projects_path)
 
     return app
 

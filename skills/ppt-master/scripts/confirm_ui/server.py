@@ -969,26 +969,6 @@ def _launch_background_server(
     return proc, port, log_path
 
 
-def _live_lock(lock_file: Path) -> Optional[dict]:
-    """Return a live lock; stale entries are overwritten by the recovered child."""
-    existing = _read_lock(lock_file)
-    if not existing:
-        return None
-    if _process_alive(_lock_pid(existing)):
-        return existing
-    return None
-
-
-def _preferred_recovery_port(lock_file: Path, fallback: int) -> int:
-    """Prefer a stale lock's port so an already-open browser can reconnect."""
-    existing = _read_lock(lock_file)
-    try:
-        port = int((existing or {}).get('port', 0) or 0)
-        return _validate_port(port) if port else fallback
-    except (TypeError, ValueError):
-        return fallback
-
-
 def _open_browser_async(url: str, delay: float = 0.4) -> None:
     """Open the browser after Flask has had a moment to bind its socket."""
     def _open() -> None:
@@ -996,35 +976,6 @@ def _open_browser_async(url: str, delay: float = 0.4) -> None:
         open_preview_browser(url, logger=logger)
 
     threading.Thread(target=_open, daemon=True).start()
-
-
-def _wait_for_result(
-    result_file: Path,
-    proc: subprocess.Popen,
-    timeout: int,
-    expected_stage: str,
-) -> int:
-    """Wait until this launch writes a fresh result file or the server exits."""
-    logger.info('waiting for browser confirmation...')
-    deadline = None if timeout <= 0 else time.time() + timeout
-    while True:
-        status = _wait_result_status(result_file, expected_stage)
-        if status is not None:
-            return status
-
-        returncode = proc.poll()
-        if returncode is not None:
-            logger.error('confirm UI exited before a fresh result was written')
-            return returncode or 1
-
-        if deadline is not None and time.time() >= deadline:
-            logger.error(
-                'timed out waiting for browser confirmation — the page is still '
-                'open; re-check %s before falling back to chat', result_file,
-            )
-            return 124
-
-        time.sleep(0.5)
 
 
 def _result_stage(result_file: Path) -> Optional[str]:
@@ -1773,18 +1724,6 @@ def _normalize_custom_selections(result: dict) -> None:
     image_strategy.pop('behavior', None)
 
 
-def _expected_result_stage(confirm_dir: Path) -> str:
-    """Return the result stage expected from the current recommendations."""
-    try:
-        _, recommendations = _read_active_recommendations(confirm_dir)
-    except (OSError, json.JSONDecodeError, ValueError):
-        return 'final'
-    return {
-        1: 'stage1',
-        2: 'final',
-    }.get(_recommendation_stage(recommendations), 'final')
-
-
 def _file_version(path: Path) -> Optional[str]:
     """Return a cheap file version for polling state, or None when absent."""
     try:
@@ -2076,60 +2015,6 @@ def _apply_locked_recommendations(
     return locked_values
 
 
-def _wait_only_for_result(
-    result_file: Path,
-    lock_file: Path,
-    timeout: int,
-    target_stage: str = 'final',
-) -> int:
-    """Attach to an already-running confirm server and wait for a target stage.
-
-    No child is launched here: the page is open from the preceding ``--daemon``
-    launch, so liveness is tracked via the recorded pid, not a ``proc`` handle.
-    Only the stage guard is used (no mtime gate), because intermediate submits
-    may happen before this wait command is issued.
-    """
-    logger.info('waiting for browser confirmation stage=%s...', target_stage)
-    deadline = None if timeout <= 0 else time.time() + timeout
-    while True:
-        result_status = _wait_result_status(result_file, target_stage)
-        if result_status is not None:
-            return result_status
-
-        confirm_dir = result_file.parent
-        if target_stage == 'stage1':
-            readiness_error = _stage1_ready_error(confirm_dir)
-        else:
-            recommendations_file = _active_recommendations_path(confirm_dir)
-            readiness_error = _stage2_ready_error(
-                confirm_dir.parent,
-                confirm_dir,
-                recommendations_file,
-            )
-        if readiness_error:
-            logger.error(
-                'confirmation stage=%s is not ready: %s',
-                target_stage,
-                readiness_error,
-            )
-            return 1
-
-        lock = _read_lock(lock_file)
-        pid = _lock_pid(lock)
-        if not pid or not _process_alive(pid):
-            logger.error('confirm server is no longer running before stage=%s was confirmed', target_stage)
-            return 1
-
-        if deadline is not None and time.time() >= deadline:
-            logger.error(
-                'timed out waiting for confirmation stage=%s — the page may still '
-                'be open; re-check %s before falling back to chat', target_stage, result_file,
-            )
-            return 124
-
-        time.sleep(0.5)
-
-
 def _wait_result_status(
     result_file: Path,
     target_stage: str,
@@ -2312,6 +2197,7 @@ def create_app(
     idle_timeout: int = 900,
     lock_file: Optional[Path] = None,
     server_port: Optional[int] = None,
+    embedded: bool = False,
 ) -> Flask:
     """Create and configure the Flask app for a given project directory."""
     project_path = Path(project_dir).resolve()
@@ -2359,10 +2245,15 @@ def create_app(
                 _exit_with_lock_release(0)
 
     watchdog = threading.Thread(target=_idle_watchdog, daemon=True)
-    watchdog.start()
+    if not embedded:
+        watchdog.start()
 
     @app.route('/api/shutdown', methods=['POST'])
     def shutdown():
+        if embedded:
+            # Mounted inside the resident workbench: closing this view must
+            # never take the shared process (and every other project) down.
+            return jsonify({'status': 'embedded'})
         data = request.get_json(silent=True) or {}
         reason = data.get('reason') or 'shutdown'
 
@@ -2752,235 +2643,3 @@ def create_app(
     return app
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description='PPT Master template and Strategist confirmation UI',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    parser.add_argument('project_dir', help='Path to project directory')
-    parser.add_argument(
-        '--port', type=int, default=None,
-        help=f'Exact port to listen on (default: first free port from {DEFAULT_PORT})',
-    )
-    parser.add_argument('--no-browser', action='store_true', help='Do not auto-open browser')
-    parser.add_argument(
-        '--daemon', action='store_true',
-        help='Start the server in the background; combine with --wait to block until confirmation',
-    )
-    parser.add_argument(
-        '--wait', action='store_true',
-        help='With --daemon, wait until the active result.json stage is written',
-    )
-    parser.add_argument(
-        '--wait-only', action='store_true',
-        help='Attach to the confirm server for this project and wait for an '
-             'already-open page to write the requested receipt. If it is '
-             'already persisted, return without recovery; otherwise recover a '
-             'dead server on the recorded/default port so browser polling can resume.',
-    )
-    parser.add_argument(
-        '--wait-stage', default='final', metavar='{stage1,final}',
-        help='Wait for this result.json stage (default: final). Use stage1 '
-             'after opening the combined template/communication page.',
-    )
-    parser.add_argument(
-        '--wait-timeout', type=int, default=WAIT_TIMEOUT_DEFAULT,
-        help=f'Seconds the wait caller blocks before returning (default: {WAIT_TIMEOUT_DEFAULT}; '
-             '0 = no limit). Kept under the caller\'s tool timeout; the detached server lives on.',
-    )
-    parser.add_argument(
-        '--timeout', type=int, default=900,
-        help='Server idle timeout in seconds (default: 900; 0 = disabled)',
-    )
-    parser.add_argument(
-        '--shutdown', action='store_true',
-        help='Stop a confirm server left running for this project, then exit '
-             '(idempotent). Run at the end of Step 4 so the page never lingers '
-             'on its selected port before live preview starts.',
-    )
-    return parser
-
-
-def main(argv: Optional[list[str]] = None) -> int:
-    parser = build_parser()
-    args = parser.parse_args(argv)
-
-    logging.basicConfig(
-        level=logging.INFO,
-        format='[%(asctime)s] [%(levelname)s] confirm_ui: %(message)s',
-        datefmt='%H:%M:%S',
-    )
-    plain_request_log()
-
-    if args.port is not None:
-        try:
-            args.port = _validate_port(args.port)
-        except ValueError as exc:
-            logger.error('%s', exc)
-            return 2
-
-    project_path = Path(args.project_dir).resolve()
-    if not project_path.is_dir():
-        logger.error('%s is not a directory', project_path)
-        return 1
-    wait_stage = _stage_key(str(args.wait_stage).strip().lower())
-    if wait_stage not in {'stage1', 'final'}:
-        logger.error('--wait-stage must be stage1 or final')
-        return 2
-
-    # Step 4 cleanup: stop any lingering confirm server and exit. Independent of
-    # recommendation files (the page may never have been confirmed).
-    if args.shutdown:
-        return _shutdown_existing(project_path / LOCK_FILE_NAME)
-
-    # Staged wait: attach to the server launched by --daemon and block until
-    # the page writes the requested Strategist receipt.
-    if args.wait_only:
-        lock_file = project_path / LOCK_FILE_NAME
-        confirm_dir = project_path / CONFIRM_DIR_NAME
-        result_file = confirm_dir / RESULT_NAME
-        wait_status = _wait_result_status(result_file, wait_stage)
-        if wait_status is not None:
-            return wait_status
-        if wait_stage == 'stage1':
-            readiness_error = _stage1_ready_error(confirm_dir)
-        else:
-            recommendations_file = _active_recommendations_path(confirm_dir)
-            readiness_error = _stage2_ready_error(
-                project_path,
-                confirm_dir,
-                recommendations_file,
-            )
-        if readiness_error:
-            logger.error(
-                'confirmation stage=%s is not ready: %s',
-                wait_stage,
-                readiness_error,
-            )
-            return 1
-        if not _live_lock(lock_file):
-            launch_error = _confirmation_launch_error(confirm_dir)
-            if launch_error:
-                logger.error('%s', launch_error)
-                return 1
-            exact_port = args.port is not None
-            recovery_port = (
-                args.port
-                if exact_port
-                else _preferred_recovery_port(lock_file, DEFAULT_PORT)
-            )
-            try:
-                _, actual_port, _ = _launch_background_server(
-                    project_path,
-                    preferred_port=recovery_port,
-                    exact_port=exact_port,
-                    idle_timeout=args.timeout,
-                    open_browser=False,
-                )
-            except RuntimeError as exc:
-                logger.error('%s', exc)
-                return 1
-            if actual_port != recovery_port and not args.no_browser:
-                open_preview_browser(_server_url(actual_port), logger=logger)
-            logger.info(
-                'recovered confirm UI for wait-only at %s; the browser polling should resume',
-                _server_url(actual_port),
-            )
-        return _wait_only_for_result(
-            result_file,
-            lock_file,
-            args.wait_timeout,
-            wait_stage,
-        )
-
-    confirm_dir = project_path / CONFIRM_DIR_NAME
-    launch_error = _confirmation_launch_error(confirm_dir)
-    if launch_error:
-        logger.error('%s', launch_error)
-        return 1
-
-    if args.daemon:
-        lock_file = project_path / LOCK_FILE_NAME
-        existing = _read_lock(lock_file)
-        if existing and _process_alive(_lock_pid(existing)):
-            existing_pid = existing.get('pid', '?')
-            existing_port = existing.get('port', '?')
-            logger.error(
-                'confirm UI is already running for this project '
-                '(pid=%s, port=%s). Open http://%s:%s',
-                existing_pid, existing_port, PUBLIC_HOST, existing_port,
-            )
-            return 1
-
-        confirm_dir = project_path / CONFIRM_DIR_NAME
-        result_file = confirm_dir / RESULT_NAME
-        expected_stage = _expected_result_stage(confirm_dir)
-        try:
-            proc, port, _ = _launch_background_server(
-                project_path,
-                preferred_port=args.port if args.port is not None else DEFAULT_PORT,
-                exact_port=args.port is not None,
-                idle_timeout=args.timeout,
-                open_browser=not args.no_browser,
-            )
-        except RuntimeError as exc:
-            logger.error('%s', exc)
-            return 1
-        if args.wait:
-            return _wait_for_result(
-                result_file,
-                proc,
-                args.wait_timeout,
-                expected_stage,
-            )
-        return 0
-
-    try:
-        port = args.port if args.port is not None else _find_free_port(DEFAULT_PORT)
-    except RuntimeError as exc:
-        logger.error('%s', exc)
-        return 1
-
-    # Per-project mutual exclusion: refuse duplicate launches. Stale locks
-    # (dead pid) are overwritten by _claim_lock.
-    lock_file = project_path / LOCK_FILE_NAME
-    existing = _claim_lock(lock_file, port)
-    if existing:
-        existing_pid = existing.get('pid', '?')
-        existing_port = existing.get('port', '?')
-        logger.error(
-            'confirm UI is already running for this project '
-            '(pid=%s, port=%s). Open http://%s:%s, or run: kill %s',
-            existing_pid, existing_port, PUBLIC_HOST, existing_port, existing_pid,
-        )
-        return 1
-    atexit.register(_release_lock, lock_file)
-
-    def _on_sigterm(signum: int, _frame) -> None:
-        logger.info('received signal %s, exiting', signum)
-        sys.exit(0)
-    try:
-        signal.signal(signal.SIGTERM, _on_sigterm)
-    except (ValueError, OSError):
-        pass
-
-    app = create_app(
-        str(project_path),
-        idle_timeout=args.timeout,
-        lock_file=lock_file,
-        server_port=port,
-    )
-
-    url = _server_url(port)
-    if not args.no_browser:
-        _open_browser_async(url)
-
-    logger.info('running at %s', url)
-    logger.info('project: %s', project_path)
-    logger.info('idle timeout: %ds (0 = disabled)', args.timeout)
-    app.run(host=PUBLIC_HOST, port=port, debug=False)
-    return 0
-
-
-if __name__ == '__main__':
-    raise SystemExit(main())

@@ -28,6 +28,8 @@
             connection_lost: "Connection to the confirm server was interrupted; retrying. If this keeps failing, return to the chat for confirmation.",
             confirmed_title: "✓ Confirmed",
             confirmed_hint: "Your choices are saved. You can close this page and return to the chat.",
+            handoff_progress: "View progress",
+            handoff_preview: "Open preview",
             lang_toggle_title: "Switch language",
             sec_template_choice: "Design basis",
             template_choice_hint: "Choose how this deck should establish its design system.",
@@ -203,6 +205,8 @@
             connection_lost: "確認サーバーへの接続が中断されました。再試行しています。失敗が続く場合は、チャットに戻って確定してください。",
             confirmed_title: "✓ 確定しました",
             confirmed_hint: "選択内容を保存しました。このページを閉じてチャットに戻れます。",
+            handoff_progress: "進捗を見る",
+            handoff_preview: "プレビューを開く",
             lang_toggle_title: "言語を切り替え",
             sec_template_choice: "デザインの基準",
             template_choice_hint: "この資料のデザインシステムをどう決めるか選択します。",
@@ -378,6 +382,8 @@
             connection_lost: "与确认服务的连接已中断，正在重试；若持续失败，请回到对话窗口，在对话中确认。",
             confirmed_title: "✓ 已确认",
             confirmed_hint: "选择已保存，可关闭此页并回到对话窗口。",
+            handoff_progress: "查看任务进度",
+            handoff_preview: "打开页面预览",
             lang_toggle_title: "切换语言",
             sec_template_choice: "设计依据",
             template_choice_hint: "选择这份演示文稿如何建立设计系统。",
@@ -553,6 +559,8 @@
             connection_lost: "與確認伺服器的連線已中斷，正在重試；若持續失敗，請回到對話視窗，改在對話中確認。",
             confirmed_title: "✓ 已確認",
             confirmed_hint: "選擇已儲存，可關閉此頁並回到對話視窗。",
+            handoff_progress: "查看任務進度",
+            handoff_preview: "開啟頁面預覽",
             lang_toggle_title: "切換語言",
             sec_template_choice: "設計基礎",
             template_choice_hint: "選擇這份簡報如何建立設計系統。",
@@ -4185,6 +4193,25 @@
         ov.style.display = "flex";
     }
 
+    // Mounted inside the workbench there is no server to shut down and no tab
+    // to close; hand the user onward instead of leaving a dead overlay.
+    function showHandoffOverlay(links) {
+        var ov = document.getElementById("confirmed-overlay");
+        var hint = ov.querySelector(".cf-hint");
+        ov.querySelector(".cf-title").textContent = t("confirmed_title");
+        hint.textContent = "";
+        var progress = document.createElement("a");
+        progress.href = links.task_url;
+        progress.textContent = t("handoff_progress");
+        var preview = document.createElement("a");
+        preview.href = links.preview_url;
+        preview.textContent = t("handoff_preview");
+        hint.appendChild(progress);
+        hint.appendChild(document.createTextNode(" · "));
+        hint.appendChild(preview);
+        ov.style.display = "flex";
+    }
+
     // ---- staged submit + next-stage transitions -------------------------
     function communicationPayload() {
         var payload = {
@@ -4364,6 +4391,17 @@
         l.setAttribute("data-i18n", "deriving");
         l.textContent = t("deriving");
         l.style.display = "block";
+        var links = window.__PPT_SURFACE_LINKS__;
+        if (links && links.task_url && !document.getElementById("deriving-links")) {
+            var hint = document.createElement("p");
+            hint.id = "deriving-links";
+            hint.style.marginTop = "12px";
+            var anchor = document.createElement("a");
+            anchor.href = links.task_url;
+            anchor.textContent = t("handoff_progress");
+            hint.appendChild(anchor);
+            l.parentNode.appendChild(hint);
+        }
     }
 
     // Poll session state first. It is derived from recommendation stage files
@@ -4399,6 +4437,8 @@
             initProductionState();
         }
         STAGE = stage;
+        var stale = document.getElementById("deriving-links");
+        if (stale) stale.parentNode.removeChild(stale);
         document.getElementById("loading").style.display = "none";
         document.getElementById("sections").style.display = "block";
         document.getElementById("actionbar").style.display = "flex";
@@ -4431,6 +4471,11 @@
             body: JSON.stringify(payload)
         }).then(function (r) {
             if (!r.ok) throw new Error("confirm failed");
+            var links = window.__PPT_SURFACE_LINKS__;
+            if (links && links.task_url) {
+                showHandoffOverlay(links);
+                return;
+            }
             showConfirmedOverlay();
             fetch("/api/shutdown", {
                 method: "POST",

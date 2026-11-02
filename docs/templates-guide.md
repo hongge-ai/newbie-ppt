@@ -304,7 +304,7 @@ Library registration makes the template **selectable** in the Default Stage-1 te
 
 When a Deck/Layout template is selected, Strategist automatically authors the page/prototype plan. It may use the whole roster or a subset, repeat or reorder prototypes, and reorganize content where needed. `strict` / `adaptive` remain internal exporter values and do not appear as confirmation options.
 
-Under strict generation the template's Master/Layout layers are a frozen contract: fixed atom ids, topology, geometry, and metadata; slot ids/types/indices/default bounds/binding modes; and the fonts, sizes, and colors carried on those layers. The only editable thing is **slot content** — visible text values in existing text nodes, images pointed at by slots, and chart/table data with their regenerated previews. The workbench template market states this disclosure whenever a layout or deck is selected.
+Under strict generation the template's Master/Layout layers are a frozen contract: fixed atom ids, topology, geometry, and metadata; slot ids/types/indices/default bounds/binding modes; and the fonts, sizes, and colors carried on those layers. The only editable thing is **slot content** — visible text values in existing text nodes, images pointed at by slots, and chart/table data with their regenerated previews. The confirmation page states this disclosure when a layout or deck is selected in Stage 1.
 
 ### Verify that Master and Layout were really applied
 

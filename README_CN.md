@@ -2,7 +2,7 @@
 
 > **newbie-ppt** 基于 [ppt-master](https://github.com/hugohe3/ppt-master)（MIT）二次开发，面向中国用户。
 > 完整保留原生 PowerPoint 生成管线，并新增本地 Web 工作台：在浏览器里建任务、
-> 模板市场真实预览、参数配置、一键提交、逐页实时看进度——告别纯聊天黑盒。
+> 在确认页选模板或自由设计、参数配置、一键提交、逐页实时看进度——告别纯聊天黑盒。
 
 [![Version](https://img.shields.io/github/v/release/hongge-ai/newbie-ppt?label=version&color=blue)](https://github.com/hongge-ai/newbie-ppt/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -308,13 +308,13 @@ AI：好的，先确认设计规范：
 
 AI 全程处理——内容分析、视觉设计、SVG 生成、PPTX 导出。
 
-**本地工作台（可视化操作，推荐新手）：** 不用在聊天里描述需求——启动本地工作台,在浏览器里完成全部操作:新建任务、浏览模板市场并**预览模板真实效果**、配置页数/画幅/语言/配图策略、上传参考材料;提交后把页面给出的触发语粘贴到 AI 对话即可。生成过程中,工作台实时显示每一页产出,完成后可直接下载 PPTX 并提交反馈。
+**本地工作台（可视化操作，推荐新手）：** 不用在聊天里描述需求——启动本地工作台,在浏览器里完成全部操作:新建任务、配置页数/画幅/语言/配图策略、上传参考材料;提交后把页面给出的触发语粘贴到 AI 对话即可;随后的确认页会让你选择模板工作区或自由设计,之后的每一步都从那里继续。生成过程中,工作台实时显示阶段与每一页产出;AI 若需要你决定什么,同一页面就能直接回答;完成后可直接下载 PPTX 并提交反馈。
 
 ```bash
 uv run python skills/ppt-master/scripts/workbench/server.py
 ```
 
-浏览器会自动打开 `http://127.0.0.1:7070`。执行者仍是你的 AI agent——工作台只负责收集你的决策、落盘为任务文件、并展示生成进度。详见 [scripts/docs/workbench.md](./skills/ppt-master/scripts/docs/workbench.md)。
+浏览器会自动打开 `http://127.0.0.1:7070`。执行者仍是你的 AI agent——工作台负责收集你的决策、展示运行状态,并把你的回答交回给 AI。详见 [scripts/docs/workbench.md](./skills/ppt-master/scripts/docs/workbench.md)。
 
 ```
 

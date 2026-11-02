@@ -1,0 +1,6 @@
+/* A mounted surface is one tab of the workbench: its own "exit the server"
+   control would be a dead button, and the tab bar is the navigation. */
+#exit,
+#btn-exit-preview {
+  display: none !important;
+}

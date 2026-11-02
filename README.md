@@ -2,8 +2,8 @@
 
 > **newbie-ppt** is a China-focused fork of [ppt-master](https://github.com/hugohe3/ppt-master) (MIT).
 > It keeps the full native-PowerPoint generation pipeline and adds a local web workbench:
-> create a task in the browser, browse the template market with real previews, configure
-> parameters, submit, and watch every page appear live — no more chat-only black box.
+> create a task in the browser, confirm the template or free design on the confirmation
+> page, submit, and watch every page appear live — no more chat-only black box.
 
 [![Version](https://img.shields.io/github/v/release/hongge-ai/newbie-ppt?label=version&color=blue)](https://github.com/hongge-ai/newbie-ppt/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -306,13 +306,13 @@ AI:  Sure. Let's confirm the design spec:
 
 The AI handles everything — content analysis, visual design, SVG generation, and PPTX export.
 
-**Local workbench (visual, recommended for beginners):** skip describing your needs in chat — start the local workbench and do everything in the browser: create a task, browse the template market with **real template previews**, set page count / canvas / language / image policy, and upload source material. After submitting, paste the trigger sentence it shows into your AI chat. While the agent generates, the workbench shows every page as it appears; when it finishes you can download the PPTX and leave feedback.
+**Local workbench (visual, recommended for beginners):** skip describing your needs in chat — start the local workbench and do everything in the browser: create a task, set page count / canvas / language / image policy, and upload source material. After submitting, paste the trigger sentence it shows into your AI chat; the confirmation page then asks you to pick a template workspace or free design, and every later step links on from there. While the agent generates, the workbench shows the live stage, every page as it appears, and any question the run is waiting on — answer it right there; when it finishes you can download the PPTX and leave feedback.
 
 ```bash
 uv run python skills/ppt-master/scripts/workbench/server.py
 ```
 
-The browser opens automatically at `http://127.0.0.1:7070`. Your AI agent remains the executor — the workbench only captures your decisions into task files and renders progress. See [`scripts/docs/workbench.md`](./skills/ppt-master/scripts/docs/workbench.md).
+The browser opens automatically at `http://127.0.0.1:7070`. Your AI agent remains the executor — the workbench captures your decisions into task files, renders the run, and carries your answers back to the agent. See [`scripts/docs/workbench.md`](./skills/ppt-master/scripts/docs/workbench.md).
 
 > **Output:** the deck lands in `exports/<name>_<timestamp>.pptx` as natively editable DrawingML; the flow also writes self-contained page previews to `svg_final/`. Charts and tables ship as editable shapes by default; pass `--native-charts-and-tables` for data-backed PowerPoint Chart / Table objects with **Edit Data**, saved as a separate `_native_charts_tables.pptx`. Formulas compile to editable OMML for PowerPoint 2010+. Backups, notes, animation and narration switches, and the non-PowerPoint boundaries → [FAQ](./docs/faq.md).
 

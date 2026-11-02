@@ -75,6 +75,41 @@ class AgentBridgeTests(unittest.TestCase):
         view = agent_bridge.effective_state(self.paths)
         self.assertEqual(view["progress"]["done"], 1)
 
+    # -- workbench task binding -------------------------------------------
+
+    def test_task_binding_survives_resume_and_end(self) -> None:
+        first = self.start(task="t20261102-090000-abcd")
+        self.assertEqual(first["task_id"], "t20261102-090000-abcd")
+        self.assertEqual(
+            agent_bridge.effective_state(self.paths)["task_id"],
+            "t20261102-090000-abcd",
+        )
+        resumed = self.start(resume=True)
+        self.assertEqual(resumed["task_id"], "t20261102-090000-abcd")
+        agent_bridge.end_run(self.project, "done")
+        # The lease is gone after run end; the binding lives in the event log
+        # so a finished task can still be linked back to its project.
+        self.assertEqual(
+            agent_bridge.effective_state(self.paths)["task_id"],
+            "t20261102-090000-abcd",
+        )
+
+    def test_takeover_inherits_the_task_binding(self) -> None:
+        self.start(task="t20261102-090000-abcd")
+        second = self.start(takeover=True, reason="manual")
+        self.assertEqual(second["task_id"], "t20261102-090000-abcd")
+
+    def test_new_run_without_a_task_clears_the_binding(self) -> None:
+        self.start(task="t20261102-090000-abcd")
+        agent_bridge.end_run(self.project, "done")
+        self.start()
+        self.assertIsNone(agent_bridge.effective_state(self.paths)["task_id"])
+
+    def test_invalid_task_id_is_rejected(self) -> None:
+        with self.assertRaises(agent_bridge.BridgeError) as caught:
+            self.start(task="not-a-task-id")
+        self.assertEqual(caught.exception.code, agent_bridge.EXIT_USAGE)
+
     # -- stages ------------------------------------------------------------
 
     def test_stage_order_is_forward_only(self) -> None:
@@ -190,7 +225,7 @@ class AgentBridgeTests(unittest.TestCase):
         agent_bridge.set_progress(self.project, 3, 8)
         before = agent_bridge.effective_state(self.paths)
         self.paths.status.unlink()
-        agent_bridge._write_json_atomic(self.paths.status, agent_bridge.fold_status(self.paths))
+        agent_bridge.write_json_atomic(self.paths.status, agent_bridge.fold_status(self.paths))
         after = agent_bridge.effective_state(self.paths)
         self.assertEqual(after["stage"], before["stage"])
         self.assertEqual(after["progress"], before["progress"])

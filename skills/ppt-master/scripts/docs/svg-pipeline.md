@@ -1026,7 +1026,7 @@ Pure render-and-validate tool for the [`visual-review`](../../workflows/stages/v
 python3 scripts/visual_review.py <project_path> [--pages <token> ...] [--server-url http://127.0.0.1:<P>]
 ```
 
-- Requires `playwright` plus chromium and a running live-preview server for the same project; without `--server-url` it discovers the port from `<project>/live_preview/lock.json`, and in either case validates `/api/health` against the target project and rejects a server for another project.
+- Requires `playwright` plus chromium and the workbench's preview surface for the same project: pass `--server-url http://127.0.0.1:<workbench port>/p/<slug>/preview` (port from `projects/.workbench/workbench.lock`). The port-based `live_preview/lock.json` discovery is gone with the standalone preview server.
 - Output PNG matches the live-preview browser (inlined `<use data-icon>`, resolved `<image href>`); the root SVG `viewBox` is the canvas source of truth, and each successful page record carries `view_box`, `width` / `height`, and raster `png_width` / `png_height`; output dimensions equal that record's raster size. A record with `"all_background": true` rendered to a blank surface.
 - Renders are serialized by `<project>/.preview/.render.lock`, so concurrent invocation is safe.
 - Exit codes: `0` all requested pages rendered; `2` live-preview server unreachable or serving a different project; `3` playwright/chromium missing or unable to launch; `4` page-level render failure (details on stderr, partial output on disk).

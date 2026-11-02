@@ -22,6 +22,7 @@ SCRIPTS_DIR = Path(__file__).resolve().parents[1]
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
+import agent_bridge  # noqa: E402
 from workbench import server  # noqa: E402
 
 
@@ -151,8 +152,7 @@ class TaskLifecycleTests(unittest.TestCase):
         task = self.client.get(f'/api/tasks/{task_id}').get_json()
         self.assertEqual(task['status'], 'draft')
         self.assertNotIn('profile', task['params'])
-        self.assertEqual(task['template_selection']['mode'], 'free_design')
-        self.assertIn('indexes_sha256', task['template_selection'])
+        self.assertNotIn('template_selection', task)
         # patch
         response = self.client.patch(f'/api/tasks/{task_id}', json={
             'display_title': 'Q3 汇报',
@@ -194,56 +194,6 @@ class TaskLifecycleTests(unittest.TestCase):
             with self.subTest(patch=patch_payload):
                 response = self.client.patch(f'/api/tasks/{task_id}', json=patch_payload)
                 self.assertEqual(response.status_code, 400)
-
-    def test_template_selection_resolves_roots_from_index(self) -> None:
-        task_id = self._create()
-        response = self.client.patch(f'/api/tasks/{task_id}', json={
-            'template_selection': {
-                'mode': 'templates',
-                'selections': [{'kind': 'style', 'id': 'consulting-decision'}],
-            },
-        })
-        self.assertEqual(response.status_code, 200)
-        task = self.client.get(f'/api/tasks/{task_id}').get_json()
-        selection = task['template_selection']
-        self.assertEqual(selection['mode'], 'templates')
-        self.assertEqual(len(selection['selections']), 1)
-        chosen = selection['selections'][0]
-        self.assertEqual(chosen['kind'], 'style')
-        expected_root = server._templates_dir() / 'styles' / 'consulting-decision'
-        self.assertEqual(chosen['workspace_root'], str(expected_root))
-        self.assertTrue(Path(chosen['workspace_root']).is_dir())
-
-    def test_template_selection_rejects_bad_input(self) -> None:
-        task_id = self._create()
-        for selection in (
-            {'mode': 'templates', 'selections': []},
-            {'mode': 'free_design', 'selections': [{'kind': 'style', 'id': 'consulting-decision'}]},
-            {'mode': 'templates', 'selections': [{'kind': 'office', 'id': 'x'}]},
-            {'mode': 'templates', 'selections': [{'kind': 'style', 'id': '../_index'}]},
-            {'mode': 'templates', 'selections': [{'kind': 'style', 'id': 'no-such-style'}]},
-            {'mode': 'templates', 'selections': [
-                {'kind': 'style', 'id': 'consulting-decision'},
-                {'kind': 'style', 'id': 'mbb-consulting'},
-            ]},
-        ):
-            with self.subTest(selection=selection):
-                response = self.client.patch(f'/api/tasks/{task_id}', json={
-                    'template_selection': selection,
-                })
-                self.assertEqual(response.status_code, 400)
-
-    def test_submit_requires_topic_and_selection_consistency(self) -> None:
-        task = server._default_task('t20990101-000000-beef', '标题', None)
-        task['topic'] = ' '
-        self.assertIn('topic', server._submit_error(task))
-        task['topic'] = '有主题'
-        task['template_selection']['mode'] = 'templates'
-        self.assertIn('selection', server._submit_error(task))
-        task['template_selection']['selections'] = [
-            {'source': 'library', 'kind': 'style', 'id': 'x', 'workspace_root': '/x'},
-        ]
-        self.assertIsNone(server._submit_error(task))
 
     def test_submitted_task_is_frozen(self) -> None:
         task_id = self._create()
@@ -306,18 +256,36 @@ class TaskLifecycleTests(unittest.TestCase):
         self.assertEqual(statuses['t20990101-000000-dead'], 'error')
         self.assertNotIn('not-a-task-id', statuses)
 
-    def test_agent_writeback_is_visible_without_restart(self) -> None:
+    def test_agent_binding_is_visible_without_restart(self) -> None:
         task_id = self._create()
         self.client.post(f'/api/tasks/{task_id}/submit')
-        task = json.loads(self._task_file(task_id).read_text(encoding='utf-8-sig'))
-        task['status'] = 'processing'
-        task['project_dir'] = str(self.projects_root / 'demo_20261015')
-        self._task_file(task_id).write_text(
-            json.dumps(task, ensure_ascii=False), encoding='utf-8',
-        )
+        project = self.projects_root / 'demo_20261015'
+        project.mkdir()
+        agent_bridge.start_run(project, task=task_id)
+        agent_bridge.enter_stage(project, 'execute')
         seen = self.client.get(f'/api/tasks/{task_id}').get_json()
         self.assertEqual(seen['status'], 'processing')
-        self.assertEqual(seen['project_dir'], task['project_dir'])
+        self.assertEqual(seen['runtime']['project_dir'], str(project))
+        self.assertEqual(seen['runtime']['stage'], 'execute')
+        # A later agent write needs no restart: the next request re-derives.
+        agent_bridge.set_progress(project, 3, 8)
+        moved = self.client.get(f'/api/tasks/{task_id}').get_json()
+        self.assertEqual(moved['runtime']['progress'], {'done': 3, 'total': 8, 'unit': 'page'})
+        agent_bridge.end_run(project, 'done')
+        self.assertEqual(self.client.get(f'/api/tasks/{task_id}').get_json()['status'], 'done')
+
+    def test_task_json_holds_only_the_user_domain(self) -> None:
+        task_id = self._create()
+        self.client.post(f'/api/tasks/{task_id}/submit')
+        project = self.projects_root / 'demo_20261017'
+        project.mkdir()
+        agent_bridge.start_run(project, task=task_id)
+        agent_bridge.enter_stage(project, 'execute')
+        agent_bridge.end_run(project, 'done')
+        task = json.loads(self._task_file(task_id).read_text(encoding='utf-8-sig'))
+        self.assertEqual(set(task), set(server.USER_DOMAIN_FIELDS))
+        self.assertEqual(task['task_id'], task_id)
+        self.assertIsNotNone(task['submitted_at'])
 
     def test_options_endpoint_syncs_canvas_from_config(self) -> None:
         response = self.client.get('/api/options')
@@ -327,100 +295,6 @@ class TaskLifecycleTests(unittest.TestCase):
         self.assertTrue(data['image_policies'])
         self.assertTrue(data['languages'])
         self.assertTrue(data['page_counts'])
-
-
-class TemplateMarketTests(unittest.TestCase):
-    """Market catalog, preview, and the whitelisted workspace file route.
-
-    These read the real bundled template library shipped with the skill.
-    """
-
-    def setUp(self) -> None:
-        # ignore_cleanup_errors: Windows Defender intermittently holds a
-        # freshly written task.json during real-time scanning, which would
-        # otherwise fail an unrelated teardown.
-        self.temporary = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
-        self.addCleanup(self.temporary.cleanup)
-        self.projects_root = Path(self.temporary.name) / 'projects'
-        self.projects_root.mkdir(parents=True)
-        with patch.object(server.threading.Thread, 'start'):
-            self.app = server.create_app(str(self.projects_root), idle_timeout=0)
-        self.app.config['TESTING'] = True
-        self.client = self.app.test_client()
-
-    def test_template_catalog_matches_indexes(self) -> None:
-        response = self.client.get('/api/templates')
-        self.assertEqual(response.status_code, 200)
-        catalog = response.get_json()
-        for kind in server.TEMPLATE_KINDS:
-            index = server._load_template_index(kind)
-            expected_ids = {tid for tid in index if server._safe_template_id(tid)}
-            actual_ids = {card['id'] for card in catalog[kind]}
-            self.assertEqual(actual_ids, expected_ids, f'kind {kind} mismatch')
-            self.assertTrue(actual_ids, f'kind {kind} unexpectedly empty')
-        for card in catalog['layout']:
-            self.assertIn('workspace_root', card)
-            self.assertTrue(Path(card['workspace_root']).is_dir())
-
-    def test_template_file_route_whitelist(self) -> None:
-        ok = self.client.get('/templates/layout/presentation_core/templates/01_title_slide.svg')
-        self.assertEqual(ok.status_code, 200)
-        self.assertIn('svg', ok.headers['Content-Type'])
-        for url in (
-            '/templates/office/presentation_core/templates/01_title_slide.svg',   # unknown kind
-            '/templates/layout/no-such-layout/templates/01_title_slide.svg',      # unknown id
-            '/templates/layout/../workbench/server.py',                           # traversal
-        ):
-            with self.subTest(url=url):
-                self.assertEqual(self.client.get(url).status_code, 404)
-
-    def test_template_file_route_serves_cjk_id_and_deck_images(self) -> None:
-        svg = self.client.get('/templates/deck/%E4%B8%AD%E5%9B%BD%E7%94%B5%E4%BF%A1/templates/01_cover.svg')
-        self.assertEqual(svg.status_code, 200)
-        images = self.client.get('/templates/deck/%E4%B8%AD%E5%9B%BD%E7%94%B5%E4%BF%A1/images/logo.png')
-        self.assertEqual(images.status_code, 200)
-
-    def test_preview_layout_returns_roster(self) -> None:
-        response = self.client.get('/api/templates/layout/presentation_core/preview')
-        self.assertEqual(response.status_code, 200)
-        payload = response.get_json()
-        self.assertEqual(payload['kind'], 'layout')
-        self.assertTrue(payload['roster'], 'layout preview must list roster SVGs')
-        first = payload['roster'][0]
-        self.assertTrue(first['svg_url'].startswith('/templates/layout/presentation_core/templates/'))
-        fetched = self.client.get(first['svg_url'])
-        self.assertEqual(fetched.status_code, 200)
-        self.assertIn('page_types', payload)
-
-    def test_preview_brand_returns_frontmatter_and_color(self) -> None:
-        response = self.client.get('/api/templates/brand/huawei/preview')
-        self.assertEqual(response.status_code, 200)
-        payload = response.get_json()
-        self.assertEqual(payload['roster'], [], 'brands have no roster')
-        self.assertEqual(payload['frontmatter'].get('kind'), 'brand')
-        self.assertIn('#', payload.get('primary_color', ''))
-
-    def test_preview_deck_cjk_id(self) -> None:
-        response = self.client.get(
-            '/api/templates/deck/%E4%B8%AD%E5%9B%BD%E7%94%B5%E4%BF%A1/preview'
-        )
-        self.assertEqual(response.status_code, 200)
-        payload = response.get_json()
-        names = [item['name'] for item in payload['roster']]
-        self.assertIn('01_cover.svg', names)
-        self.assertTrue(payload['images_url_prefix'].startswith('/templates/deck/'))
-        cover = next(item for item in payload['roster'] if item['name'] == '01_cover.svg')
-        fetched = self.client.get(cover['svg_url'])
-        self.assertEqual(fetched.status_code, 200)
-        self.assertIn(b'../images/', fetched.data)
-
-    def test_preview_unknown_template(self) -> None:
-        for url in (
-            '/api/templates/layout/no-such-layout/preview',
-            '/api/templates/brand/../huawei/preview',
-        ):
-            with self.subTest(url=url):
-                self.assertEqual(self.client.get(url).status_code, 404)
 
 
 class ProgressAndFeedbackTests(unittest.TestCase):
@@ -443,12 +317,12 @@ class ProgressAndFeedbackTests(unittest.TestCase):
         return self.projects_root / '.workbench' / 'tasks' / self.task_id / 'task.json'
 
     def _attach_project(self, project_name: str) -> Path:
-        """Simulate the agent write-back: attach a project dir to the task."""
+        """Simulate the agent side: submit the task, then bind a real project."""
+        self.client.post(f'/api/tasks/{self.task_id}/submit')
         project_path = self.projects_root / project_name
-        task = json.loads(self._task_file().read_text(encoding='utf-8-sig'))
-        task['status'] = 'processing'
-        task['project_dir'] = str(project_path)
-        self._task_file().write_text(json.dumps(task, ensure_ascii=False), encoding='utf-8')
+        project_path.mkdir(parents=True, exist_ok=True)
+        agent_bridge.start_run(project_path, task=self.task_id)
+        agent_bridge.enter_stage(project_path, 'execute')
         return project_path
 
     def test_progress_without_project_is_empty(self) -> None:
@@ -527,6 +401,83 @@ class ProgressAndFeedbackTests(unittest.TestCase):
         self.assertEqual(feedback['comment'], '不错')
         self.assertTrue(feedback['wants_revision'])
         self.assertEqual(feedback['schema_version'], 1)
+
+
+class AgentSurfaceTests(unittest.TestCase):
+    """The JSON surface an agent uses: read run state, answer one request."""
+
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
+        self.addCleanup(self.temporary.cleanup)
+        self.projects_root = Path(self.temporary.name) / 'projects'
+        self.projects_root.mkdir(parents=True)
+        with patch.object(server.threading.Thread, 'start'):
+            self.app = server.create_app(str(self.projects_root), idle_timeout=0)
+        self.app.config['TESTING'] = True
+        self.client = self.app.test_client()
+        self.project = self.projects_root / 'demo_ppt169_20261102'
+        self.project.mkdir()
+        agent_bridge.start_run(self.project, task='t20261102-090000-abcd')
+        agent_bridge.enter_stage(self.project, 'execute', label='绘制页面 2/6')
+        agent_bridge.set_progress(self.project, 2, 6)
+
+    def test_project_list_reports_live_state(self) -> None:
+        payload = self.client.get('/api/projects').get_json()
+        self.assertEqual(len(payload['projects']), 1)
+        row = payload['projects'][0]
+        self.assertEqual(row['slug'], 'demo_ppt169_20261102')
+        self.assertEqual(row['state'], 'running')
+        self.assertEqual(row['stage'], 'execute')
+        self.assertEqual(row['stage_label'], '绘制页面 2/6')
+        self.assertEqual(row['progress'], {'done': 2, 'total': 6, 'unit': 'page'})
+        self.assertEqual(row['task_id'], 't20261102-090000-abcd')
+
+    def test_project_view_carries_events_and_inbox(self) -> None:
+        request = agent_bridge.open_request(
+            self.project,
+            kind='confirm',
+            title='选择方向',
+            options=[{'id': 'a', 'label': 'A'}, {'id': 'b', 'label': 'B'}],
+        )
+        payload = self.client.get('/api/projects/demo_ppt169_20261102').get_json()
+        self.assertEqual(payload['status']['state'], 'waiting_user')
+        self.assertTrue(payload['events'])
+        self.assertEqual(payload['events'][-1]['type'], 'ask/open')
+        self.assertEqual(len(payload['requests']), 1)
+        self.assertEqual(payload['requests'][0]['request']['id'], request['id'])
+        self.assertIsNone(payload['requests'][0]['response'])
+
+    def test_answer_through_the_project_slug(self) -> None:
+        request = agent_bridge.open_request(self.project, kind='confirm', title='T')
+        url = f"/api/projects/demo_ppt169_20261102/requests/{request['id']}"
+        response = self.client.post(url, json={'choice': ['a']})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json()['response']['status'], 'answered')
+        self.assertEqual(self.client.get('/api/projects').get_json()['projects'][0]['state'], 'running')
+        # A second answer is a conflict, never an edit.
+        self.assertEqual(self.client.post(url, json={'choice': ['b']}).status_code, 409)
+
+    def test_answer_through_the_task_id(self) -> None:
+        task_id = self.client.post('/api/tasks', json={'topic': '答题测试'}).get_json()['task_id']
+        self.client.post(f'/api/tasks/{task_id}/submit')
+        agent_bridge.start_run(self.project, takeover=True, task=task_id)
+        request = agent_bridge.open_request(self.project, kind='choice', title='T')
+        response = self.client.post(
+            f"/api/tasks/{task_id}/requests/{request['id']}",
+            json={'choice': ['x'], 'text': '备注'},
+        )
+        self.assertEqual(response.status_code, 200)
+        stored = agent_bridge.read_response(self.project, request['id'])
+        self.assertEqual(stored['choice'], ['x'])
+        self.assertEqual(stored['text'], '备注')
+        self.assertEqual(stored['answered_by_surface'], 'web')
+
+    def test_bad_slug_and_request_id_are_refused(self) -> None:
+        self.assertEqual(self.client.get('/api/projects/..').status_code, 404)
+        self.assertEqual(self.client.get('/api/projects/not-a-project').status_code, 404)
+        request = agent_bridge.open_request(self.project, kind='confirm', title='T')
+        bad = f'/api/projects/demo_ppt169_20261102/requests/..%2F..%2Ftask'
+        self.assertEqual(self.client.post(bad, json={}).status_code, 404)
 
 
 if __name__ == '__main__':

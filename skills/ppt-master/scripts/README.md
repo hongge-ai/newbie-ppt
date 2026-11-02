@@ -13,7 +13,7 @@ This directory contains user-facing scripts for conversion, project setup, SVG p
 - `scripts/template_import/`: internal PPTX reference-preparation helpers used by `pptx_template_import.py`
 - `scripts/pptx_ooxml/`: shared OOXML intake, cloning, and package primitives
 - `scripts/svg_finalize/`: internal post-processing helpers used by `finalize_svg.py`
-- `scripts/workbench/`: repository-level local task workbench server (see [`docs/workbench.md`](docs/workbench.md))
+- `scripts/workbench/`: the one local web surface (tasks, live run view, inbox, and the mounted confirm/preview/spec pages; see [`docs/workbench.md`](docs/workbench.md))
 - `scripts/docs/`: topic-focused script documentation
 - `scripts/prompt_audit.py` + `scripts/prompt_audit_manifest.json`: maintainer-only prompt budget/governance lint (see [`docs/prompt_audit.md`](docs/prompt_audit.md)); the manifest is audit-only and never loaded as prompt context
 - `scripts/run_report.py`: maintainer-only run metrics read from a harness session transcript — wall clock, reads, and the quality-gate timeline (see [`docs/run-report.md`](docs/run-report.md)); never runs during generation
@@ -61,8 +61,9 @@ uv run python scripts/update_repo.py
 | PPTX animations | `pptx_animations.py`, `animation_config.py` | [docs/pptx-animations.md](./docs/pptx-animations.md) |
 | Animation resources | `sound_sync.py` | [sound vocabulary and sync](../templates/sounds/README.md); [docs/pptx-animations.md](./docs/pptx-animations.md) |
 | Spec maintenance | `update_spec.py`, `visualization_recall.py`; legacy `chart_recall.py` | [docs/update_spec.md](./docs/update_spec.md); [docs/visualization-recall.md](./docs/visualization-recall.md) |
-| Spec review | `spec_review/server.py`, `check_spec_annotations.py` | [docs/spec_review.md](./docs/spec_review.md) |
-| Local workbench | `workbench/server.py` | [docs/workbench.md](./docs/workbench.md) |
+| Spec review | `spec_review/hold.py`, `check_spec_annotations.py` (page mounted in the workbench) | [docs/spec_review.md](./docs/spec_review.md) |
+| Local workbench | `workbench/server.py` (task + market + run view + inbox, one port) | [docs/workbench.md](./docs/workbench.md) |
+| Project surfaces | `surface_mount.py`; mounted at `/p/<slug>/{confirm,preview,spec}/`, no own process or port | [docs/workbench.md](./docs/workbench.md) |
 | Image tools | `image_gen.py`, `image_treat.py`, `analyze_images.py`, `gemini_watermark_remover.py` | [docs/image.md](./docs/image.md) |
 | Maintenance smokes | Inline temporary-project commands | [advanced image and motion](./docs/advanced-image-motion-smoke.md); [mask and gradient](./docs/mask-gradient-smoke.md); [multilingual text](./docs/multilingual-text-smoke.md) |
 | Repo maintenance | `setup_env.py`, `update_repo.py`, `make_dist.py` | [docs/setup-env.md](./docs/setup-env.md) |

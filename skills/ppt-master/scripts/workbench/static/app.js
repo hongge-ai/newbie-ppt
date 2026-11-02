@@ -72,6 +72,7 @@
     draft: '草稿',
     submitted: '待处理',
     processing: '生成中',
+    interrupted: '已中断',
     done: '已完成',
     failed: '失败',
     error: '损坏'
@@ -117,6 +118,9 @@
     var title = task.display_title || task.topic || task.task_id;
     var meta = [];
     if (task.created_at) meta.push(task.created_at);
+    var runtime = task.runtime || {};
+    if (runtime.stage_label) meta.push(runtime.stage_label);
+    if (runtime.blocking) meta.push('待你回答');
     return (
       '<a class="task-card" href="#/task/' + encodeURIComponent(task.task_id) + '">' +
       '<div class="task-card-head">' +
@@ -265,9 +269,8 @@
       '</section>' +
 
       '<section class="panel">' +
-      '<h3>模板</h3>' +
-      '<div id="template-summary" class="template-summary"></div>' +
-      '<a class="btn" href="#/task/' + encodeURIComponent(task.task_id) + '/market">浏览模板市场选择模板(可预览)</a>' +
+      '<h3>模板 / 品牌 / 风格</h3>' +
+      '<p class="hint">这里不选模板。提交之后，在「阶段确认」页的 Stage 1 里选择模板工作区，或改用自由设计。</p>' +
       '</section>' +
 
       '<section class="panel actions">' +
@@ -295,17 +298,6 @@
         image_policy: $('#f-image-policy').value
       }
     };
-  }
-
-  function templateSummaryHtml(task) {
-    var sel = task.template_selection || {};
-    if (sel.mode !== 'templates' || !sel.selections || !sel.selections.length) {
-      return '<span class="hint">当前:自由设计(未选模板)</span>';
-    }
-    var parts = sel.selections.map(function (item) {
-      return esc(item.kind) + ' · ' + esc(item.id);
-    });
-    return '<div>已选择:' + parts.join(' + ') + '</div>';
   }
 
   function wireTaskForm(task) {
@@ -387,8 +379,10 @@
       ['语气风格', r.tone || '—'],
       ['附加要求', r.extra || '—']
     ];
-    if (task.error) rows.push(['错误信息', task.error]);
-    if (task.project_dir) rows.push(['项目目录', task.project_dir]);
+    var runtime = task.runtime || {};
+    if (runtime.error) rows.push(['错误信息', runtime.error.message || '']);
+    if (runtime.project_dir) rows.push(['项目目录', runtime.project_dir]);
+    if (runtime.stage_label) rows.push(['当前阶段', runtime.stage_label]);
     return (
       '<section class="panel">' +
       '<div class="task-head">' +
@@ -417,7 +411,6 @@
       setConnState(false);
       if (task.status === 'draft') {
         render(renderTaskForm(task, optionsCache, task.uploads_present || []));
-        $('#template-summary').innerHTML = templateSummaryHtml(task);
         wireTaskForm(task);
       } else {
         render(renderTaskReadonly(task));
@@ -427,453 +420,6 @@
       setConnState(true);
       render('<section class="panel"><h2>加载失败</h2><p>' + esc(err.message) + '</p>' +
         '<a class="btn" href="#/tasks">← 返回列表</a></section>');
-    });
-  }
-
-  // ---------- template market view ----------
-
-  var KIND_LABELS = { brand: '品牌', style: '风格', layout: '版式', deck: '成品' };
-  var KIND_ORDER = ['deck', 'layout', 'brand', 'style'];
-
-  function tokenSample(name, topic) {
-    var samples = {
-      TITLE: (topic || '演示标题').slice(0, 24),
-      SUBTITLE: '副标题示例',
-      AUTHOR: '作者名称',
-      DATE: new Date().toISOString().slice(0, 10),
-      PAGE_NUM: '1',
-      TOTAL_PAGES: 'N',
-      SECTION_TITLE: '章节标题',
-      SECTION_SUBTITLE: '章节副标题',
-      CONTENT_TITLE: '内容标题',
-      TOPIC: (topic || '主题').slice(0, 24),
-      KICKER: '引导语示例',
-      SOURCE: '资料来源示例',
-      FOOTER: '页脚示例'
-    };
-    if (samples[name] != null) return samples[name];
-    var pretty = name.toLowerCase().replace(/_/g, ' ');
-    return pretty.charAt(0).toUpperCase() + pretty.slice(1);
-  }
-
-  function svgPreviewText(svgText, imagesPrefix, topic) {
-    var text = svgText.replace(/\{\{([A-Za-z0-9_]+)\}\}/g, function (all, name) {
-      return tokenSample(name, topic);
-    });
-    if (imagesPrefix) {
-      text = text.replace(/\.\.\/images\//g, imagesPrefix + '/images/');
-    }
-    return text;
-  }
-
-  function templateCardMeta(card) {
-    var bits = [];
-    if (card.primary_color) {
-      bits.push('<i class="color-dot" style="background:' + esc(card.primary_color) + '"></i>' +
-        '<code>' + esc(card.primary_color) + '</code>');
-    }
-    if (card.canvas_format) bits.push(esc(card.canvas_format));
-    if (card.page_count) bits.push(esc(card.page_count) + ' 页');
-    return bits.join(' · ');
-  }
-
-  function templateCard(card, selected, opts) {
-    opts = opts || {};
-    var keywords = (card.keywords || []).slice(0, 4).map(function (kw) {
-      return '<span class="kw">' + esc(kw) + '</span>';
-    }).join('');
-    var classes = 'tpl-card';
-    if (selected) classes += ' tpl-selected';
-    if (opts.dim) classes += ' tpl-dim';
-    return (
-      '<div class="' + classes + '" data-kind="' + esc(card.kind) + '" data-id="' + esc(card.id) + '">' +
-      '<div class="tpl-card-head"><span class="tpl-name">' + esc(card.id) + '</span>' +
-      (selected ? '<span class="badge badge-done">已选</span>' : '') + '</div>' +
-      '<div class="tpl-kind">' + esc(KIND_LABELS[card.kind] || card.kind) + '</div>' +
-      '<div class="tpl-summary">' + esc(card.summary || '') + '</div>' +
-      '<div class="tpl-meta">' + templateCardMeta(card) + '</div>' +
-      (keywords ? '<div class="tpl-kws">' + keywords + '</div>' : '') +
-      '<div class="tpl-actions">' +
-      '<button class="btn btn-small" data-preview="' + esc(card.kind) + '/' + encodeURIComponent(card.id) + '">预览</button>' +
-      (opts.customize
-        ? '<button class="btn btn-small" data-customize="' + esc(card.kind) + '/' + encodeURIComponent(card.id) + '">基于此自定义</button>'
-        : '') +
-      (selected
-        ? '<button class="btn btn-small btn-danger" data-unselect="' + esc(card.kind) + '">取消选择</button>'
-        : '<button class="btn btn-small btn-primary" data-select="' + esc(card.kind) + '/' + encodeURIComponent(card.id) + '">选用</button>') +
-      '</div>' +
-      '</div>'
-    );
-  }
-
-  function mineCard(item) {
-    var invalidCount = (item.invalid || []).length;
-    var chips = (item.selections || []).map(function (s) {
-      return '<span class="chosen-chip">' + esc(KIND_LABELS[s.kind] || s.kind) + ':' + esc(s.id) + '</span>';
-    }).join(' ');
-    return (
-      '<div class="tpl-card tpl-mine">' +
-      '<div class="tpl-card-head"><span class="tpl-name">' + esc(item.name || '') + '</span>' +
-      (invalidCount ? '<span class="badge badge-warn">含失效项</span>' : '') + '</div>' +
-      '<div class="tpl-kind">我的模板</div>' +
-      '<div class="tpl-kws">' + (chips || '<span class="hint">空组合</span>') + '</div>' +
-      (invalidCount ? '<div class="hint">失效: ' + esc(item.invalid.join(', ')) + '</div>' : '') +
-      '<div class="tpl-actions">' +
-      '<button class="btn btn-small btn-primary" data-use-tpl="' + esc(item.id) + '"' +
-      (invalidCount ? ' disabled' : '') + '>使用</button>' +
-      '<button class="btn btn-small" data-edit-tpl="' + esc(item.id) + '">编辑</button>' +
-      '<button class="btn btn-small btn-danger" data-del-tpl="' + esc(item.id) + '">删除</button>' +
-      '</div>' +
-      '</div>'
-    );
-  }
-
-  function marketHtml(task, catalog, tab, selections, customTemplates) {
-    customTemplates = customTemplates || [];
-    var readonly = task.status !== 'draft';
-    var deckChosen = !!selections.deck;
-    var cards = [];
-    if (tab === 'mine') {
-      customTemplates.forEach(function (item) { cards.push(mineCard(item)); });
-    } else {
-      var kinds = tab === 'all' ? KIND_ORDER : [tab];
-      kinds.forEach(function (kind) {
-        (catalog[kind] || []).forEach(function (card) {
-          cards.push(templateCard(card, selections[kind] === card.id, {
-            dim: deckChosen && kind !== 'deck',
-            customize: kind === 'deck' && !readonly,
-          }));
-        });
-      });
-    }
-    var tabs = ['all'].concat(KIND_ORDER, ['mine']).map(function (key) {
-      var label = key === 'all' ? '全部' : key === 'mine' ? '我的模板' : KIND_LABELS[key];
-      return '<button class="tab' + (tab === key ? ' tab-active' : '') + '" data-tab="' + key + '">' + label + '</button>';
-    }).join('');
-    var chosen = KIND_ORDER.filter(function (kind) { return selections[kind]; })
-      .map(function (kind) {
-        return '<span class="chosen-chip">' + KIND_LABELS[kind] + ':' + esc(selections[kind]) +
-          ' <a href="#" data-clear-kind="' + kind + '">✕</a></span>';
-      }).join('');
-    var unselectedLabels = KIND_ORDER
-      .filter(function (kind) { return !selections[kind]; })
-      .map(function (kind) { return KIND_LABELS[kind]; })
-      .join('/');
-    var selectedCount = KIND_ORDER.filter(function (kind) { return selections[kind]; }).length;
-    var comboSummary = selectedCount && unselectedLabels
-      ? '<span class="hint">未选:' + unselectedLabels + '(由 AI 定)</span>'
-      : '';
-    var modeSwitch = readonly ? '' :
-      '<div class="tabs mode-tabs">' +
-      '<button class="tab' + (marketMode === 'ready' ? ' tab-active' : '') + '" data-mode="ready">挑成品一步到位</button>' +
-      '<button class="tab' + (marketMode === 'combo' ? ' tab-active' : '') + '" data-mode="combo">自定义组合</button>' +
-      '</div>';
-    return (
-      '<section class="panel">' +
-      '<div class="task-head">' +
-      '<div><h2>模板市场</h2>' +
-      '<div class="task-sub">任务 ' + esc(task.task_id) + (readonly ? ' · 已提交,以下为只读' : '') + '</div></div>' +
-      '<a class="btn" href="#/task/' + encodeURIComponent(task.task_id) + '">← 返回配置</a>' +
-      '</div>' +
-      '<p class="hint">版式/成品模板按严格模式生成:模板的母版/版式层是冻结契约,可改的只有槽内容(文字/图片/图表数据)。</p>' +
-      modeSwitch +
-      (deckChosen && tab !== 'mine'
-        ? '<div class="hint">已选成品:品牌/风格/版式默认沿用该成品,另选其他维度将覆盖对应部分。</div>'
-        : '') +
-      (readonly ? '' :
-        '<div class="market-bar">' +
-        '<label class="field-check"><input id="m-free" type="checkbox"' +
-        (Object.keys(selections).length ? '' : ' checked') + '><span>自由设计(不使用模板)</span></label>' +
-        '<div class="chosen">' + (chosen || '<span class="hint">尚未选择模板</span>') + comboSummary + '</div>' +
-        (selectedCount ? '<button class="btn" data-save-tpl>存为我的模板</button>' : '') +
-        '<button id="m-save" class="btn btn-primary">保存模板选择</button>' +
-        '</div>') +
-      '<div class="tabs">' + tabs + '</div>' +
-      '<div class="tpl-grid">' + (cards.length ? cards.join('') :
-        '<div class="empty">' + (tab === 'mine' ? '还没有自定义模板:在自定义组合里选好后点「存为我的模板」' : '该分类暂无模板') + '</div>') + '</div>' +
-      '</section>' +
-      '<div id="preview-modal" class="modal-backdrop" hidden><div class="modal">' +
-      '<header class="modal-head"><strong id="modal-title"></strong>' +
-      '<button class="btn btn-small" id="modal-close">关闭</button></header>' +
-      '<div id="modal-body" class="modal-body"></div>' +
-      '</div></div>' +
-      '<div id="save-modal" class="modal-backdrop" hidden><div class="modal">' +
-      '<header class="modal-head"><strong id="save-modal-title">存为我的模板</strong>' +
-      '<button class="btn btn-small" id="save-tpl-cancel">关闭</button></header>' +
-      '<div class="modal-body">' +
-      '<label class="field"><span>模板名称</span>' +
-      '<input type="text" id="save-tpl-name" maxlength="40" placeholder="例如:咨询风汇报组合"></label>' +
-      '<p class="hint">保存当前组合(可含成品/版式/品牌/风格任意维度),使用时一键回填。</p>' +
-      '<div class="modal-actions"><button class="btn btn-primary" id="save-tpl-confirm">保存</button></div>' +
-      '</div>' +
-      '</div></div>'
-    );
-  }
-
-  function renderPreviewModal(payload, topic, selected, onChoose) {
-    var modal = $('#preview-modal');
-    $('#modal-title').textContent = payload.id + '(' + (KIND_LABELS[payload.kind] || payload.kind) + ')';
-    var body = $('#modal-body');
-    var fmRows = Object.keys(payload.frontmatter || {}).map(function (key) {
-      var value = payload.frontmatter[key];
-      var swatch = /^#[0-9A-Fa-f]{3,8}$/.test(value)
-        ? ' <i class="color-dot" style="background:' + esc(value) + '"></i>'
-        : '';
-      return '<tr><th>' + esc(key) + '</th><td>' + esc(value) + swatch + '</td></tr>';
-    }).join('');
-
-    var html = '';
-    if (payload.summary) html += '<p class="tpl-summary">' + esc(payload.summary) + '</p>';
-    if (fmRows) html += '<table class="kv-table">' + fmRows + '</table>';
-    if (payload.roster && payload.roster.length) {
-      html += '<p class="hint">共 ' + payload.roster.length + ' 页模板,占位符已替换为示例内容。' +
-        (payload.kind === 'layout' || payload.kind === 'deck'
-          ? ' 选用后按严格模式生成:母版/版式层为冻结契约,可改的只有槽内容(文字/图片/图表数据)。'
-          : '') + '</p>' +
-        '<div class="roster-grid" id="roster-grid">' +
-        payload.roster.map(function (item) {
-          return '<figure class="roster-item"><figcaption>' + esc(item.name) + '</figcaption>' +
-            '<div class="roster-svg" data-svg-url="' + esc(item.svg_url) + '">加载中…</div></figure>';
-        }).join('') + '</div>';
-    } else if (payload.kind === 'brand' || payload.kind === 'style') {
-      html += '<p class="hint">该类型无页面原型,以设计规范(色彩/字体/语气)参与生成。</p>';
-    }
-    if (payload.primary_color) {
-      html += '<div class="tpl-meta">主色 <i class="color-dot" style="background:' +
-        esc(payload.primary_color) + '"></i><code>' + esc(payload.primary_color) + '</code></div>';
-    }
-    if (onChoose) {
-      html += '<div class="modal-actions"><button id="modal-choose" class="btn btn-primary">' +
-        (selected ? '重新选用' : '选用此模板') + '</button></div>';
-    }
-    body.innerHTML = html;
-    modal.hidden = false;
-
-    Array.prototype.forEach.call(body.querySelectorAll('[data-svg-url]'), function (holder) {
-      fetch(holder.getAttribute('data-svg-url'))
-        .then(function (resp) {
-          if (!resp.ok) throw new Error('HTTP ' + resp.status);
-          return resp.text();
-        })
-        .then(function (text) {
-          holder.innerHTML = svgPreviewText(text, payload.images_url_prefix, topic);
-        })
-        .catch(function (err) {
-          holder.innerHTML = '<div class="empty">SVG 加载失败:' + esc(err.message) + '</div>';
-        });
-    });
-
-    $('#modal-close').addEventListener('click', function () { modal.hidden = true; });
-    modal.addEventListener('click', function (event) {
-      if (event.target === modal) modal.hidden = true;
-    });
-    var chooseBtn = $('#modal-choose');
-    if (chooseBtn) chooseBtn.addEventListener('click', onChoose);
-  }
-
-  // Market dual-mode is a UI emphasis layer over the same selection model:
-  // 'ready' guides toward a one-pick deck, 'combo' opens the four-kind mixer.
-  var marketMode = 'ready';
-  // {id, name} while the save modal is editing an existing custom template.
-  var marketEditing = null;
-
-  function findCustomTemplate(items, ctId) {
-    for (var i = 0; i < items.length; i++) {
-      if (items[i].id === ctId) return items[i];
-    }
-    return null;
-  }
-
-  function openSaveTemplateModal(taskId, tab, selections) {
-    var modal = $('#save-modal');
-    if (!modal) return;
-    var input = $('#save-tpl-name');
-    $('#save-modal-title').textContent = marketEditing ? '编辑我的模板' : '存为我的模板';
-    input.value = marketEditing ? marketEditing.name : '';
-    modal.hidden = false;
-    input.focus();
-    $('#save-tpl-cancel').onclick = function () { modal.hidden = true; };
-    $('#save-tpl-confirm').onclick = function () {
-      var name = input.value.trim();
-      if (!name) { notify('请输入模板名称', true); return; }
-      var payload = {
-        name: name,
-        selections: KIND_ORDER.filter(function (kind) { return selections[kind]; })
-          .map(function (kind) { return { kind: kind, id: selections[kind] }; })
-      };
-      if (!payload.selections.length) { notify('请先选择至少一个模板', true); return; }
-      saveCustomTemplate(taskId, tab, selections, payload);
-    };
-  }
-
-  function saveCustomTemplate(taskId, tab, selections, payload) {
-    var succeed = function (saved) {
-      marketEditing = { id: saved.id, name: saved.name };
-      $('#save-modal').hidden = true;
-      notify('已保存到我的模板');
-      showMarket(taskId, tab === 'mine' ? 'mine' : tab, selections);
-    };
-    var fail = function (err) { notify('保存失败:' + err.message, true); };
-    if (marketEditing) {
-      api('PUT', '/api/custom-templates/' + encodeURIComponent(marketEditing.id), payload)
-        .then(succeed).catch(fail);
-      return;
-    }
-    api('POST', '/api/custom-templates', payload).then(succeed).catch(function (err) {
-      // Same-name clash: browser double-confirm, then overwrite via PUT.
-      if (err.status === 409 && err.body && err.body.existing_id) {
-        if (!window.confirm('已存在同名模板「' + payload.name + '」,覆盖保存?')) return;
-        marketEditing = { id: err.body.existing_id, name: payload.name };
-        api('PUT', '/api/custom-templates/' + encodeURIComponent(err.body.existing_id), payload)
-          .then(succeed).catch(fail);
-        return;
-      }
-      fail(err);
-    });
-  }
-
-  function showMarket(taskId, tab, selectionsArg) {
-    Promise.all([
-      api('GET', '/api/tasks/' + encodeURIComponent(taskId)),
-      api('GET', '/api/templates'),
-      api('GET', '/api/custom-templates')
-    ]).then(function (results) {
-      var task = results[0];
-      var catalog = results[1];
-      var customTemplates = (results[2] || {}).custom_templates || [];
-      setConnState(false);
-      var selections = selectionsArg || {};
-      if (!Object.keys(selections).length) {
-        var sel = task.template_selection || {};
-        (sel.selections || []).forEach(function (item) { selections[item.kind] = item.id; });
-      }
-      tab = tab || 'all';
-      render(marketHtml(task, catalog, tab, selections, customTemplates));
-
-      var market = $('.panel');
-
-      market.addEventListener('click', function (event) {
-        var el;
-        if ((el = event.target.closest('[data-tab]'))) {
-          showMarket(taskId, el.getAttribute('data-tab'), selections);
-          return;
-        }
-        if ((el = event.target.closest('[data-mode]'))) {
-          marketMode = el.getAttribute('data-mode');
-          marketEditing = null;
-          showMarket(taskId, 'all', selections);
-          return;
-        }
-        if ((el = event.target.closest('[data-customize]'))) {
-          var czParts = el.getAttribute('data-customize').split('/');
-          var czKind = czParts.shift();
-          selections[czKind] = decodeURIComponent(czParts.join('/'));
-          marketMode = 'combo';
-          marketEditing = null;
-          showMarket(taskId, 'all', selections);
-          return;
-        }
-        if ((el = event.target.closest('[data-preview]'))) {
-          var parts = el.getAttribute('data-preview').split('/');
-          var kind = parts.shift();
-          var id = decodeURIComponent(parts.join('/'));
-          api('GET', '/api/templates/' + encodeURIComponent(kind) + '/' + encodeURIComponent(id) + '/preview')
-            .then(function (payload) {
-              renderPreviewModal(payload, task.topic, selections[kind] === id, function () {
-                selections[kind] = id;
-                $('#preview-modal').hidden = true;
-                showMarket(taskId, tab, selections);
-              });
-            })
-            .catch(function (err) { notify('预览加载失败:' + err.message, true); });
-          return;
-        }
-        if ((el = event.target.closest('[data-select]'))) {
-          var selectParts = el.getAttribute('data-select').split('/');
-          var selectKind = selectParts.shift();
-          selections[selectKind] = decodeURIComponent(selectParts.join('/'));
-          showMarket(taskId, tab, selections);
-          return;
-        }
-        if ((el = event.target.closest('[data-unselect]'))) {
-          delete selections[el.getAttribute('data-unselect')];
-          showMarket(taskId, tab, selections);
-          return;
-        }
-        if ((el = event.target.closest('[data-clear-kind]'))) {
-          event.preventDefault();
-          delete selections[el.getAttribute('data-clear-kind')];
-          showMarket(taskId, tab, selections);
-          return;
-        }
-        if ((el = event.target.closest('[data-save-tpl]'))) {
-          openSaveTemplateModal(taskId, tab, selections);
-          return;
-        }
-        if ((el = event.target.closest('[data-use-tpl]'))) {
-          var useItem = findCustomTemplate(customTemplates, el.getAttribute('data-use-tpl'));
-          if (!useItem) return;
-          if (useItem.invalid && useItem.invalid.length) {
-            notify('模板包含失效项:' + useItem.invalid.join(', ') + ',请先编辑', true);
-            return;
-          }
-          var useSelections = {};
-          (useItem.selections || []).forEach(function (s) { useSelections[s.kind] = s.id; });
-          marketMode = 'combo';
-          marketEditing = null;
-          showMarket(taskId, 'all', useSelections);
-          return;
-        }
-        if ((el = event.target.closest('[data-edit-tpl]'))) {
-          var editItem = findCustomTemplate(customTemplates, el.getAttribute('data-edit-tpl'));
-          if (!editItem) return;
-          var editSelections = {};
-          (editItem.selections || []).forEach(function (s) { editSelections[s.kind] = s.id; });
-          marketMode = 'combo';
-          marketEditing = { id: editItem.id, name: editItem.name };
-          showMarket(taskId, 'all', editSelections);
-          openSaveTemplateModal(taskId, 'all', editSelections);
-          return;
-        }
-        if ((el = event.target.closest('[data-del-tpl]'))) {
-          var delId = el.getAttribute('data-del-tpl');
-          if (window.confirm('确定删除该自定义模板?删除后不可恢复。')) {
-            api('DELETE', '/api/custom-templates/' + encodeURIComponent(delId))
-              .then(function () {
-                notify('已删除');
-                if (marketEditing && marketEditing.id === delId) marketEditing = null;
-                showMarket(taskId, 'mine', selections);
-              })
-              .catch(function (err) { notify('删除失败:' + err.message, true); });
-          }
-          return;
-        }
-      });
-
-      var saveBtn = $('#m-save');
-      if (saveBtn) {
-        saveBtn.addEventListener('click', function () {
-          var freeChecked = $('#m-free').checked;
-          var selectionPayload = {
-            mode: freeChecked && !Object.keys(selections).length ? 'free_design' : 'templates',
-            selections: KIND_ORDER.filter(function (kind) { return selections[kind]; })
-              .map(function (kind) { return { kind: kind, id: selections[kind] }; })
-          };
-          if (selectionPayload.mode === 'templates' && !selectionPayload.selections.length) {
-            notify('请至少选择一个模板,或勾选自由设计', true);
-            return;
-          }
-          api('PATCH', '/api/tasks/' + encodeURIComponent(taskId), { template_selection: selectionPayload })
-            .then(function () {
-              notify('模板选择已保存');
-              location.hash = '#/task/' + encodeURIComponent(taskId);
-            })
-            .catch(function (err) { notify('保存失败:' + err.message, true); });
-        });
-      }
-    }).catch(function (err) {
-      setConnState(true);
-      render('<section class="panel"><h2>模板市场加载失败</h2><p>' + esc(err.message) + '</p></section>');
     });
   }
 
@@ -907,27 +453,210 @@
       });
   }
 
-  function timelineHtml(progress) {
-    var items = (progress.agent_log || []).map(function (entry) {
-      return '<li><span class="tl-time">' + esc(entry.at || '') + '</span>' +
-        '<span class="tl-event">' + esc(entry.event || '') + '</span></li>';
-    }).join('');
+  function shortTime(value) {
+    if (!value) return '';
+    var match = String(value).match(/T(\d{2}:\d{2}:\d{2})/);
+    return match ? match[1] : String(value);
+  }
+
+  function eventLine(event) {
+    var d = event.data || {};
+    switch (event.type) {
+      case 'run/start': return d.resume ? '恢复运行' : '开始运行';
+      case 'run/end': return '运行结束:' + (d.outcome || 'done');
+      case 'stage/enter': return '进入阶段 ' + (d.label || d.stage || '');
+      case 'progress': return '进度 ' + d.done + (d.total ? '/' + d.total : '') + ' ' + (d.unit || '');
+      case 'ask/open': return '等待回答:' + (d.prompt || '');
+      case 'ask/answered': return '已回答:' + ((d.choice || []).join(',') || d.status || '');
+      case 'ask/superseded': return '请求已被接管作废';
+      case 'takeover': return '接管运行(' + (d.reason || '') + ')';
+      case 'say': return d.text || '';
+      case 'error': return '错误:' + (d.message || '');
+      default: return event.type;
+    }
+  }
+
+  function stageSummary(progress) {
+    var runtime = progress.runtime || {};
     var bits = [];
-    if (progress.confirm && progress.confirm.status) {
-      bits.push('确认面板:' + esc(progress.confirm.status) +
-        (progress.confirm.current_stage ? '(' + esc(progress.confirm.current_stage) + ')' : ''));
+    if (runtime.stage_label) bits.push('<strong>' + esc(runtime.stage_label) + '</strong>');
+    if (runtime.progress && runtime.progress.total) {
+      bits.push('进度 ' + runtime.progress.done + '/' + runtime.progress.total);
+    } else if (runtime.progress) {
+      bits.push('已产出 ' + runtime.progress.done + ' 页');
     }
-    if (progress.quality) {
-      bits.push(progress.quality.report_exists
-        ? '质检报告已生成'
-        : '质检报告未生成');
+    if (progress.quality && progress.quality.report_exists) bits.push('质检报告已生成');
+    if (runtime.state === 'interrupted') bits.push('AI 已停止,等待接续');
+    if (runtime.error) bits.push('<span class="err-text">' + esc(runtime.error.message || '') + '</span>');
+    return bits.join(' · ') || '等待 AI 处理…';
+  }
+
+  function timelineHtml(progress) {
+    var items = (progress.events || []).slice(-12).reverse().map(function (event) {
+      return '<li><span class="tl-time">' + esc(shortTime(event.at)) + '</span>' +
+        '<span class="tl-event">' + esc(eventLine(event)) + '</span></li>';
+    }).join('');
+    return '<div class="progress-state">' + stageSummary(progress) + '</div>' +
+      (items ? '<ol class="timeline">' + items + '</ol>' : '');
+  }
+
+  function askHtml(item) {
+    var request = item.request || {};
+    var response = item.response;
+    var options = (request.options || []).map(function (option) {
+      return '<button type="button" class="ask-option" data-choice="' + esc(option.id) + '">' +
+        esc(option.label || option.id) +
+        (option.detail ? '<span class="ask-option-detail">' + esc(option.detail) + '</span>' : '') +
+        '</button>';
+    }).join('');
+    var answerLine = '';
+    if (response) {
+      var picked = (response.choice || []).join(', ');
+      answerLine = '<div class="ask-answer' + (response.status === 'superseded' ? ' is-stale' : '') + '">' +
+        '你的回答:' + esc(picked || response.status || '') +
+        (response.text ? '(' + esc(response.text) + ')' : '') + '</div>';
     }
-    if (progress.slide_count) bits.push('已产出 ' + progress.slide_count + ' 页');
-    if (progress.error) bits.push('<span class="err-text">' + esc(progress.error) + '</span>');
-    return (
-      '<div class="progress-state">' + (bits.join(' · ') || '等待 AI 处理…') + '</div>' +
-      (items ? '<ol class="timeline">' + items + '</ol>' : '')
-    );
+    return '<div class="ask-card" data-request="' + esc(request.id) + '"' +
+      ' data-multi="' + (request.multi ? '1' : '') + '">' +
+      '<div class="ask-head"><span class="badge badge-processing">待回答</span>' +
+      '<span class="ask-title">' + esc(request.title || '需要你的决定') + '</span></div>' +
+      (request.body ? '<div class="ask-body">' + esc(request.body) + '</div>' : '') +
+      (options ? '<div class="ask-options">' + options + '</div>' : '') +
+      (request.allow_text === false ? '' :
+        '<label class="field"><span>补充说明(可选)</span>' +
+        '<textarea class="ask-text" rows="2"></textarea></label>') +
+      '<button type="button" class="btn btn-primary ask-submit">提交回答</button>' +
+      answerLine +
+      '</div>';
+  }
+
+  function inboxHtml(progress) {
+    var items = progress.requests || [];
+    if (!items.length) return '';
+    var open = items.filter(function (item) { return !item.response; });
+    var answered = items.filter(function (item) { return item.response; }).slice(-3).reverse();
+    var body = open.map(askHtml).join('') ||
+      '<div class="hint">没有待回答的问题。</div>';
+    var history = answered.length
+      ? '<h4>已回答</h4>' + answered.map(function (item) {
+          var request = item.request || {};
+          var response = item.response || {};
+          return '<div class="ask-card" data-request="' + esc(request.id) + '">' +
+            '<div class="ask-head"><span class="badge badge-done">已回复</span>' +
+            '<span class="ask-title">' + esc(request.title || '') + '</span></div>' +
+            '<div class="ask-answer">' + esc((response.choice || []).join(', ') || response.status || '') +
+            (response.text ? '(' + esc(response.text) + ')' : '') + '</div></div>';
+        }).join('')
+      : '';
+    return '<section class="panel"><h3>需要你回答</h3>' + body + history + '</section>';
+  }
+
+  // ---------- mounted project surfaces ----------
+
+  // The three per-project pages live on this same port under /p/<slug>/<kind>/.
+  // They render into a container outside #view so the 2 s progress poll never
+  // reloads an open surface.
+  var SURFACES = [
+    ['preview', '页面预览'],
+    ['confirm', '阶段确认'],
+    ['spec', '规格评审']
+  ];
+
+  var surfaceHost = null;
+  var surfaceSlug = null;
+  var surfaceKind = 'preview';
+  var surfaceOpen = false;
+
+  function surfaceUrl(slug, kind) {
+    return '/p/' + encodeURIComponent(slug) + '/' + kind + '/';
+  }
+
+  function syncSurfaces(progress) {
+    if (!surfaceHost) surfaceHost = $('#surface-panel');
+    if (!surfaceHost) return;
+    var slug = (progress.runtime || {}).slug || null;
+    if (!slug) {
+      hideSurfaces();
+      return;
+    }
+    if (slug === surfaceSlug) return;
+    surfaceSlug = slug;
+    surfaceHost.hidden = false;
+    surfaceHost.innerHTML =
+      '<div class="surface-head"><h3>项目页面</h3><div class="surface-tabs">' +
+      SURFACES.map(function (item) {
+        return '<button type="button" class="surface-tab' +
+          (item[0] === surfaceKind ? ' is-active' : '') + '" data-kind="' + item[0] + '">' +
+          item[1] + '</button>';
+      }).join('') + '</div></div>' +
+      '<iframe class="surface-frame" title="项目页面" hidden></iframe>';
+    var frame = surfaceHost.querySelector('.surface-frame');
+    function open(kind) {
+      surfaceKind = kind;
+      frame.hidden = false;
+      frame.src = surfaceUrl(slug, surfaceKind);
+    }
+    if (surfaceOpen) open(surfaceKind);
+    Array.prototype.forEach.call(surfaceHost.querySelectorAll('.surface-tab'), function (button) {
+      button.addEventListener('click', function () {
+        surfaceOpen = true;
+        Array.prototype.forEach.call(surfaceHost.querySelectorAll('.surface-tab'), function (other) {
+          other.classList.toggle('is-active', other === button);
+        });
+        open(button.getAttribute('data-kind'));
+      });
+    });
+  }
+
+  function hideSurfaces() {
+    if (!surfaceHost) surfaceHost = $('#surface-panel');
+    if (surfaceHost) {
+      surfaceHost.hidden = true;
+      surfaceHost.innerHTML = '';
+    }
+    surfaceSlug = null;
+    surfaceOpen = false;
+  }
+
+  function wireInbox(taskId) {    Array.prototype.forEach.call(document.querySelectorAll('.ask-card'), function (card) {
+      var requestId = card.getAttribute('data-request');
+      var multi = card.getAttribute('data-multi') === '1';
+      var submit = card.querySelector('.ask-submit');
+      var picked = [];
+      Array.prototype.forEach.call(card.querySelectorAll('.ask-option'), function (button) {
+        button.addEventListener('click', function () {
+          var id = button.getAttribute('data-choice');
+          if (multi) {
+            var at = picked.indexOf(id);
+            if (at >= 0) { picked.splice(at, 1); button.classList.remove('is-picked'); }
+            else { picked.push(id); button.classList.add('is-picked'); }
+          } else {
+            picked = [id];
+            Array.prototype.forEach.call(card.querySelectorAll('.ask-option'), function (other) {
+              other.classList.remove('is-picked');
+            });
+            button.classList.add('is-picked');
+          }
+        });
+      });
+      if (!submit) return;
+      submit.addEventListener('click', function () {
+        var textBox = card.querySelector('.ask-text');
+        submit.disabled = true;
+        api('POST', '/api/tasks/' + encodeURIComponent(taskId) + '/requests/' +
+          encodeURIComponent(requestId), {
+          status: 'answered',
+          choice: picked,
+          text: textBox ? textBox.value.trim() : null
+        }).then(function () {
+          notify('回答已提交');
+          showProgress(taskId);
+        }).catch(function (err) {
+          submit.disabled = false;
+          notify('提交失败:' + err.message, true);
+        });
+      });
+    });
   }
 
   function exportsHtml(taskId, exports) {
@@ -990,6 +719,7 @@
       .then(function (progress) {
         setConnState(false);
         var closed = progress.status === 'done' || progress.status === 'failed';
+        var runtime = progress.runtime || {};
         var slidesHtml = progress.slides.length
           ? '<div class="roster-grid">' + progress.slides.map(function (slide) {
               return slideThumb(taskId, slide);
@@ -1001,15 +731,18 @@
           '<div><h2>生成进度 <span class="badge badge-' + esc(progress.status) + '">' +
           esc(statusLabel(progress.status)) + '</span></h2>' +
           '<div class="task-sub">' + esc(taskId) +
-          (progress.project_dir ? ' · ' + esc(progress.project_dir) : '') + '</div></div>' +
+          (runtime.project_dir ? ' · ' + esc(runtime.project_dir) : '') + '</div></div>' +
           '<a class="btn" href="#/task/' + encodeURIComponent(taskId) + '">任务详情</a>' +
           '</div>' +
           timelineHtml(progress) +
           '</section>' +
+          inboxHtml(progress) +
           '<section class="panel"><h3>页面预览(' + progress.slide_count + ')</h3>' + slidesHtml + '</section>' +
           '<section class="panel"><h3>导出文件</h3>' + exportsHtml(taskId, progress.exports) + '</section>' +
           (closed ? '' : '<section class="panel"><p class="hint">本页每 2 秒自动刷新。</p></section>')
         );
+        wireInbox(taskId);
+        syncSurfaces(progress);
         Array.prototype.forEach.call(document.querySelectorAll('[data-slide]'), function (holder) {
           var name = holder.getAttribute('data-slide');
           var mtime = holder.getAttribute('data-mtime');
@@ -1039,12 +772,8 @@
   function route() {
     if (!viewEl) viewEl = $('#view');
     stopPolling();
-    var match = location.hash.match(/^#\/task\/([^/]+)\/market\/?$/);
-    if (match) {
-      showMarket(decodeURIComponent(match[1]));
-      return;
-    }
-    match = location.hash.match(/^#\/task\/([^/]+)\/progress\/?$/);
+    hideSurfaces();
+    var match = location.hash.match(/^#\/task\/([^/]+)\/progress\/?$/);
     if (match) {
       showProgress(decodeURIComponent(match[1]));
       return;

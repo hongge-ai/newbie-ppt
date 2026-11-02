@@ -17,7 +17,7 @@ Global stop/continue rules for all three routes plus concrete Generate PPTX hand
 | Confirm UI launch failure | No | Re-check `confirm_ui/result.json` once, then chat fallback | No | [`generate-pptx`](../generate-pptx.md) Step 4 chat confirmation |
 | Confirm UI wait timeout | No, if no final result yet | Re-check `result.json` once; server cleanup stays mandatory | Only if the user still wants the page | Step 4 same stage or chat fallback |
 | User switches from Confirm UI to chat mid-stage | Yes until the current stage is confirmed | Follow the in-run switch in [`confirm-surface.md`](../../references/confirm-surface.md): keep persisted confirmed stages, continue the current and remaining stages in chat, never relaunch UI | Confirm in chat unless delegated | Step 4 current chat stage |
-| Stage 1 completed, then interrupted while UI remains selected | Yes until final Stage 2 is confirmed | Read Stage 1 `result.json`, derive a fresh `recommendations.stage2.json` without changing Stage 1, then `--wait-only` | Usually no | Step 4 final Stage 2 write/wait |
+| Stage 1 completed, then interrupted while UI remains selected | Yes until final Stage 2 is confirmed | Read Stage 1 `result.json`, derive a fresh `recommendations.stage2.json` without changing Stage 1, then `confirm_ui/wait.py --stage final` | Usually no | Step 4 final Stage 2 write/wait |
 | Missing final confirmation | Yes | None | User confirms or changes the values | Step 4 final confirmation |
 | Final confirmed value or later explicit override missing, changed, or weakened in `design_spec.md` | Yes | Repair from the retained final-confirmation object plus any newer explicit instruction; only a fresh recovery turn with no retained state reads persisted evidence once | Only when the value genuinely cannot be honored | Step 4 Gate 1 |
 | `spec_lock.md` changes confirmed identity or omits a required anchor/routing decision | Yes | Re-author the affected rows from the completed Design Spec and context; do not enumerate page-local literals | No unless the Design Spec is incomplete | Step 4 Gate 2 |
@@ -70,7 +70,7 @@ Global stop/continue rules for all three routes plus concrete Generate PPTX hand
 
 | Last good state | Resume from |
 |---|---|
-| Stage 1 confirmed, final Stage 2 missing or unconfirmed, UI selected | Derive a fresh `recommendations.stage2.json` from confirmed Stage 1 and current inputs, then `confirm_ui/server.py <project> --wait-only` |
+| Stage 1 confirmed, final Stage 2 missing or unconfirmed, UI selected | Derive a fresh `recommendations.stage2.json` from confirmed Stage 1 and current inputs, then `confirm_ui/wait.py <project> --stage final` |
 | Final evidence exists; `design_spec.md` missing (with or without a surviving lock) | Step 4 and [`strategist.md`](../../references/strategist.md) §6.2: read final evidence once, read [`design_spec_reference.md`](../../templates/design_spec_reference.md), author the complete Design Spec from scratch, pass Gate 1; then read [`spec_lock_reference.md`](../../templates/spec_lock_reference.md) and re-author the complete lock, replacing any orphan. Never reconstruct the Design Spec from an orphan lock |
 | Final evidence exists; Design Spec exists, lock missing | Step 4: read final evidence once to audit the Design Spec, then author the complete lock from it plus context |
 | Both planning artifacts exist but Gate 1 fails | Read final evidence once, repair `design_spec.md`, re-author every affected lock row; do not reopen recommendations or infer from the lock |

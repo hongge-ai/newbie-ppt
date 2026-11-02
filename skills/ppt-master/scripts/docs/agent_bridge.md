@@ -56,6 +56,7 @@ it exists.
 {
   "schema_version": 1,
   "project": "demo_ppt169_20261031",
+  "task_id": "t20261031-091400-7f3a",
   "run": { "run_id": "r-20261101T091233Z-7f3a", "fence": 3, "started_at": "..." },
   "route": "generate",
   "profile": "default",
@@ -79,6 +80,7 @@ it exists.
 | Field | Derived from |
 |---|---|
 | `stage`, `stage_index`, `stage_label` | the last `stage/enter` |
+| `task_id` | the last `run/start` carrying `--task`; `null` when the run answers no workbench task |
 | `state` | an unanswered request → `waiting_user`; an expired lease → `interrupted`; otherwise the last `run/*` or `error` |
 | `progress` | the last `progress` event, or `null` — never `0/0` |
 | `blocking` | the last `ask/open` without a matching answer |
@@ -103,7 +105,7 @@ content belongs in a project file referenced by path.
 
 | `type` | Emitted by | `data` |
 |---|---|---|
-| `run/start` | `run start` | `route`, `profile`, `surface`, `resume` |
+| `run/start` | `run start` | `route`, `profile`, `surface`, `resume`, `task` |
 | `run/heartbeat` | `beat`, `run wrap`, `wait` | — |
 | `run/end` | `run end` | `outcome`: `done` \| `failed` \| `aborted` |
 | `stage/enter` | `stage` | `stage`, `index`, `label` |
@@ -144,7 +146,7 @@ exclusively and never overwritten; a second attempt is a conflict, not an edit.
   "body": "…markdown…",
   "options": [{"id": "free_design", "label": "自由设计", "detail": "不套模板"}],
   "multi": false, "allow_text": true,
-  "url": "http://127.0.0.1:8080/p/demo/confirm/0007",
+  "url": "http://127.0.0.1:7070/#/task/t20261031-091400-7f3a",
   "deadline": null, "default_if_timeout": null,
   "attachments": []
 }
@@ -209,6 +211,7 @@ polling forever.
 ```bash
 agent_bridge.py run start [--route generate] [--profile default] [--surface chat|web]
                           [--resume | --takeover [--reason expired|manual|host-change]]
+                          [--task <task_id>]
 agent_bridge.py run end   [--outcome done|failed|aborted]
 agent_bridge.py run wrap  -- [--project DIR] <command ...>
 agent_bridge.py stage     <stage> [--label "绘制页面 7/12"]
@@ -262,6 +265,7 @@ Generate route:
 
 | Point | Call |
 |---|---|
+| Processing a submitted workbench task | `run start --route generate --task <task_id>` (the only task binding; inherited by `--resume` and `--takeover`) |
 | `project_manager.py init` succeeded | `run start --route generate --profile <p>` |
 | Step 1 conversion complete | `stage source` |
 | Step 2 validation passes | `stage template_prep` |

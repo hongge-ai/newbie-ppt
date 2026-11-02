@@ -20,7 +20,7 @@ if str(SCRIPTS_DIR) not in sys.path:
 from check_spec_annotations import main as check_main  # noqa: E402
 from project_management.spec_blocks import replace_spec_block, split_spec_blocks  # noqa: E402
 from project_specs import SCHEMA_DIR, validate_markdown_schema, validate_markdown_text  # noqa: E402
-from spec_review.server import create_app, main as server_main  # noqa: E402
+from spec_review.server import create_app  # noqa: E402
 from spec_review.store import ReviewError, ReviewStore, sha256  # noqa: E402
 
 
@@ -523,7 +523,7 @@ class ReviewServiceTests(unittest.TestCase):
     def test_atomic_replace_failure_preserves_file_and_draft(self):
         draft = self.draft()
         before = self.path.read_bytes()
-        with patch("spec_review.store.os.replace", side_effect=OSError("Replace failed")):
+        with patch("atomic_io.os.replace", side_effect=OSError("Replace failed")):
             response = self.client.post("/api/apply/slide:02", json=draft)
         self.assertEqual(response.status_code, 500)
         self.assertEqual(self.path.read_bytes(), before)
@@ -548,38 +548,3 @@ class ReviewServiceTests(unittest.TestCase):
         self.assertIn("default-src 'none'", response.headers["Content-Security-Policy"])
         response.close()
 
-    def test_cli_help_and_invalid_port_have_no_runtime_side_effect(self):
-        with redirect_stdout(io.StringIO()), self.assertRaises(SystemExit) as result:
-            server_main(["--help"])
-        self.assertEqual(result.exception.code, 0)
-        self.assertEqual(server_main([str(self.root), "--port", "0"]), 1)
-        self.assertFalse((self.root / "spec_review").exists())
-
-    def test_explicit_port_is_strict_and_foreground_releases_lock(self):
-        httpd = Mock()
-        with patch("spec_review.server._running", return_value=None), patch(
-            "spec_review.server.make_server", return_value=httpd,
-        ) as bind, patch("spec_review.server.find_free_port") as scan, patch(
-            "spec_review.server.threading.Thread.start",
-        ), patch("spec_review.server.signal.signal"), redirect_stdout(io.StringIO()):
-            self.assertEqual(server_main([str(self.root), "--port", "6077", "--no-browser"]), 0)
-        scan.assert_not_called()
-        self.assertEqual(bind.call_args.args[:2], ("127.0.0.1", 6077))
-        httpd.server_close.assert_called_once()
-        self.assertFalse((self.root / "spec_review/lock.json").exists())
-
-    def test_explicit_port_bind_failure_does_not_fall_back(self):
-        with patch("spec_review.server._running", return_value=None), patch(
-            "spec_review.server.make_server", side_effect=OSError("Address already in use"),
-        ), patch("spec_review.server.find_free_port") as scan:
-            self.assertEqual(server_main([str(self.root), "--port", "6077", "--no-browser"]), 1)
-        scan.assert_not_called()
-        self.assertFalse((self.root / "spec_review/lock.json").exists())
-
-    def test_hold_cli_and_running_port_mismatch(self):
-        with patch("spec_review.server._running", return_value={"pid": 1234, "port": 6077}), patch(
-            "spec_review.server._call", return_value={"hold": True},
-        ) as call, redirect_stdout(io.StringIO()):
-            self.assertEqual(server_main([str(self.root), "--hold", "on"]), 0)
-            call.assert_called_once_with(6077, "/api/hold", {"hold": True})
-            self.assertEqual(server_main([str(self.root), "--port", "6088", "--no-browser"]), 1)

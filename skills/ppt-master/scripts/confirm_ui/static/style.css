@@ -1175,3 +1175,14 @@ textarea.text-input { resize: vertical; line-height: 1.5; }
         grid-template-columns: 1fr;
     }
 }
+
+
+#confirmed-overlay a {
+  color: #004EA2;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+#confirmed-overlay a:hover {
+  text-decoration: underline;
+}

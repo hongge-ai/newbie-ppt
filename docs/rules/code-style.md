@@ -225,6 +225,7 @@ Common functionality lives in these designated submodules. New scripts use these
 | [`slide_roster.py`](../../skills/ppt-master/scripts/slide_roster.py) | Numeric slide-filename ordering and SVG roster discovery |
 | [`error_helper.py`](../../skills/ppt-master/scripts/error_helper.py) | User-facing error message templates |
 | [`console_encoding.py`](../../skills/ppt-master/scripts/console_encoding.py) | `configure_utf8_stdio()` — force UTF-8 console for CLI entries (§4) |
+| [`atomic_io.py`](../../skills/ppt-master/scripts/atomic_io.py) | Atomic publication: sibling temp file plus `os.replace` with the Windows access-denial retry |
 
 **Forbidden — duplicating logic that exists in a shared helper**. If a helper is missing a feature, extend the helper, don't fork it inside your new script.
 

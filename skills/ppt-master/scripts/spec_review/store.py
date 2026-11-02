@@ -20,8 +20,6 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-import stat
-import tempfile
 import threading
 import time
 import uuid
@@ -30,6 +28,8 @@ from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterator
+
+from atomic_io import write_bytes_atomic
 
 from project_management.project_specs import SCHEMA_DIR, validate_markdown_text
 from project_management.spec_blocks import replace_spec_block, split_spec_blocks
@@ -86,26 +86,8 @@ def file_mutex(path: Path) -> Iterator[None]:
 
 
 def atomic_write(path: Path, data: bytes) -> None:
-    """Flush a sibling temporary file and atomically replace its destination."""
-    descriptor, name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
-    temporary = Path(name)
-    try:
-        with os.fdopen(descriptor, "wb") as handle:
-            handle.write(data)
-            handle.flush()
-            os.fsync(handle.fileno())
-        if path.exists():
-            temporary.chmod(stat.S_IMODE(path.stat().st_mode))
-        for attempt in range(5):
-            try:
-                os.replace(temporary, path)
-                break
-            except PermissionError:
-                if attempt == 4:
-                    raise
-                time.sleep(0.05 * (attempt + 1))
-    finally:
-        temporary.unlink(missing_ok=True)
+    """Flush a byte payload through the shared replacement helper."""
+    write_bytes_atomic(path, data)
 
 
 class ReviewStore:

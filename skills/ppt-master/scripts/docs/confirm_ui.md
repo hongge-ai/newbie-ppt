@@ -28,30 +28,35 @@
 
 **Model-facing procedure lives elsewhere**: the surface decision, chat/delegated listing, always-on Stage-1 chat handoff, in-run UI → chat switch, and the authoring shapes of `recommendations.stage1.json`, `recommendations.stage2.json`, and `result.json` are owned by [`confirm-surface.md`](../../references/confirm-surface.md), which the Strategist reads. This document keeps the server lifecycle, the template-selection sidecar, catalogs, the progression guard, and the complete field semantics that the server validates.
 
-## `confirm_ui/server.py`
+## Where it runs
 
-The following launch and wait commands belong to the **UI branch only**:
+The page is a surface of the resident workbench, served on the workbench port:
 
-```bash
-python3 scripts/confirm_ui/server.py <project_path> --daemon         # launch combined Stage 1
-python3 scripts/confirm_ui/server.py <project_path> --wait-only --wait-stage stage1  # communication + template selection
-python3 scripts/confirm_ui/server.py <project_path> --wait-only       # current final Stage 2
-python3 scripts/confirm_ui/server.py <project_path> --daemon --port 5051
-python3 scripts/confirm_ui/server.py <project_path> --no-browser
-python3 scripts/confirm_ui/server.py <project_path> --timeout 0   # disable idle auto-shutdown
-python3 scripts/confirm_ui/server.py <project_path> --shutdown    # Step 4 cleanup (idempotent)
+```
+http://127.0.0.1:<workbench port>/p/<project slug>/confirm/
 ```
 
-- Without `--port`, binds the first free port from `127.0.0.1:5050`; the launch log prints the actual URL. `--port N` is exact and fails when unavailable. Auto-open is suppressed by `--no-browser`.
-- In `--daemon` mode the launcher starts the child with browser opening suppressed, then accepts readiness only when `GET /api/health` identifies this confirm service, project, and child process. It opens the printed `http://127.0.0.1:<port>` URL only after that check.
-- Confirm UI and live preview use different defaults (`5050` / `6060`) and separate project-local locks (`.confirm_ui.lock` / `live_preview/lock.json`). Step 4 shuts down the confirm service before ending; concurrent projects may use different ports.
-- `--daemon` starts the Flask process in the background and returns after the health check. Every Default UI run launches directly into combined Stage 1 and keeps the same process live through final Stage 2. The wait budget defaults to **590 s** (`--wait-timeout`); on timeout the detached server remains live, and the caller re-checks both Stage-1 receipts before chat fallback.
-- `--wait-only` attaches to the page opened by `--daemon` and blocks until the requested receipt. If it is already persisted, the command returns before recovery, so a fast submit between launch, chat handoff, and wait is not lost. Otherwise, if the recorded server died, it restarts on the recorded/default port. Use `stage1` for the combined communication/template submission and the default/final wait for Stage 2.
-- Stage 2 checks the selected roots and the installer's receipt directly. There is no manual completion command or handoff sidecar.
-- `--shutdown` stops a confirm server left running for this project and exits — **idempotent** (a no-op when nothing is running). Tries a graceful `/api/shutdown`, falls back to killing the recorded pid, then clears the lock. Generate Step 4 runs this on every path so the selected port is released before live preview starts.
+There is no per-project server to launch, no port to pick, and nothing to shut
+down: the workbench already owns the process. The agent's only CLI is the wait,
+which reads the receipts the page writes:
+
+```bash
+python3 scripts/confirm_ui/wait.py <project_path> --stage stage1   # combined Stage 1
+python3 scripts/confirm_ui/wait.py <project_path> --stage final    # final Stage 2
+```
+
+- `wait.py` returns `0` when the target stage is persisted, `1` when the stage is
+  not ready or its receipt is invalid, and `124` on timeout (default 900 s,
+  `--timeout 0` waits forever). A timeout leaves the page open; re-check both
+  receipts before falling back to chat.
+- The page is served from `create_app` in this module; the workbench mounts it
+  with `embedded=True`, which disables the idle watchdog and turns
+  `/api/shutdown` into a no-op so a browser view can never end the shared
+  process.
+- Stage 2 checks the selected roots and the installer's receipt directly. There
+  is no manual completion command or handoff sidecar.
 - A run starts with `recommendations.stage1.json` containing `template_options`. The complete recommendation's canonical JSON SHA-256 participates in the option digest. Changing its content starts a new round and invalidates old selections, results, installation receipts and Stage-2 recommendations. To deliberately repeat identical choices in a new round, change a top-level `revision` value; touching timestamps or reformatting JSON does not start a round. Legacy standalone options/handoff files are ignored. Old results without the content binding require Stage 1 again.
-- Per-project lock at `<project_path>/.confirm_ui.lock` — duplicate launches are refused; stale locks (dead pid) are overwritten.
-- Idle auto-shutdown after 900 s by default; `/api/shutdown` exits gracefully and releases the lock.
+- No per-project lock and no idle timeout: the workbench owns the lifecycle, and the page is one more view inside it.
 - Stage-1 `GET /api/recommendations` embeds the server-built candidate catalog
   as top-level `template_options`. Its `/api/confirm` submission validates
   the rendered options digest and current candidate keys, then writes `template_selection.json` beside the pure
@@ -228,8 +233,8 @@ changes still require confirmation again. Old selections without snapshots must
 be confirmed again; the server does not reconstruct historical authorization.
 
 The Stage-1 submission writes this receipt and the Stage-1 `result.json`
-together. Generate reads both exactly once after `--wait-only --wait-stage
-stage1` returns. Free design skips installation. Template mode runs
+together. Generate reads both exactly once after `wait.py --stage stage1`
+returns. Free design skips installation. Template mode runs
 `apply-template-workspace` against all selected roots and waits for complete
 project-local installation, which the server checks directly. Installation validates and maps each distinct root once while
 preserving its separate specs; Stage 2 resolves segment ownership and
@@ -556,7 +561,7 @@ by the server.
 
 - Bespoke mode / style prose lives only in the required behavior sibling; image custom prose lives in `image_strategy.behavior`. Canvas / icons retain free-text edge cases, color / typography retain `name: "custom"`, and image usage remains a source-id array plus `image_notes`.
 - `image_ai_path` and `image_strategy` appear only with `image_usage: ai` and remain confirmed downstream. The page is default; explicit/failure chat fallback keeps identical fields. `image_ai_path` selects the Step 5 path, and [`strategist-image.md`](../../references/strategist-image.md) §2 retains the selected rendering or custom behavior as the deck-level image identity anchor; individual prompts still adapt subject, composition, and atmosphere within it.
-- Stage-1 **Confirm contract & template choice** writes the Stage-1 `result.json` and `template_selection.json` together, then keeps the page open while the agent installs the selection. A successful Stage-1 wait is explicitly intermediate and cannot end the task. In the same active run, the agent writes Stage 2 bound to the selection after installation and enters the final wait while the page keeps polling. Stage-2 **Confirm final plan** saves the final `result.json` and shuts the server down (auto-close). The AI reads each receipt at its owning boundary; chat fallback mirrors the same decisions without UI artifacts. Either way, Step 4 ends with `--shutdown` so a never-confirmed page does not outlive Step 4.
+- Stage-1 **Confirm contract & template choice** writes the Stage-1 `result.json` and `template_selection.json` together, then keeps the page open while the agent installs the selection. A successful Stage-1 wait is explicitly intermediate and cannot end the task. In the same active run, the agent writes Stage 2 bound to the selection after installation and enters the final wait while the page keeps polling. Stage-2 **Confirm final plan** saves the final `result.json` and shows the confirmed overlay. The AI reads each receipt at its owning boundary; chat fallback mirrors the same decisions without UI artifacts. The page never outlives the workbench process, so Step 4 has nothing to release.
 
 ## Scope
 

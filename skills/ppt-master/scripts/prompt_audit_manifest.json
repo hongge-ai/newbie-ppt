@@ -1935,7 +1935,7 @@
             {
               "path": "skills/ppt-master/workflows/profiles/beautify-pptx.md",
               "role": "producer",
-              "fingerprint": "e1bd978fcc83",
+              "fingerprint": "c9bea841a094",
               "reason": "This producer projects the owner field into the planning contract."
             }
           ]

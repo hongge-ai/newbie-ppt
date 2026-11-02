@@ -65,7 +65,7 @@ python3 ${SKILL_DIR}/scripts/project_manager.py import-sources <project_path> <s
 
 **Import rules**: pass the source path together with the Markdown Step 1 wrote beside it (a same-stem Markdown suppresses re-conversion and is imported with its sidecar and assets; the source alone is archived and converted again), both locations when `-o` wrote it elsewhere, and only the research pair when Topic Research ran (its facts JSON is imported as a file; no URL is fetched). Copy/move semantics, bitmap archiving, and the PPTX intake bundle it writes under `analysis/` (`<stem>.identity.json`, `<stem>.slide_library.json`, `source_profile.json`) are [`project.md`](../scripts/docs/project.md). Those artifacts are source facts and recommendation candidates, not replica constraints; Beautify stays single-deck.
 
-**Runtime status**: after `init`, keep [`agent_bridge.py`](../scripts/docs/agent_bridge.md) current at each step boundary — `run start`, `stage <name>` per step, `progress` as pages land, `run end` at completion; a resumed session calls `run start --resume` first. The bridge owns status only; [`confirm_ui.md`](../scripts/docs/confirm_ui.md) still owns confirmation payloads.
+**Runtime status**: after `init`, keep [`agent_bridge.py`](../scripts/docs/agent_bridge.md) current at each boundary — `run start --task <task_id>` when answering a workbench task (how the workbench finds the project), then `stage <name>`, `progress` as pages land, `run end` at completion; a resume calls `run start --resume`. The bridge owns status only; [`confirm_ui.md`](../scripts/docs/confirm_ui.md) owns confirmation payloads.
 
 **✅ Checkpoint** — project created, `sources/` complete, converted materials ready. `import-sources` exits 0 when any input converts: read the printed `skipped` reasons and treat those inputs as absent. Proceed to Step 3.
 
@@ -131,25 +131,20 @@ This is a capability map, not a usage checklist; direction construction follows 
 
 **Only the user confirms**: the agent authors recommendations, operates the server, reads state, and applies a template. It never confirms on the user's behalf, automates submission, synthesizes a payload, or writes user result state; silence confirms nothing. Under explicit delegation the agent makes the Stage-1 decision, installs it, derives Stage 2, and presents one complete summary without fabricating UI receipts.
 
-**UI branch** — `recommendations.stage1.json` (with `template_options`) and `recommendations.stage2.json` are agent inputs; server-written `template_selection.json` and `result.json` are user receipts, and installer-written `template_install.json` proves installed content. Only the active unconfirmed stage file may be overwritten, in place, never with a revision suffix or another stage's payload. Author Stage 1 without opening candidate specs or prototypes, launch, post the [`confirm-surface.md`](../references/confirm-surface.md) handoff summary, then wait:
+**UI branch** — the workbench serves the confirmation page at `/p/<slug>/confirm/`; it is already resident, so there is no per-project server to launch or release. `recommendations.stage1.json` (with `template_options`) and `recommendations.stage2.json` are agent inputs; page-written `template_selection.json` and `result.json` are user receipts, and installer-written `template_install.json` proves installed content. Only the active unconfirmed stage file may be overwritten, in place, never with a revision suffix or another stage's payload. Author Stage 1 without opening candidate specs or prototypes, post the [`confirm-surface.md`](../references/confirm-surface.md) handoff summary with that URL, then wait:
 
 ```bash
-python3 ${SKILL_DIR}/scripts/confirm_ui/server.py <project_path> --daemon
-python3 ${SKILL_DIR}/scripts/confirm_ui/server.py <project_path> --wait-only --wait-stage stage1
+python3 ${SKILL_DIR}/scripts/confirm_ui/wait.py <project_path> --stage stage1
 ```
 
 **Hard rule — Stage 1 is intermediate**: exit `0` here means continue, not finish — no final reply, no idling. Read `result.json` and `template_selection.json` exactly once (a confirmed contract plus either `free_design` with no roots or `templates` with ≥1 server-resolved root), then in the same run:
 
-1. For `templates`, run [`apply-template-workspace.md`](./stages/apply-template-workspace.md) against every confirmed root (each installs as `templates/design_spec.<kind>.<id>.md` plus real `images/` and `icons/`); for `free_design` skip it. The server verifies selection and the installer receipt directly before Stage 2.
-2. Only now inspect installed template state (apply `strategist-template.md` when active), load the planning-capability block, author the three solutions, freeze and read their exact bases, derive the production defaults, and create `recommendations.stage2.json` (`stage: "stage2"`, `selection_sha256` copied from the server-written selection) without changing Stage 1. Wait:
+1. For `templates`, run [`apply-template-workspace.md`](./stages/apply-template-workspace.md) against every confirmed root (each installs as `templates/design_spec.<kind>.<id>.md` plus real `images/` and `icons/`); for `free_design` skip it. The page verifies selection and the installer receipt directly before Stage 2.
+2. Only now inspect installed template state (apply `strategist-template.md` when active), load the planning-capability block, author the three solutions, freeze and read their exact bases, derive the production defaults, and create `recommendations.stage2.json` (`stage: "stage2"`, `selection_sha256` copied from the page-written selection) without changing Stage 1. Wait:
    ```bash
-   python3 ${SKILL_DIR}/scripts/confirm_ui/server.py <project_path> --wait-only
+   python3 ${SKILL_DIR}/scripts/confirm_ui/wait.py <project_path> --stage final
    ```
 3. Read the complete `result.json` exactly once and retain it through Design Spec authoring; proceed only on `stage: final` + `status: confirmed`. On a non-zero wait this single read decides whether the persisted result succeeded before the chat fallback; a stage-skip result returns to the missing stage.
-4. Always release the server:
-   ```bash
-   python3 ${SKILL_DIR}/scripts/confirm_ui/server.py <project_path> --shutdown
-   ```
 
 If the user selects chat after launch, apply `confirm-surface.md`'s in-run switch and finish every remaining stage in chat without relaunching.
 
@@ -252,13 +247,7 @@ Read the core as one batch with the exact detail files named by the retained `sp
 
 **Design Parameter Confirmation (Mandatory)**: before the first SVG, output one confirmation listing the compact communication objective, canvas dimensions, body font size, color scheme (primary/secondary/accent HEX), font plan, the per-role calibration table, and the live-preview URL from the launcher below. The calibration table comes from `python3 ${SKILL_DIR}/scripts/text_measure.py calibrate <project_path> --outline`: every lock role with family, size, CJK and Latin ≈ chars per 100 px, the longest planned §IX line per role in px, and the `[PLANNED WIDTHS]` block — each page's widest planned line per role, measured exactly, with paragraph fields marked `wraps` — all produced by the checker's own estimator with wrapping headroom, written to `validation/text_calibration.json`. Bounds for planned copy come from those measured widths; only copy rewritten or added after calibration falls back to the rates. If the preview failed to launch, say so here rather than proceeding silently.
 
-**Live Preview Auto-Startup (Mandatory)**: before the first SVG, start the editor and keep it running through Step 7:
-
-```bash
-python3 ${SKILL_DIR}/scripts/svg_editor/server.py <project_path> --live --daemon
-```
-
-Default first free port from `6060` (`--port N` binds strictly); read the URL from output or `<project_path>/live_preview/lock.json` and report it — or the launch failure, or that the user or run instructions forbade starting it — before the first SVG. It is a side process: never wait for it or for user confirmation, and keep it running until the user clicks **Exit preview** or asks in chat. Do not read or apply submitted annotations during generation; that window opens after Step 7 ([`live-preview.md`](stages/live-preview.md), which also describes staged direct edits).
+**Live Preview (Mandatory)**: before the first SVG, open the workbench's 页面预览 tab (`/p/<slug>/preview/`) and report that URL before the first SVG — the workbench is already resident, so nothing is launched and nothing is released. It is a side view: never wait for it or for user confirmation. Do not read or apply submitted annotations during generation; that window opens after Step 7 ([`live-preview.md`](stages/live-preview.md), which also describes staged direct edits).
 
 **Cadence (Mandatory)**: P01 → first-page probe → P02–P05 → early gate (once five pages exist and no later than the seventh; a planned roster of six or fewer pages skips the early gate) → remaining pages → final gate, in one context. Every checker invocation follows one of three events: the first-page probe, a gate point whose covered pages all exist, or the end of one consolidated repair pass. A run with none of them is a pacing violation; re-checking an authoring pattern beyond the probe is not a reason, because the same issues surface at the gate and are fixed in the same pass. Reload under Context validity above after context invalidation.
 

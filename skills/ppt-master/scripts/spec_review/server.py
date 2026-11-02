@@ -72,8 +72,8 @@ class _QuietPolls(logging.Filter):
         return not ('"GET /api/state ' in message and '" 200 ' in message)
 
 
-def create_app(project_dir: str, idle_timeout: int = 7200) -> Flask:
-    """Create the testable HTTP surface; lifecycle threads belong to main()."""
+def create_app(project_dir: str, idle_timeout: int = 7200, embedded: bool = False) -> Flask:
+    """Create the testable HTTP surface; lifecycle belongs to the workbench."""
     store = ReviewStore(Path(project_dir))
     store.document()
     app = Flask(__name__, static_folder="static", static_url_path="/static")
@@ -104,9 +104,12 @@ def create_app(project_dir: str, idle_timeout: int = 7200) -> Flask:
     def secure_response(response):
         response.headers["Cache-Control"] = "no-store"
         response.headers["X-Content-Type-Options"] = "nosniff"
+        # Mounted inside the workbench the page is framed by that same origin,
+        # so it must allow exactly that ancestor; standalone stays unframeable.
+        ancestors = "'self'" if embedded else "'none'"
         response.headers["Content-Security-Policy"] = (
             "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; "
-            "img-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"
+            f"img-src 'none'; base-uri 'none'; frame-ancestors {ancestors}; form-action 'none'"
         )
         return response
 
@@ -194,6 +197,10 @@ def create_app(project_dir: str, idle_timeout: int = 7200) -> Flask:
 
     @app.post("/api/shutdown")
     def shutdown():
+        if embedded:
+            # Mounted inside the resident workbench: closing the view must not
+            # end the shared process.
+            return jsonify(status="embedded")
         store.set_hold(True)
         app.extensions["stop_event"].set()
         return jsonify(status="ok")
@@ -221,132 +228,3 @@ def _running(project: Path) -> dict | None:
     return lock
 
 
-def _announce(lock: dict, no_browser: bool) -> None:
-    url = f"http://{PUBLIC_HOST}:{lock['port']}"
-    print(json.dumps({"service": "spec_review", "url": url, **lock}, separators=(",", ":")), flush=True)
-    if not no_browser:
-        open_preview_browser(url, logger=logger)
-
-
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("project_path")
-    actions = parser.add_mutually_exclusive_group()
-    actions.add_argument("--daemon", action="store_true")
-    actions.add_argument("--shutdown", action="store_true")
-    actions.add_argument("--hold", choices=("on", "off"))
-    parser.add_argument("--no-browser", action="store_true")
-    parser.add_argument("--port", type=int, help="Bind exactly this port; otherwise scan from 6060")
-    parser.add_argument("--timeout", type=int, default=7200, help="Idle seconds; 0 disables the timeout")
-    return parser
-
-
-def main(argv: list[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s spec_review: %(message)s")
-    logging.getLogger("werkzeug").addFilter(_QuietPolls())
-    plain_request_log()
-    project = Path(args.project_path).resolve()
-    runtime = project / "spec_review"
-    lock_file = runtime / "lock.json"
-    try:
-        if args.port is not None:
-            validate_port(args.port)
-        if args.timeout < 0:
-            raise ValueError("--timeout must be nonnegative")
-        existing = _running(project)
-        if args.shutdown or args.hold:
-            if not existing:
-                if args.hold:
-                    raise ValueError("Start spec review before setting --hold.")
-                clear_lock(lock_file)
-                print('{"status":"stopped"}')
-                return 0
-            path = "/api/shutdown" if args.shutdown else "/api/hold"
-            result = _call(existing["port"], path, {} if args.shutdown else {"hold": args.hold == "on"})
-            if args.shutdown:
-                deadline = time.monotonic() + 5
-                while read_lock(lock_file) == existing and time.monotonic() < deadline:
-                    time.sleep(0.1)
-                if read_lock(lock_file) == existing:
-                    raise ValueError("Shutdown is still pending; inspect spec_review/server.log.")
-            print(json.dumps(result, separators=(",", ":")))
-            return 0
-        if existing:
-            if args.port is not None and existing["port"] != args.port:
-                raise ValueError("A server is already running on a different port; use --shutdown first.")
-            _announce(existing, args.no_browser)
-            return 0
-        if not (project / "design_spec.md").is_file():
-            raise ValueError("The project must contain design_spec.md.")
-        runtime.mkdir(parents=True, exist_ok=True)
-        if args.daemon:
-            command = [sys.executable, str(Path(__file__).resolve()), str(project),
-                       "--no-browser", "--timeout", str(args.timeout)]
-            if args.port is not None:
-                command.extend(["--port", str(args.port)])
-            with (runtime / "server.log").open("a", encoding="utf-8") as log:
-                process = popen_detached(command, stdin=subprocess.DEVNULL, stdout=log, stderr=log, logger=logger)
-            deadline = time.monotonic() + 15
-            while time.monotonic() < deadline:
-                try:
-                    existing = _running(project)
-                except (OSError, ValueError):
-                    existing = None
-                if existing:
-                    if args.port is not None and existing["port"] != args.port:
-                        raise ValueError("A concurrent launch claimed another port; use --shutdown first.")
-                    _announce(existing, args.no_browser)
-                    return 0
-                if process.poll() is not None:
-                    break
-                time.sleep(0.2)
-            if process.poll() is None:
-                process.terminate()
-            raise ValueError("Server failed to start; inspect spec_review/server.log.")
-
-        # Serialize startup without changing the shared servers' lock behavior.
-        with file_mutex(runtime / "service.guard"):
-            existing = _running(project)
-            if existing:
-                if args.port is not None and args.port != existing["port"]:
-                    raise ValueError("A concurrent launch claimed another port; use --shutdown first.")
-                _announce(existing, args.no_browser)
-                return 0
-            app = create_app(str(project), args.timeout)
-            port = args.port if args.port is not None else find_free_port(DEFAULT_PORT)
-            httpd = make_server(PUBLIC_HOST, port, app, threaded=True)
-            # Let in-flight writes finish before server_close releases the slot.
-            httpd.daemon_threads = False
-            if claim_lock(lock_file, port):
-                httpd.server_close()
-                raise ValueError("Another process claimed the project lock; launch again.")
-        stop = app.extensions["stop_event"]
-
-        def watch():
-            while not stop.wait(0.25):
-                with app.extensions["review_store"].mutex:
-                    if args.timeout and time.monotonic() - app.config["LAST_ACTIVITY"] > args.timeout:
-                        logger.info("idle timeout reached")
-                        break
-            httpd.shutdown()
-
-        signal.signal(signal.SIGTERM, lambda *_: stop.set())
-        threading.Thread(target=watch, daemon=True).start()
-        try:
-            _announce({"pid": os.getpid(), "port": port}, args.no_browser)
-            httpd.serve_forever(poll_interval=0.2)
-        except KeyboardInterrupt:
-            stop.set()
-        finally:
-            stop.set()
-            httpd.server_close()
-            release_lock(lock_file)
-        return 0
-    except (OSError, ValueError, RuntimeError) as exc:
-        logger.error("%s", exc)
-        return 1
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

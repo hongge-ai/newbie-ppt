@@ -43,6 +43,7 @@ import argparse
 import json
 import os
 import random
+import re
 import socket
 import subprocess
 import sys
@@ -57,6 +58,7 @@ _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
+from atomic_io import replace_with_retry, write_json_atomic  # noqa: E402
 from console_encoding import configure_utf8_stdio  # noqa: E402
 from server_common import process_alive  # noqa: E402
 
@@ -80,11 +82,15 @@ HEARTBEAT_INTERVAL_SECONDS = 20
 LOCK_WAIT_SECONDS = 5.0
 LOCK_POLL_SECONDS = 0.05
 LOCK_STALE_SECONDS = 30.0
+LOCK_REMOVE_ATTEMPTS = 10
 EVENT_ROTATE_BYTES = 8 * 1024 * 1024
 EVENT_MAX_LINE_BYTES = 4000
 EVENT_SHARD_KEEP = 20
 WAIT_POLL_SECONDS = 0.5
 DEFAULT_WAIT_TIMEOUT = 590
+
+# A task id is data, never a path segment: the same shape the workbench mints.
+_TASK_ID_RE = re.compile(r"t\d{8}-\d{6}-[0-9a-f]{4}\Z")
 
 # Exit codes are part of the agent-facing contract.
 EXIT_OK = 0
@@ -229,17 +235,6 @@ def new_run_id() -> str:
     return f"r-{stamp}-{random.randrange(16 ** 4):04x}"
 
 
-def _write_json_atomic(path: Path, payload: dict) -> None:
-    """Write JSON through a sibling temp file so readers never see a partial file."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_name(f".{path.name}.{os.getpid()}.{time.time_ns()}.tmp")
-    data = json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=False)
-    with open(tmp, "w", encoding="utf-8", newline="\n") as handle:
-        handle.write(data)
-        handle.write("\n")
-    os.replace(tmp, path)
-
-
 def _read_json(path: Path) -> Optional[dict]:
     """Read a JSON object, returning None when it is absent or unreadable."""
     try:
@@ -252,6 +247,29 @@ def _read_json(path: Path) -> Optional[dict]:
 # ---------------------------------------------------------------------------
 # Cross-process lock
 # ---------------------------------------------------------------------------
+
+
+def _remove_lock_dir(lock_dir: Path) -> bool:
+    """Remove a lock directory, retrying the transient access denial.
+
+    Release is as exposed as publication on Windows: the owner file was just
+    written, so a scanner can hold it for a few milliseconds. A silent failure
+    here leaves a lock whose owner is this live pid, which the next writer
+    cannot reclaim and must wait out as "held".
+    """
+    for attempt in range(LOCK_REMOVE_ATTEMPTS):
+        try:
+            for entry in lock_dir.iterdir():
+                entry.unlink(missing_ok=True)
+            lock_dir.rmdir()
+            return True
+        except FileNotFoundError:
+            return True
+        except OSError:
+            if attempt == LOCK_REMOVE_ATTEMPTS - 1:
+                return False
+            time.sleep(LOCK_POLL_SECONDS)
+    return False
 
 
 class FileLock:
@@ -298,7 +316,7 @@ class FileLock:
                 "host": socket.gethostname(),
                 "acquired_at": iso(utc_now()),
             }
-            _write_json_atomic(self.paths.lock_dir / LOCK_OWNER_NAME, owner)
+            write_json_atomic(self.paths.lock_dir / LOCK_OWNER_NAME, owner)
             self.acquired = True
             return
 
@@ -308,12 +326,7 @@ class FileLock:
             return
         owner = _read_json(self.paths.lock_dir / LOCK_OWNER_NAME) or {}
         if owner.get("pid") in (None, os.getpid()):
-            try:
-                for entry in self.paths.lock_dir.iterdir():
-                    entry.unlink(missing_ok=True)
-                self.paths.lock_dir.rmdir()
-            except OSError:
-                pass
+            _remove_lock_dir(self.paths.lock_dir)
         self.acquired = False
 
     def _reclaim_if_stale(self) -> bool:
@@ -337,13 +350,7 @@ class FileLock:
                 age = (utc_now() - acquired_at).total_seconds()
                 if age < LOCK_STALE_SECONDS and same_host:
                     return False
-        try:
-            for entry in self.paths.lock_dir.iterdir():
-                entry.unlink(missing_ok=True)
-            self.paths.lock_dir.rmdir()
-        except OSError:
-            return False
-        return True
+        return _remove_lock_dir(self.paths.lock_dir)
 
 
 # ---------------------------------------------------------------------------
@@ -394,6 +401,7 @@ def _blank_status(paths: Paths) -> dict:
     return {
         "schema_version": SCHEMA_VERSION,
         "project": paths.project.name,
+        "task_id": None,
         "run": None,
         "route": "generate",
         "profile": "default",
@@ -444,14 +452,17 @@ def fold_status(paths: Paths, events: Optional[list[dict]] = None) -> dict:
             status["surface"] = data.get("surface") or status["surface"]
             status["error"] = None
             if data.get("resume"):
-                # A resumed run keeps the open request valid: the user may
-                # still answer it, so the view must not claim to be running.
+                # A resumed run keeps the open request and the task binding:
+                # the user may still answer, so the view must not claim to run.
+                if data.get("task") is not None:
+                    status["task_id"] = data.get("task")
                 status["state"] = "waiting_user" if status.get("blocking") else "running"
             else:
                 status["state"] = "running"
                 status["progress"] = None
                 status["stage"] = None
                 status["stage_index"] = None
+                status["task_id"] = data.get("task")
         elif kind == "run/heartbeat":
             pass
         elif kind == "run/end":
@@ -509,12 +520,17 @@ def fold_status(paths: Paths, events: Optional[list[dict]] = None) -> dict:
     return status
 
 
+def _bound_task(paths: Paths) -> Optional[str]:
+    """Return the task id the last authoritative run/start carried."""
+    return fold_status(paths).get("task_id")
+
+
 def _read_lease(paths: Paths) -> Optional[dict]:
     return _read_json(paths.lease)
 
 
 def _write_lease(paths: Paths, lease: dict) -> None:
-    _write_json_atomic(paths.lease, lease)
+    write_json_atomic(paths.lease, lease)
 
 
 def effective_state(paths: Paths, status: Optional[dict] = None) -> dict:
@@ -593,7 +609,7 @@ def _rotate_if_needed(paths: Paths) -> None:
         return
     first, last = events[0]["seq"], events[-1]["seq"]
     target = paths.runtime / f"events.{first:09d}-{last:09d}.jsonl"
-    os.replace(paths.events, target)
+    replace_with_retry(paths.events, target)
     _prune_shards(paths)
 
 
@@ -616,7 +632,7 @@ def _project_status_lockfree(paths: Paths, extra: list[dict]) -> dict:
     if lease:
         status["heartbeat_at"] = lease.get("heartbeat_at")
         status["lease_expires_at"] = lease.get("expires_at")
-    _write_json_atomic(paths.status, status)
+    write_json_atomic(paths.status, status)
     return status
 
 
@@ -686,6 +702,7 @@ def start_run(
     resume: bool = False,
     takeover: bool = False,
     reason: str = "expired",
+    task: Optional[str] = None,
 ) -> dict:
     """Open a run, resume the current lease, or take it over."""
     paths = Paths(project)
@@ -694,9 +711,14 @@ def start_run(
         raise BridgeError(f"unknown route: {route}", EXIT_USAGE)
     if surface not in ("chat", "web"):
         raise BridgeError(f"unknown surface: {surface}", EXIT_USAGE)
+    if task is not None and not _TASK_ID_RE.match(task):
+        raise BridgeError(f"invalid task id: {task!r}", EXIT_USAGE)
 
     with FileLock(paths):
         lease = _load_lease(paths)
+        # Read the binding before any takeover event raises the fence; events
+        # from the superseded fence are filtered out of the projection.
+        previous_task = _bound_task(paths)
 
         if resume:
             if not lease.get("run_id"):
@@ -708,6 +730,7 @@ def start_run(
                 )
             run_id = lease["run_id"]
             fence = int(lease.get("fence") or 1)
+            bound_task = task if task is not None else previous_task
             new_lease = {
                 "run_id": run_id,
                 "fence": fence,
@@ -720,12 +743,18 @@ def start_run(
             event = _append_event(
                 paths,
                 "run/start",
-                {"route": route, "profile": profile, "surface": surface, "resume": True},
+                {
+                    "route": route,
+                    "profile": profile,
+                    "surface": surface,
+                    "resume": True,
+                    "task": bound_task,
+                },
                 run_id=run_id,
                 fence=fence,
             )
             _project_status_lockfree(paths, [event])
-            return {"run_id": run_id, "fence": fence, "resumed": True}
+            return {"run_id": run_id, "fence": fence, "resumed": True, "task_id": bound_task}
 
         if lease.get("run_id"):
             if not _lease_expired(lease) and not takeover:
@@ -762,6 +791,9 @@ def start_run(
             extra = []
 
         run_id = new_run_id()
+        # A run that replaces an open one keeps its task binding; a fresh run
+        # after a closed one starts unbound unless the caller names a task.
+        bound_task = task if task is not None else (previous_task if extra else None)
         new_lease = {
             "run_id": run_id,
             "fence": fence,
@@ -774,13 +806,19 @@ def start_run(
         event = _append_event(
             paths,
             "run/start",
-            {"route": route, "profile": profile, "surface": surface, "resume": False},
+            {
+                "route": route,
+                "profile": profile,
+                "surface": surface,
+                "resume": False,
+                "task": bound_task,
+            },
             run_id=run_id,
             fence=fence,
         )
         extra.append(event)
         _project_status_lockfree(paths, extra)
-        return {"run_id": run_id, "fence": fence, "resumed": False}
+        return {"run_id": run_id, "fence": fence, "resumed": False, "task_id": bound_task}
 
 
 def beat(project: Path) -> dict:
@@ -1009,6 +1047,12 @@ def read_response(project: Path, req_id: str) -> Optional[dict]:
     return _read_json(response_path(Paths(project), req_id))
 
 
+def recent_events(project: Path, limit: int = 60) -> list[dict]:
+    """Return the newest events, oldest first, for a viewer."""
+    events = _iter_events(Paths(project))
+    return events[-limit:] if limit > 0 else events
+
+
 def answer_request(
     project: Path,
     req_id: str,
@@ -1183,6 +1227,10 @@ def build_parser() -> argparse.ArgumentParser:
     start.add_argument("--resume", action="store_true", help="reuse the current run id")
     start.add_argument("--takeover", action="store_true", help="replace a live or stale run")
     start.add_argument("--reason", default="expired", choices=("expired", "manual", "host-change"))
+    start.add_argument(
+        "--task", default=None,
+        help="workbench task id this run answers (inherited on resume/takeover)",
+    )
     start.add_argument("--project", default=".")
     end = run_sub.add_parser("end", help="close the run")
     end.add_argument("--outcome", default="done", choices=("done", "failed", "aborted"))
@@ -1325,6 +1373,7 @@ def main(argv: Optional[list[str]] = None) -> int:
                     resume=args.resume,
                     takeover=args.takeover,
                     reason=args.reason,
+                    task=args.task,
                 ))
                 return EXIT_OK
             if args.action == "end":
@@ -1419,7 +1468,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         if args.command == "rebuild":
             paths = Paths(_project_arg(args.project))
             status = fold_status(paths)
-            _write_json_atomic(paths.status, status)
+            write_json_atomic(paths.status, status)
             _print({"rebuilt": True, "source_seq": status["source_seq"]})
             return EXIT_OK
     except BridgeError as exc:
@@ -1438,7 +1487,10 @@ def _print_human(view: dict) -> None:
     label = view.get("stage_label") or ""
     state = view.get("state")
     progress = view.get("progress")
-    parts = [f"stage={stage}", f"state={state}"]
+    parts = []
+    if view.get("task_id"):
+        parts.append(f"task={view.get('task_id')}")
+    parts.extend([f"stage={stage}", f"state={state}"])
     if progress and progress.get("total"):
         parts.append(f"progress={progress.get('done')}/{progress.get('total')}")
     if label and label != stage:

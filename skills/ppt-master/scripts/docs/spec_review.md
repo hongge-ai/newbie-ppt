@@ -4,41 +4,34 @@ Local browser review of `design_spec.md`, with block comments and staged Markdow
 editing. The tool writes the same spec file, keeps comments in sidecars, and does
 not read or write `spec_lock.md`, invoke a model, or start generation.
 
+The page is a surface of the resident workbench, served at
+`http://127.0.0.1:<workbench port>/p/<project slug>/spec/`. There is no server to
+launch or shut down; the workbench owns the process and mounted mode turns
+`/api/shutdown` into a no-op.
+
 ## Commands
 
 ```bash
-python3 skills/ppt-master/scripts/spec_review/server.py <project_path> --daemon
-python3 skills/ppt-master/scripts/spec_review/server.py <project_path> --daemon --no-browser
-python3 skills/ppt-master/scripts/spec_review/server.py <project_path> --port 6070 --timeout 7200
-python3 skills/ppt-master/scripts/spec_review/server.py <project_path> --hold on
-python3 skills/ppt-master/scripts/spec_review/server.py <project_path> --hold off
+python3 skills/ppt-master/scripts/spec_review/hold.py <project_path> on
+python3 skills/ppt-master/scripts/spec_review/hold.py <project_path> off
 python3 skills/ppt-master/scripts/check_spec_annotations.py <project_path>
 python3 skills/ppt-master/scripts/check_spec_annotations.py <project_path> --ack-edits
 python3 skills/ppt-master/scripts/check_spec_annotations.py <project_path> --applied <id>
-python3 skills/ppt-master/scripts/spec_review/server.py <project_path> --shutdown
 ```
 
-The daemon launcher waits for `GET /api/health` and prints a compact JSON object
-with the actual URL, pid, and port. Diagnostics go to stderr; detached server
-output goes to `<project_path>/spec_review/server.log`.
-As with other project CLIs, an existing `validation/workflow.log` receives the
-launch/check command envelope through the shared console helper; detached server
-requests are not copied into that workflow log.
+`hold.py` reads the workbench port from `projects/.workbench/workbench.lock` and
+posts the hold to the mounted page. Diagnostics go to stderr.
 
 ## Lifecycle
 
-- **Port**: bind loopback only. Without `--port`, scan 50 ports starting at `6060`;
-  an explicit `--port N` binds strictly. Use the returned URL, not an assumed port.
-- **Single instance**: `<project_path>/spec_review/lock.json` records pid and port.
-  A second launch reuses the live instance; a different explicit port fails.
-  Dead-pid locks are replaced. `service.guard` serializes concurrent launches.
-- **Timeout**: `7200s` of inactivity by default; `--timeout 0` disables it.
-  `/api/state` polling and `/api/health` requests do not refresh activity; other
-  requests that pass the Host/Origin guard do. An idle open tab does not prevent
-  timeout. Closing a tab leaves the service running. **Exit review**, `--shutdown`,
-  timeout, or process termination stops it.
-- **Draft lifetime**: per-block drafts live only in server memory. A tab reload
-  can retrieve them; stopping or restarting the server loses unapplied drafts.
+- **Port**: the workbench port only; the mount path identifies the project, so no
+  per-project port exists and nothing scans for one.
+- **Single instance**: enforced by the workbench itself. The old
+  `<project_path>/spec_review/lock.json` is no longer written.
+- **Timeout**: none. The workbench is resident and the page is a view inside it;
+  an idle tab neither expires nor keeps anything alive.
+- **Draft lifetime**: per-block drafts live in the mounted app's memory. A tab
+  reload can retrieve them; restarting the workbench loses unapplied drafts.
   The browser requests leave-page confirmation while it has pending work.
 - **Exit review**: the button checks for unapplied drafts and unsaved comments
   before calling `POST /api/shutdown`. Pending work requires confirmation.
@@ -215,6 +208,6 @@ window.fetch = async (...args) => {
 ## Remote access
 
 Start with `--no-browser` on the remote host. Forward the actual port `<P>` from
-launch output or `spec_review/lock.json`: use the IDE's **PORTS** panel, a Termius
+workbench lock `projects/.workbench/workbench.lock`: use the IDE's **PORTS** panel, a Termius
 local rule bound to `127.0.0.1:<P>`, or
 `ssh -L <P>:127.0.0.1:<P> <user>@<host>`. Open `http://localhost:<P>` locally.

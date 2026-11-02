@@ -432,6 +432,7 @@ def create_app(
     idle_timeout: int = 900,
     live: bool = False,
     lock_file: Optional[Path] = None,
+    embedded: bool = False,
 ) -> Flask:
     """Create and configure the Flask app for a given project directory."""
     project_path = Path(project_dir).resolve()
@@ -494,10 +495,15 @@ def create_app(
                 _exit_with_lock_release(0)
 
     watchdog = threading.Thread(target=_idle_watchdog, daemon=True)
-    watchdog.start()
+    if not embedded:
+        watchdog.start()
 
     @app.route('/api/shutdown', methods=['POST'])
     def shutdown():
+        if embedded:
+            # Mounted inside the resident workbench: the preview is a view, and
+            # exiting it must never end the shared process.
+            return jsonify({'status': 'embedded'})
         data = request.get_json(silent=True) or {}
         reason = data.get('reason') or 'shutdown'
 
@@ -1021,15 +1027,6 @@ def _lock_file(project_path: Path) -> Path:
     return _runtime_dir(project_path) / LOCK_FILE_NAME
 
 
-def _legacy_live_lock(project_path: Path) -> Optional[dict]:
-    """Return a live legacy root lock, if one exists."""
-    legacy_lock = project_path / LEGACY_LOCK_FILE_NAME
-    existing = _read_lock(legacy_lock)
-    if existing and _process_alive(_lock_pid(existing)):
-        return existing
-    return None
-
-
 def _shutdown_existing(project_path: Path) -> int:
     """Stop a live-preview server for this project (idempotent)."""
     lock_file = _lock_file(project_path)
@@ -1078,97 +1075,8 @@ def _shutdown_existing(project_path: Path) -> int:
     return 0
 
 
-def _wait_for_ready(
-    port: int,
-    proc: subprocess.Popen,
-    project_path: Path,
-    timeout: int = STARTUP_TIMEOUT,
-) -> int:
-    """Wait until this project's detached live-preview server responds.
-
-    Returns the server pid recorded in the project lock, or 0 on timeout.
-    ``proc.pid`` is not used for identity: on Windows a venv ``python.exe``
-    may be a launcher whose child is the real interpreter.
-    """
-    deadline = time.time() + timeout
-    health_url = _server_url(port, '/api/health')
-    last_error = ''
-    while time.time() < deadline:
-        if proc.poll() is not None:
-            logger.error('live preview exited during startup (code=%s)', proc.returncode)
-            return 0
-        try:
-            with urllib.request.urlopen(health_url, timeout=1) as response:
-                data = json.load(response)
-                lock = _read_lock(_lock_file(project_path))
-                server_pid = _lock_pid(lock)
-                if (
-                    response.status == 200
-                    and isinstance(data, dict)
-                    and data.get('service') == 'live_preview'
-                    and data.get('project') == str(project_path)
-                    and lock is not None
-                    and lock.get('port') == port
-                    and data.get('pid') == server_pid
-                ):
-                    return server_pid
-                last_error = 'health response belongs to another service or project'
-        except (urllib.error.URLError, TimeoutError, OSError, ValueError) as exc:
-            last_error = str(exc)
-        time.sleep(0.25)
-    logger.error(
-        'live preview did not become ready at %s within %ss%s',
-        health_url,
-        timeout,
-        f' (last error: {last_error})' if last_error else '',
-    )
-    return 0
-
-
 def _open_browser(url: str) -> bool:
     return open_preview_browser(url, logger=logger)
-
-
-def _reuse_running_server(
-    existing: dict,
-    *,
-    open_browser: bool,
-    requested_port: Optional[int] = None,
-) -> int:
-    """Idempotent relaunch: point at the already-running preview instead of failing.
-
-    A relaunch while the server is alive is the normal second-preview flow
-    (the first server keeps serving after the browser tab is closed), so it
-    must re-open the browser and exit 0 — not error out.
-    """
-    pid = existing.get('pid', '?')
-    try:
-        port = int(existing.get('port', 0) or 0)
-    except (TypeError, ValueError):
-        port = 0
-    if not port:
-        logger.error(
-            'live preview is already running for this project (pid=%s) but its '
-            'lock records no usable port; run --shutdown, then start again',
-            pid,
-        )
-        return 1
-    if requested_port is not None and port != requested_port:
-        logger.error(
-            'live preview is already running for this project on port %s; '
-            'explicit --port %s cannot reuse it. Run --shutdown, then start again',
-            port,
-            requested_port,
-        )
-        return 1
-    url = _server_url(port)
-    logger.info(
-        'live preview already running for this project (pid=%s), reusing: %s',
-        pid, url,
-    )
-    if open_browser and not _open_browser(url):
-        logger.info('browser did not auto-open; open %s manually', url)
-    return 0
 
 
 def _open_browser_async(url: str, delay: float = 0.4) -> None:
@@ -1180,217 +1088,3 @@ def _open_browser_async(url: str, delay: float = 0.4) -> None:
     threading.Thread(target=_open, daemon=True).start()
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description='PPT Master SVG Editor',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    parser.add_argument('project_dir', help='Path to project directory (contains svg_output/)')
-    parser.add_argument(
-        '--port',
-        type=int,
-        default=None,
-        help=f'Exact port to listen on (default: first free port from {DEFAULT_PORT})',
-    )
-    parser.add_argument('--no-browser', action='store_true', help='Do not auto-open browser')
-    parser.add_argument(
-        '--daemon',
-        action='store_true',
-        help='Start the server in the background and return after it is reachable',
-    )
-    parser.add_argument(
-        '--live',
-        action='store_true',
-        help='Run as Executor live preview: allow empty svg_output/ and keep serving after annotation submit',
-    )
-    parser.add_argument(
-        '--timeout',
-        type=int,
-        default=None,
-        help='Idle timeout in seconds (default: 900; live mode default: 7200; 0 = disabled)',
-    )
-    parser.add_argument(
-        '--shutdown',
-        action='store_true',
-        help='Stop a live-preview server left running for this project, then exit (idempotent).',
-    )
-    return parser
-
-
-def main(argv: Optional[list[str]] = None) -> int:
-    parser = build_parser()
-    args = parser.parse_args(argv)
-
-    logging.basicConfig(
-        level=logging.INFO,
-        format='[%(asctime)s] [%(levelname)s] svg_editor: %(message)s',
-        datefmt='%H:%M:%S',
-    )
-    plain_request_log()
-
-    if args.port is not None:
-        try:
-            args.port = _validate_port(args.port)
-        except ValueError as exc:
-            logger.error('%s', exc)
-            return 2
-
-    project_path = Path(args.project_dir).resolve()
-    if args.shutdown:
-        return _shutdown_existing(project_path)
-
-    svg_output = project_path / 'svg_output'
-    if not svg_output.exists():
-        if args.live:
-            svg_output.mkdir(parents=True, exist_ok=True)
-        else:
-            logger.error('%s does not exist', svg_output)
-            return 1
-    elif not svg_output.is_dir():
-        logger.error('%s is not a directory', svg_output)
-        return 1
-
-    legacy_existing = _legacy_live_lock(project_path)
-    if legacy_existing:
-        return _reuse_running_server(
-            legacy_existing,
-            open_browser=not args.no_browser,
-            requested_port=args.port,
-        )
-
-    runtime_dir = _runtime_dir(project_path)
-    lock_file = _lock_file(project_path)
-
-    if args.daemon:
-        existing = _read_lock(lock_file)
-        if existing and _process_alive(_lock_pid(existing)):
-            return _reuse_running_server(
-                existing,
-                open_browser=not args.no_browser,
-                requested_port=args.port,
-            )
-
-        try:
-            runtime_dir.mkdir(parents=True, exist_ok=True)
-        except OSError as exc:
-            logger.error('cannot create live preview runtime directory: %s (%s)', runtime_dir, exc)
-            return 1
-        log_path = runtime_dir / 'server.log'
-        try:
-            port = args.port if args.port is not None else _find_free_port(DEFAULT_PORT)
-        except RuntimeError as exc:
-            logger.error('%s', exc)
-            return 1
-        idle_timeout = args.timeout
-        if idle_timeout is None:
-            idle_timeout = 7200 if args.live else 900
-        cmd = [
-            sys.executable,
-            str(Path(__file__).resolve()),
-            str(project_path),
-            '--port',
-            str(port),
-            '--timeout',
-            str(idle_timeout),
-            '--no-browser',
-        ]
-        if args.live:
-            cmd.append('--live')
-        try:
-            with log_path.open('a', encoding='utf-8') as log:
-                proc = _popen_detached(
-                    cmd,
-                    stdout=log,
-                    stderr=subprocess.STDOUT,
-                    stdin=subprocess.DEVNULL,
-                    logger=logger,
-                )
-        except OSError as exc:
-            logger.error('cannot write live preview log: %s (%s)', log_path, exc)
-            return 1
-        url = _server_url(port)
-        server_pid = _wait_for_ready(port, proc, project_path)
-        if not server_pid:
-            if proc.poll() is None:
-                proc.terminate()
-            logger.error('live preview failed to become reachable: %s (log: %s)', url, log_path)
-            return 1
-        logger.info('started live preview in background: %s (pid=%s)', url, server_pid)
-        logger.info('log: %s', log_path)
-        if not args.no_browser and not _open_browser(url):
-            logger.info('browser did not auto-open; open %s manually', url)
-        return 0
-
-    # Pick a free port: another project's preview/confirm server may already
-    # hold the default, so bind the next free one instead of crashing — each
-    # project then serves its own data on its own port (no cross-project mix-up).
-    try:
-        port = args.port if args.port is not None else _find_free_port(DEFAULT_PORT)
-    except RuntimeError as exc:
-        logger.error('%s', exc)
-        return 1
-
-    # Per-project mutual exclusion. The major driver of orphaned servers is
-    # --live mode (which used to disable idle timeout entirely) combined with
-    # silent restarts; reusing the running server on duplicate launches catches
-    # the accumulation at its source. Stale locks (dead pid) are overwritten
-    # by _claim_lock.
-    try:
-        runtime_dir.mkdir(parents=True, exist_ok=True)
-    except OSError as exc:
-        logger.error('cannot create live preview runtime directory: %s (%s)', runtime_dir, exc)
-        return 1
-    existing = _claim_lock(lock_file, port)
-    if existing:
-        return _reuse_running_server(
-            existing,
-            open_browser=not args.no_browser,
-            requested_port=args.port,
-        )
-    # atexit covers normal interpreter shutdown (Ctrl+C / SystemExit);
-    # /api/shutdown and idle timeout call _release_lock directly before
-    # os._exit since atexit handlers do not run on os._exit.
-    atexit.register(_release_lock, lock_file)
-
-    # SIGTERM would otherwise terminate without running atexit, leaving a
-    # stale lock that future launches have to recover from. Translate it
-    # into SystemExit so the atexit handler above runs. SIGINT (Ctrl+C) is
-    # already handled by werkzeug's reloader-free shutdown path.
-    def _on_sigterm(signum: int, _frame) -> None:
-        logger.info('received signal %s, exiting', signum)
-        sys.exit(0)
-    try:
-        signal.signal(signal.SIGTERM, _on_sigterm)
-    except (ValueError, OSError):
-        # ValueError: not in main thread; OSError: unsupported on platform.
-        pass
-
-    idle_timeout = args.timeout
-    if idle_timeout is None:
-        # Long but finite default for --live so a forgotten preview eventually
-        # dies. Set --timeout 0 to keep the historical never-expire behavior.
-        idle_timeout = 7200 if args.live else 900
-
-    app = create_app(
-        str(project_path),
-        idle_timeout=idle_timeout,
-        live=args.live,
-        lock_file=lock_file,
-    )
-
-    url = _server_url(port)
-    if not args.no_browser:
-        _open_browser_async(url)
-
-    mode = "live preview (auto-startup)" if args.live else "live preview"
-    svg_count = len(list(svg_output.glob('*.svg')))
-    logger.info('running at %s (%s)', url, mode)
-    logger.info('project: %s', project_path)
-    logger.info('svg_output: %s (%d slides)', svg_output, svg_count)
-    logger.info('idle timeout: %ds (0 = disabled)', idle_timeout)
-    app.run(host=PUBLIC_HOST, port=port, debug=False)
-    return 0
-
-
-if __name__ == '__main__':
-    raise SystemExit(main())

@@ -1579,4 +1579,7 @@ def validate_runtime_state(project_path: Path) -> list[str]:
             "status.json schema_version must be 1 "
             f"(found {version!r}); run `agent_bridge.py rebuild`"
         ]
+    task_id = payload.get("task_id")
+    if task_id is not None and not isinstance(task_id, str):
+        return ["status.json task_id must be a string or null"]
     return []
