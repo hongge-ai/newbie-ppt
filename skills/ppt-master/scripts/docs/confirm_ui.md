@@ -28,6 +28,27 @@
 
 **Model-facing procedure lives elsewhere**: the surface decision, chat/delegated listing, always-on Stage-1 chat handoff, in-run UI → chat switch, and the authoring shapes of `recommendations.stage1.json`, `recommendations.stage2.json`, and `result.json` are owned by [`confirm-surface.md`](../../references/confirm-surface.md), which the Strategist reads. This document keeps the server lifecycle, the template-selection sidecar, catalogs, the progression guard, and the complete field semantics that the server validates.
 
+## Template preview
+
+The Stage-1 template picker renders the candidate itself, not just its summary:
+
+| Route | Result |
+|---|---|
+| `GET /api/template-roster/<kind>/<id>` | `{kind, id, roster: [{name, url}], images_prefix, frontmatter}` for one registered workspace |
+| `GET /api/template-file/<kind>/<id>/<path>` | One file from that workspace |
+
+Both routes resolve the workspace from its index entry only (`kind` must name a
+registered kind and `id` must be a key in that kind's `*_index.json`), so an
+unregistered path is unreachable and `send_from_directory` still refuses
+traversal. Layout and deck return their prototype `templates/*.svg` roster;
+brand and style return an empty roster plus the parsed frontmatter, which the
+page renders as an identity card.
+
+The browser substitutes `{{TOKEN}}` placeholders with sample copy and rewrites
+`../images/` onto `images_prefix`, so a prototype reads as a page instead of
+braces and broken images. Icons referenced through `<use data-icon>` stay
+placeholders in this preview; they are embedded only at export.
+
 ## Where it runs
 
 The page is a surface of the resident workbench, served on the workbench port:

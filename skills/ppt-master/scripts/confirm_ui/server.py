@@ -378,6 +378,45 @@ def _read_template_options_input(
     return data, roots
 
 
+
+def _library_workspace(kind: str, template_id: str) -> Optional[Path]:
+    """Resolve one registered library workspace from its index entry only."""
+    config = _TEMPLATE_LIBRARY_CONFIG.get(kind)
+    if config is None or not isinstance(template_id, str) or not _safe_template_id(template_id):
+        return None
+    directory_name, index_name = config
+    kind_dir = (_TEMPLATES_DIR / directory_name).resolve()
+    try:
+        index = _read_json_object(kind_dir / index_name)
+    except (OSError, json.JSONDecodeError, ValueError):
+        return None
+    if template_id not in index:
+        return None
+    root = (kind_dir / template_id).resolve()
+    if root.parent != kind_dir or not root.is_dir():
+        return None
+    return root
+
+
+def _template_frontmatter(root: Path) -> dict:
+    """Return the simple key/value frontmatter of one workspace design spec."""
+    spec = root / 'templates' / 'design_spec.md'
+    try:
+        lines = spec.read_text(encoding='utf-8').splitlines()
+    except OSError:
+        return {}
+    if not lines or lines[0].strip() != '---':
+        return {}
+    data = {}
+    for line in lines[1:]:
+        if line.strip() == '---':
+            break
+        key, sep, value = line.partition(':')
+        if sep and key.strip():
+            data[key.strip()] = value.strip().strip('"')
+    return data
+
+
 def _build_template_library() -> tuple[dict, dict[str, dict], dict[str, dict], dict]:
     """Build indexed library groups without scanning template directories."""
     library = {}
@@ -2321,6 +2360,37 @@ def create_app(
             return resp
         except (OSError, json.JSONDecodeError) as exc:
             return jsonify({'error': f'invalid catalogs.json: {exc}'}), 500
+
+
+    @app.route('/api/template-roster/<kind>/<template_id>')
+    def get_template_roster(kind: str, template_id: str):
+        """Serve one registered workspace's prototype roster and identity card."""
+        root = _library_workspace(kind, template_id)
+        if root is None:
+            return jsonify({'error': 'unknown template'}), 404
+        pages = sorted((root / 'templates').glob('*.svg'))
+        base = f'/api/template-file/{kind}/{template_id}'
+        payload = {
+            'kind': kind,
+            'id': template_id,
+            'roster': [
+                {'name': page.name, 'url': f'{base}/templates/{page.name}'}
+                for page in pages
+            ],
+            'images_prefix': f'{base}/images',
+            'frontmatter': _template_frontmatter(root),
+        }
+        resp = jsonify(payload)
+        resp.headers['Cache-Control'] = 'no-store'
+        return resp
+
+    @app.route('/api/template-file/<kind>/<template_id>/<path:filename>')
+    def get_template_file(kind: str, template_id: str, filename: str):
+        """Serve one file from a registered workspace (index-derived root only)."""
+        root = _library_workspace(kind, template_id)
+        if root is None:
+            return jsonify({'error': 'unknown template'}), 404
+        return send_from_directory(root, filename)
 
     @app.route('/api/icon-previews')
     def get_icon_previews():

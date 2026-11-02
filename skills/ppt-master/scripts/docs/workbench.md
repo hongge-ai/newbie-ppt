@@ -147,6 +147,12 @@ kinds are browsed with real previews, or the run continues as free design.
 That keeps one truth: `task.json` never disagrees with the confirmed choice, and
 a template is installed from the Stage-1 receipt, not from the task.
 
+The picker shows what it is choosing: each layout or deck candidate renders its
+prototype roster as page thumbnails, with `{{TOKEN}}` placeholders replaced by
+sample copy and `../images/` resolved through the served workspace path. Brand
+and style candidates have no roster and render their identity card (parsed
+`design_spec` frontmatter plus the primary-color swatch) instead.
+
 ## Task File Bus
 
 One directory per task under `projects/.workbench/tasks/<task_id>/`:

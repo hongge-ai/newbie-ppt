@@ -45,6 +45,9 @@
             template_kind_deck: "Deck",
             template_source_explicit: "Specified path",
             template_select_none: "None",
+            template_preview: "Preview",
+            template_preview_loading: "Loading preview…",
+            template_preview_failed: "Preview unavailable",
             template_none_explicit: "No specified templates for this run",
             sec_canvas: "Canvas format",
             sec_pages: "Page count",
@@ -222,6 +225,9 @@
             template_kind_deck: "Deck",
             template_source_explicit: "指定パス",
             template_select_none: "なし",
+            template_preview: "プレビュー",
+            template_preview_loading: "プレビューを読み込み中…",
+            template_preview_failed: "プレビューを表示できません",
             template_none_explicit: "今回の実行で指定されたテンプレートはありません",
             sec_canvas: "キャンバス形式",
             sec_pages: "ページ数",
@@ -399,6 +405,9 @@
             template_kind_deck: "Deck",
             template_source_explicit: "指定路径",
             template_select_none: "无",
+            template_preview: "预览",
+            template_preview_loading: "正在加载预览…",
+            template_preview_failed: "预览加载失败",
             template_none_explicit: "本次运行没有指定模板",
             sec_canvas: "画布格式",
             sec_pages: "页数",
@@ -576,6 +585,9 @@
             template_kind_deck: "Deck",
             template_source_explicit: "指定路徑",
             template_select_none: "無",
+            template_preview: "預覽",
+            template_preview_loading: "正在載入預覽…",
+            template_preview_failed: "預覽載入失敗",
             template_none_explicit: "本次執行沒有指定範本",
             sec_canvas: "畫布格式",
             sec_pages: "頁數",
@@ -1259,8 +1271,17 @@
         select.disabled = !candidates.length;
         select.addEventListener("change", function () {
             chooseTemplateForSlot(slot, select.value);
+            loadTemplatePreview(slot, select.value);
         });
         field.appendChild(select);
+        if (candidates.length) {
+            var previewBtn = el("button", "btn template-preview-btn", t("template_preview"));
+            previewBtn.type = "button";
+            previewBtn.addEventListener("click", function () {
+                loadTemplatePreview(slot, select.value);
+            });
+            field.appendChild(previewBtn);
+        }
 
         return field;
     }
@@ -1303,6 +1324,98 @@
         return choice;
     }
 
+    // ---- template preview (roster + token substitution) ------------------
+    var TEMPLATE_TOKEN_SAMPLES = {
+        TITLE: "演示标题", SUBTITLE: "副标题示例", SECTION_TITLE: "章标题",
+        SECTION_SUBTITLE: "章副标题", CONTENT_TITLE: "内容标题", TOPIC: "主题",
+        AUTHOR: "作者", DATE: "2026-01-01", PAGE_NUM: "1", TOTAL_PAGES: "N",
+        KICKER: "引导语", SOURCE: "资料来源", FOOTER: "页脚"
+    };
+
+    function sampleTokenText(name) {
+        if (TEMPLATE_TOKEN_SAMPLES[name]) return TEMPLATE_TOKEN_SAMPLES[name];
+        var pretty = String(name || "").toLowerCase().replace(/_/g, " ");
+        return pretty ? pretty.charAt(0).toUpperCase() + pretty.slice(1) : "";
+    }
+
+    // Tokens become sample copy and ../images/ becomes the served workspace path,
+    // so a prototype reads as a page instead of as braces and broken images.
+    function previewableSvg(source, imagesPrefix) {
+        var out = source.replace(/\{\{([A-Za-z0-9_]+)\}\}/g, function (_all, name) {
+            return sampleTokenText(name);
+        });
+        out = out.replace(/\.\.\/images\//g, imagesPrefix + "/");
+        out = out.replace(/(["'\'])images\//g, "$1" + imagesPrefix + "/");
+        return out;
+    }
+
+    function renderTemplatePreviewCard(host, payload) {
+        host.innerHTML = "";
+        var fm = payload.frontmatter || {};
+        var card = el("div", "template-preview-card");
+        card.appendChild(el("div", "template-preview-title", payload.kind + " · " + payload.id));
+        Object.keys(fm).slice(0, 9).forEach(function (key) {
+            var row = el("div", "template-preview-row");
+            row.appendChild(el("span", "template-preview-key", key));
+            var value = String(fm[key]);
+            if (/^#[0-9A-Fa-f]{3,8}$/.test(value)) {
+                var dot = el("i", "template-preview-dot");
+                dot.style.background = value;
+                row.appendChild(dot);
+            }
+            row.appendChild(el("span", "template-preview-value", value));
+            card.appendChild(row);
+        });
+        host.appendChild(card);
+    }
+
+    function renderTemplatePreviewPages(host, payload) {
+        host.innerHTML = "";
+        var grid = el("div", "template-preview-grid");
+        host.appendChild(grid);
+        payload.roster.slice(0, 8).forEach(function (page) {
+            var figure = el("figure", "template-preview-page");
+            figure.appendChild(el("figcaption", "", page.name));
+            var holder = el("div", "template-preview-svg", "…");
+            figure.appendChild(holder);
+            grid.appendChild(figure);
+            fetch(page.url, { cache: "no-store" })
+                .then(function (r) { return r.ok ? r.text() : ""; })
+                .then(function (source) {
+                    holder.innerHTML = source
+                        ? previewableSvg(source, payload.images_prefix)
+                        : escapeHtml(t("template_preview_failed"));
+                })
+                .catch(function () { holder.textContent = t("template_preview_failed"); });
+        });
+    }
+
+    function loadTemplatePreview(kind, key) {
+        var host = document.getElementById("template-preview");
+        if (!host) return;
+        var candidate = key ? templateCandidateByKey(key) : null;
+        if (!candidate || candidate.source === "explicit") {
+            host.hidden = true;
+            host.innerHTML = "";
+            return;
+        }
+        host.hidden = false;
+        host.innerHTML = '<div class="template-preview-loading">' +
+            escapeHtml(t("template_preview_loading")) + "</div>";
+        var url = "/api/template-roster/" + encodeURIComponent(candidate.kind) +
+            "/" + encodeURIComponent(candidate.id);
+        fetchJson(url, "template roster").then(function (payload) {
+            if (payload && payload.roster && payload.roster.length) {
+                renderTemplatePreviewPages(host, payload);
+            } else {
+                renderTemplatePreviewCard(host, payload || {});
+            }
+        }).catch(function () {
+            host.innerHTML = '<div class="template-preview-loading">' +
+                escapeHtml(t("template_preview_failed")) + "</div>";
+        });
+    }
+
     function renderTemplateSelection(host) {
         if (!TEMPLATE_OPTIONS) return;
         var sec = section("T", "sec_template_choice", t("template_choice_hint"));
@@ -1329,6 +1442,10 @@
         });
         grid.appendChild(renderExplicitTemplateChoices());
         panel.appendChild(grid);
+        var preview = el("div", "template-preview");
+        preview.id = "template-preview";
+        preview.hidden = true;
+        panel.appendChild(preview);
         sec.appendChild(panel);
         host.appendChild(sec);
         updateTemplateSelectionControls();
@@ -1343,6 +1460,11 @@
         if (freeChoice) {
             freeChoice.classList.toggle("selected", freeSelected);
             freeChoice.setAttribute("aria-pressed", freeSelected ? "true" : "false");
+        }
+        var previewHost = document.getElementById("template-preview");
+        if (previewHost && freeSelected) {
+            previewHost.hidden = true;
+            previewHost.innerHTML = "";
         }
         if (useChoice) {
             useChoice.classList.toggle("selected", templatesSelected);

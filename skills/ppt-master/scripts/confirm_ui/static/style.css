@@ -1186,3 +1186,53 @@ textarea.text-input { resize: vertical; line-height: 1.5; }
 #confirmed-overlay a:hover {
   text-decoration: underline;
 }
+
+
+/* ---------- Stage-1 template preview (roster + identity card) ---------- */
+
+.template-preview-btn { margin-left: 8px; }
+
+.template-preview {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.template-preview-loading { color: rgba(255, 255, 255, 0.6); font-size: 13px; }
+
+.template-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.template-preview-page {
+  margin: 0;
+  background: #ffffff;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.template-preview-page figcaption {
+  padding: 6px 10px;
+  font-size: 12px;
+  color: #6b7280;
+  background: #f8fafc;
+}
+
+.template-preview-svg { padding: 8px; }
+.template-preview-svg svg { width: 100%; height: auto; display: block; }
+
+.template-preview-card {
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 14px 16px;
+  color: #1f2937;
+}
+
+.template-preview-title { font-weight: 600; margin-bottom: 8px; }
+
+.template-preview-row { display: flex; gap: 8px; padding: 3px 0; font-size: 13px; }
+.template-preview-key { min-width: 120px; color: #6b7280; }
+.template-preview-value { flex: 1; word-break: break-word; }
+.template-preview-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
