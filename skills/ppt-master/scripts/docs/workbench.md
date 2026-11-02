@@ -106,27 +106,27 @@ headers with 403, matching the other local preview servers.
 ## Page map
 
 One shell for every screen: a top bar (brand, one **新建任务** action, connection
-state), a left rail holding the task list, and the workspace on the right. A task
-is a single workspace with tabs rather than several pages that link to each other.
+state), a left rail holding the task list, and the workspace on the right.
 
-| Route | Workspace | Tabs shown |
-|---|---|---|
-| `#/new` (fallback) | compose form: topic + optional title | — |
-| `#/task/<id>/task` | parameters: form while draft, read-only summary once submitted | 任务 (+ 概览 once submitted) |
-| `#/task/<id>/overview` | stage stepper, pending question, deliverables, activity, feedback | 任务 · 概览 · surfaces |
-| `#/task/<id>/preview` | page preview editor | 任务 · 概览 · surfaces |
-| `#/task/<id>/confirm` | Stage 1 / Stage 2 confirmation | 任务 · 概览 · surfaces |
-| `#/task/<id>/spec` | design-spec review | 任务 · 概览 · surfaces |
+| Route | Workspace |
+|---|---|
+| `#/new` (fallback) | compose form: topic + optional title |
+| `#/task/<id>` | the task itself — form while draft; once submitted, one primary column: state conclusion, progress bar, pending question, deliverables, tool entries, collapsible parameters and activity, feedback |
+| `#/task/<id>/preview` | page preview in focus mode |
+| `#/task/<id>/confirm` | Stage 1 / Stage 2 confirmation in focus mode |
+| `#/task/<id>/spec` | spec review in focus mode |
 
-Surface tabs appear only once the run is bound to a project. The workspace is the
-only scrolling region; switching tabs reloads nothing else, and the overview's
-two-second poll never touches a surface frame.
+**Focus mode** is the tool presentation: entering one of the three surfaces hides
+the task header and every task card, leaving a single slim bar (`← <task> /
+<tool>`) above the surface frame. One chrome layer at a time instead of stacked
+ones.
 
 **One owner per fact**: the status badge lives in the page header only (the rail
-shows a colour dot), the stage lives in the header and the stepper, page previews
-appear only in the preview tab, exports only in the overview, and there is no
-second task list or duplicate "open progress" button.
-
+shows a colour dot); the stage is named once, in the state card, and the ten
+internal pipeline stages live only in the expandable activity log; page previews
+appear only inside the preview tool; exports appear once, in the deliverables
+card; there is no second task list, no duplicate download control, and no
+permanent tab strip.
 ## Project surfaces
 
 The confirmation, preview, and spec-review pages are **not separate services**.

@@ -1,4 +1,4 @@
-/* Workbench single-page app: one shell, one workspace, no duplicate views. */
+/* Workbench single-page app: action-first task page, tools open in focus mode. */
 (function () {
   'use strict';
 
@@ -18,16 +18,35 @@
     return map;
   }, {});
 
-  var TABS = [
-    ['task', '任务'], ['overview', '概览'],
+  var TOOLS = [
     ['preview', '页面预览'], ['confirm', '阶段确认'], ['spec', '规格评审']
   ];
 
-  var SURFACE_TABS = { preview: 'preview', confirm: 'confirm', spec: 'spec' };
+  var EVENT_LABELS = {
+    'run/start': function (data) { return data.resume ? '恢复运行' : '开始运行'; },
+    'run/end': function (data) {
+      var outcomes = { done: '成功', failed: '失败', aborted: '中止' };
+      return '运行结束（' + (outcomes[data.outcome] || data.outcome || '成功') + '）';
+    },
+    'stage/enter': function (data) {
+      return '进入阶段：' + (STAGE_LABELS[data.stage] || data.stage || '');
+    },
+    'progress': function (data) {
+      return '进度 ' + data.done + (data.total ? '/' + data.total : '');
+    },
+    'ask/open': function (data) { return '等待回答：' + (data.prompt || ''); },
+    'ask/answered': function (data) {
+      return '已回答：' + ((data.choice || []).join('、') || data.status || '');
+    },
+    'takeover': function () { return '接管运行'; },
+    'error': function (data) { return '错误：' + (data.message || ''); },
+    'say': function (data) { return data.text || ''; }
+  };
+
   var workspace = document.getElementById('workspace');
   var optionsCache = null;
   var pollTimer = null;
-  var lastOverviewSig = '';
+  var lastSignature = '';
 
   // ---------- helpers ----------
 
@@ -175,7 +194,7 @@
         topic: topic,
         display_title: $('#create-title').value.trim() || null
       }).then(function (data) {
-        location.hash = '#/task/' + enc(data.task_id) + '/task';
+        location.hash = '#/task/' + enc(data.task_id);
       }).catch(function (error) { toast('创建失败：' + error.message, true); });
     });
     poll(5, function () { refreshRail(''); });
@@ -183,30 +202,16 @@
 
   // ---------- task page ----------
 
-  function availableTabs(task) {
-    var hasRun = !!(task.runtime && task.runtime.slug);
-    return TABS.filter(function (item) {
-      if (item[0] === 'overview') return task.status !== 'draft';
-      if (SURFACE_TABS[item[0]]) return hasRun;
-      return true;
-    });
-  }
-
-  function loadTaskPage(taskId, tab) {
-    lastOverviewSig = '';
+  function loadTask(taskId, focus) {
+    lastSignature = '';
     Promise.all([
       api('GET', '/api/tasks/' + enc(taskId)),
       loadOptions()
     ]).then(function (results) {
       var task = results[0];
-      var tabs = availableTabs(task);
-      var allowed = tabs.map(function (item) { return item[0]; });
-      var active = tab && allowed.indexOf(tab) >= 0
-        ? tab
-        : (task.status === 'draft' ? 'task' : 'overview');
-      var title = task.display_title || task.topic || task.task_id;
       refreshRail(taskId);
-      renderTaskPage(task, tabs, active);
+      if (focus) renderFocus(task, focus);
+      else renderTaskHome(task);
     }).catch(function (error) {
       setConn(true);
       workspace.innerHTML = '<div class="card"><h2>加载失败</h2><p class="hint">' +
@@ -214,85 +219,54 @@
     });
   }
 
-  function renderTaskPage(task, tabs, active) {
+  function headerHtml(task) {
     var title = task.display_title || task.topic || task.task_id;
     var runtime = task.runtime || {};
     var sub = [task.task_id];
-    if (runtime.stage && task.status !== 'done' && task.status !== 'failed') {
-      sub.push('阶段：' + (STAGE_LABELS[runtime.stage] || runtime.stage));
-    }
     if (runtime.project_dir) sub.push(runtime.project_dir);
-    var tabButtons = tabs.map(function (item) {
-      return '<button type="button" class="tab' + (item[0] === active ? ' is-active' : '') +
-        '" data-tab="' + item[0] + '">' + item[1] + '</button>';
-    }).join('');
+    return '<div class="page-head"><div><h1>' + esc(title) + '</h1>' +
+      '<div class="page-sub">' + esc(sub.join(' · ')) + '</div></div>' +
+      statusBadge(task.status) + '</div>';
+  }
+
+  function renderTaskHome(task) {
+    var runtime = task.runtime || {};
+    if (task.status === 'draft') {
+      workspace.innerHTML = headerHtml(task) + '<div id="pane"></div>';
+      renderForm($('#pane'), task);
+      return;
+    }
+    workspace.innerHTML = headerHtml(task) + '<div id="pane"><div class="loading">加载中…</div></div>';
+    renderOverview(task);
+    poll(2, function () { renderOverview(task, true); });
+  }
+
+  // ---------- focus mode ----------
+
+  function renderFocus(task, kind) {
+    var label = (TOOLS.filter(function (item) { return item[0] === kind; })[0] || [])[1] || kind;
+    var title = task.display_title || task.topic || task.task_id;
+    var slug = (task.runtime || {}).slug;
+    stopPoll();
+
+    var body = slug
+      ? '<div class="focus-frame"><iframe src="/p/' + enc(slug) + '/' + enc(kind) +
+        '/" title="' + esc(label) + '"></iframe></div>'
+      : '<div class="card"><h2>还没有项目</h2><p class="hint">AI 接管任务后，这里会打开对应页面。</p></div>';
 
     workspace.innerHTML =
-      '<div class="page-head"><div><h1>' + esc(title) + '</h1>' +
-      '<div class="page-sub">' + esc(sub.join(' · ')) + '</div></div>' +
-      statusBadge(task.status) + '</div>' +
-      '<div class="tabs">' + tabButtons + '</div>' +
-      '<div id="pane"></div>';
-
-    Array.prototype.forEach.call(workspace.querySelectorAll('.tab'), function (button) {
-      button.addEventListener('click', function () {
-        location.hash = '#/task/' + enc(task.task_id) + '/' + button.getAttribute('data-tab');
-      });
-    });
-
-    if (active === 'task') {
-      renderTaskPane(task);
-    } else if (active === 'overview') {
-      renderOverview(task);
-      poll(2, function () { renderOverview(task, true); });
-    } else {
-      renderSurface(task, active);
-    }
+      '<div class="focus-bar"><a href="#/task/' + enc(task.task_id) + '">← ' + esc(title) + '</a>' +
+      '<span class="focus-title">' + esc(label) + '</span></div>' + body;
   }
 
-  // ---------- pane: task (form or summary) ----------
-
-  function renderTaskPane(task) {
-    var pane = $('#pane');
-    if (task.status === 'draft') {
-      renderForm(pane, task);
-    } else {
-      pane.innerHTML = summaryHtml(task);
-    }
-  }
-
-  function summaryHtml(task) {
-    var p = task.params || {};
-    var r = task.requirements || {};
-    var opts = optionsCache || {};
-    var canvasItem = (opts.canvas || []).filter(function (item) { return item.id === p.canvas; })[0];
-    var rows = [
-      ['画幅', canvasItem
-        ? canvasItem.label + '（' + canvasItem.dimensions + '）'
-        : '由 AI 决定（Stage 1 确认）'],
-      ['页数', p.page_count == null ? '由 AI 决定' : String(p.page_count)],
-      ['语言', optionLabel(opts.languages, p.primary_language)],
-      ['配图', optionLabel(opts.image_policies, p.image_policy)],
-      ['讲者备注', p.speaker_notes ? '开启' : '关闭'],
-      ['面向受众', r.audience || '—'],
-      ['语气风格', r.tone || '—'],
-      ['附加要求', r.extra || '—']
-    ];
-    var runtime = task.runtime || {};
-    if (runtime.error) rows.push(['错误', runtime.error.message || '']);
-    return '<div class="card"><h2>任务参数</h2>' +
-      '<p class="card-hint">提交后参数冻结；要改请新建任务。</p>' +
-      '<dl class="meta">' + rows.map(function (row) {
-        return '<dt>' + esc(row[0]) + '</dt><dd>' + esc(row[1]) + '</dd>';
-      }).join('') + '</dl></div>';
-  }
+  // ---------- pane: form ----------
 
   function renderForm(pane, task) {
     var p = task.params || {};
     var r = task.requirements || {};
     var opts = optionsCache || {};
     pane.innerHTML =
-      '<div class="card"><h2>任务参数</h2>' +
+      '<div class="card"><h2>参数</h2>' +
       '<p class="card-hint">画幅、页数、语言、配图与受众会影响整条生成链路。</p>' +
       '<div class="field-row">' +
       '<label class="field"><span>画幅</span><select id="f-canvas">' +
@@ -336,7 +310,7 @@
         .then(function (response) {
           if (!response.ok) throw new Error('HTTP ' + response.status);
           toast('已上传 ' + files.length + ' 个文件');
-          loadTaskPage(task.task_id, 'task');
+          loadTask(task.task_id);
         })
         .catch(function (error) { toast('上传失败：' + error.message, true); });
     });
@@ -344,7 +318,7 @@
       button.addEventListener('click', function () {
         api('DELETE', '/api/tasks/' + enc(task.task_id) + '/uploads/' +
           enc(button.getAttribute('data-del-upload')))
-          .then(function () { loadTaskPage(task.task_id, 'task'); })
+          .then(function () { loadTask(task.task_id); })
           .catch(function (error) { toast('删除失败：' + error.message, true); });
       });
     });
@@ -384,109 +358,87 @@
     api('PATCH', '/api/tasks/' + enc(taskId), formPayload())
       .then(function () {
         if (!submit) { toast('已保存'); return null; }
-        return api('POST', '/api/tasks/' + enc(taskId) + '/submit').then(function (data) {
-          toast('已提交，交给 AI 处理');
-          return data;
-        });
+        return api('POST', '/api/tasks/' + enc(taskId) + '/submit');
       })
       .then(function () {
-        if (submit) location.hash = '#/task/' + enc(taskId) + '/overview';
-        else loadTaskPage(taskId, 'task');
+        if (submit) toast('已提交，交给 AI 处理');
+        loadTask(taskId);
       })
       .catch(function (error) { toast('保存失败：' + error.message, true); });
   }
 
-  // ---------- pane: overview ----------
-
-  function stepper(runtime, status) {
-    var order = STEPS.map(function (item) { return item[0]; });
-    var current = order.indexOf(runtime.stage);
-    if (status === 'done' || runtime.state === 'done') current = order.length - 1;
-    if (status === 'failed' || status === 'interrupted') current = Math.max(current, 0);
-    return '<div class="stepper">' + STEPS.map(function (item, index) {
-      var cls = 'step';
-      if (index < current) cls += ' is-done';
-      else if (index === current) cls += (status === 'failed' || status === 'interrupted')
-        ? ' is-failed' : ' is-now';
-      return '<span class="' + cls + '">' + item[1] + '</span>';
-    }).join('') + '</div>';
-  }
-
-
-  function stageCaption(runtime, status) {
-    if (status === 'done') return '全部页面已交付';
-    if (status === 'failed') return '运行失败，见下方错误';
-    if (status === 'interrupted') return 'AI 已停止，等待接续';
-    if (runtime.stage_label && !STAGE_LABELS[runtime.stage_label]) {
-      return runtime.stage_label;
-    }
-    if (runtime.stage) return '当前阶段：' + (STAGE_LABELS[runtime.stage] || runtime.stage);
-    return '等待 AI 接管';
-  }
-
-  var EVENT_LABELS = {
-    'run/start': function (data) { return data.resume ? '恢复运行' : '开始运行'; },
-    'run/end': function (data) {
-      var outcomes = { done: '成功', failed: '失败', aborted: '中止' };
-      return '运行结束（' + (outcomes[data.outcome] || data.outcome || '成功') + '）';
-    },
-    'stage/enter': function (data) {
-      return '进入阶段：' + (STAGE_LABELS[data.stage] || data.stage || '');
-    },
-    'progress': function (data) {
-      return '进度 ' + data.done + (data.total ? '/' + data.total : '');
-    },
-    'ask/open': function (data) { return '等待回答：' + (data.prompt || ''); },
-    'ask/answered': function (data) {
-      return '已回答：' + ((data.choice || []).join('、') || data.status || '');
-    },
-    'takeover': function () { return '接管运行'; },
-    'error': function (data) { return '错误：' + (data.message || ''); },
-    'say': function (data) { return data.text || ''; }
-  };
-
-  function eventText(event) {
-    var label = EVENT_LABELS[event.type];
-    return label ? label(event.data || {}) : '';
-  }
-
-  function shortTime(value) {
-    var match = String(value || '').match(/T(\d{2}:\d{2})/);
-    return match ? match[1] : '';
-  }
+  // ---------- overview: one primary column ----------
 
   function openRequests(progress) {
     return (progress.requests || []).filter(function (item) { return !item.response; });
+  }
+
+  function stateLine(task, progress) {
+    var runtime = progress.runtime || {};
+    if (task.status === 'submitted') return '等待 AI 接管';
+    if (task.status === 'done') return '全部页面已交付';
+    if (task.status === 'failed') return '生成失败';
+    if (task.status === 'interrupted') return 'AI 已停止，等待接续';
+    if (runtime.blocking) return '等待你的回答';
+    if (runtime.progress && runtime.progress.total) {
+      return '正在生成 · ' + runtime.progress.done + '/' + runtime.progress.total + ' 页';
+    }
+    if (runtime.stage_label) return '正在生成 · ' + runtime.stage_label;
+    return '正在生成';
+  }
+
+  function progressBar(runtime, status) {
+    if (status === 'failed' || status === 'interrupted') {
+      var stuck = runtime.stage ? (STAGE_LABELS[runtime.stage] || runtime.stage) : '未知步骤';
+      return '<p class="stuck">停在了：' + esc(stuck) + '</p>';
+    }
+    if (status === 'done') return '';
+    var progress = runtime.progress || {};
+    var total = progress.total || 0;
+    if (!total) return '';
+    var done = progress.done || 0;
+    var percent = Math.max(0, Math.min(100, Math.round((done / total) * 100)));
+    return '<div class="bar" role="progressbar" aria-valuenow="' + done +
+      '" aria-valuemin="0" aria-valuemax="' + total + '"><span style="width:' + percent +
+      '%"></span></div>';
+  }
+
+  function nextAction(task, progress) {
+    var runtime = progress.runtime || {};
+    if (openRequests(progress).length) return null;
+    if (runtime.stage === 'confirm_stage1' || runtime.stage === 'template_install') {
+      return '<a class="btn btn-primary" href="#/task/' + enc(task.task_id) +
+        '/confirm">去完成阶段确认</a>';
+    }
+    return '';
   }
 
   function renderOverview(task, quiet) {
     api('GET', '/api/tasks/' + enc(task.task_id) + '/progress').then(function (progress) {
       setConn(false);
       var signature = JSON.stringify([
-        progress.status,
-        (progress.runtime || {}).updated_at,
+        progress.status, (progress.runtime || {}).updated_at,
         (progress.requests || []).map(function (item) {
           return [item.request.id, item.response ? item.response.status : null];
         }),
         (progress.exports || []).length,
         (progress.events || []).length
       ]);
-      if (signature === lastOverviewSig) return;
-      lastOverviewSig = signature;
+      if (signature === lastSignature) return;
+      lastSignature = signature;
 
       var runtime = progress.runtime || {};
       var requests = openRequests(progress);
       var exports = progress.exports || [];
       var events = (progress.events || []).filter(function (event) {
         return !!EVENT_LABELS[event.type];
-      }).slice(-8).reverse();
+      }).slice(-6).reverse();
 
-      var html =
-        '<div class="card"><h2>进度</h2>' +
+      var html = '<div class="card"><div class="state-line">' + esc(stateLine(task, progress)) + '</div>' +
         '<p class="card-hint">' + esc(stageCaption(runtime, progress.status)) + '</p>' +
-        stepper(runtime, progress.status) +
-        (runtime.error ? '<p class="empty">错误：' + esc(runtime.error.message || '') + '</p>' : '') +
-        '</div>';
+        progressBar(runtime, progress.status) +
+        (runtime.error ? '<p class="empty">' + esc(runtime.error.message || '') + '</p>' : '') +
+        '<div class="next-actions">' + nextAction(task, progress) + '</div></div>';
 
       if (requests.length) {
         html += requests.map(function (item) { return requestHtml(item.request); }).join('');
@@ -502,12 +454,30 @@
           }).join('') + '</ul></div>';
       }
 
-      html += '<div class="card"><h2>活动</h2>' +
-        (events.length ? '<ul class="list">' + events.map(function (event) {
-          return '<li><span class="time">' + esc(shortTime(event.at)) + '</span>' +
-            '<span class="grow">' + esc(eventText(event)) + '</span></li>';
-        }).join('') + '</ul>' : '<p class="empty">还没有活动记录</p>') +
-        '</div>';
+      if (runtime.slug) {
+        var confirmDue = (runtime.stage === 'confirm_stage1' || runtime.stage === 'template_install');
+        var visible = TOOLS.filter(function (item) {
+          if (item[0] === 'confirm') return confirmDue;
+          return true;
+        });
+        html += '<div class="tools">' + visible.map(function (item) {
+          var hint = item[0] === 'confirm' && confirmDue ? '待你确认' : '';
+          return '<a class="tool" href="#/task/' + enc(task.task_id) + '/' + item[0] + '">' +
+            '<span>' + item[1] + '</span>' + (hint ? '<em>' + hint + '</em>' : '') +
+            '<b>↗</b></a>';
+        }).join('') + '</div>';
+      }
+
+      html += '<details class="details"><summary>任务参数</summary><div class="details-body">' +
+        detailsHtml(task) + '</div></details>';
+
+      if (events.length) {
+        html += '<details class="details"><summary>活动记录</summary><div class="details-body">' +
+          '<ul class="list">' + events.map(function (event) {
+            return '<li><span class="time">' + esc(shortTime(event.at)) + '</span>' +
+              '<span class="grow">' + esc(eventText(event)) + '</span></li>';
+          }).join('') + '</ul></div></details>';
+      }
 
       if (progress.status === 'done' || progress.status === 'failed') {
         html += '<div class="card" id="feedback-card"><h2>反馈</h2>' +
@@ -523,8 +493,7 @@
       }
 
       $('#pane').innerHTML = html;
-      if (!quiet) wireOverview(task);
-      else wireOverview(task, true);
+      wireOverview(task, quiet);
     }).catch(function (error) {
       setConn(true);
       if (!quiet) {
@@ -532,6 +501,45 @@
           '<p class="hint">' + esc(error.message) + '</p></div>';
       }
     });
+  }
+
+  function stageCaption(runtime, status) {
+    if (status === 'done') return '可下载 PPTX，或打开页面预览逐页查看';
+    if (status === 'failed') return '';
+    if (status === 'interrupted') return '';
+    if (runtime.stage) return '当前阶段：' + (STAGE_LABELS[runtime.stage] || runtime.stage);
+    return '等待 AI 接管';
+  }
+
+  function detailsHtml(task) {
+    var p = task.params || {};
+    var r = task.requirements || {};
+    var opts = optionsCache || {};
+    var canvasItem = (opts.canvas || []).filter(function (item) { return item.id === p.canvas; })[0];
+    var rows = [
+      ['画幅', canvasItem ? canvasItem.label + '（' + canvasItem.dimensions + '）' : '由 AI 决定（Stage 1 确认）'],
+      ['页数', p.page_count == null ? '由 AI 决定' : String(p.page_count)],
+      ['语言', optionLabel(opts.languages, p.primary_language)],
+      ['配图', optionLabel(opts.image_policies, p.image_policy)],
+      ['讲者备注', p.speaker_notes ? '开启' : '关闭'],
+      ['面向受众', r.audience || '—'],
+      ['语气风格', r.tone || '—'],
+      ['附加要求', r.extra || '—']
+    ];
+    if (task.runtime && task.runtime.error) rows.push(['错误', task.runtime.error.message || '']);
+    return '<dl class="meta">' + rows.map(function (row) {
+      return '<dt>' + esc(row[0]) + '</dt><dd>' + esc(row[1]) + '</dd>';
+    }).join('') + '</dl>';
+  }
+
+  function shortTime(value) {
+    var match = String(value || '').match(/T(\d{2}:\d{2})/);
+    return match ? match[1] : '';
+  }
+
+  function eventText(event) {
+    var label = EVENT_LABELS[event.type];
+    return label ? label(event.data || {}) : '';
   }
 
   function requestHtml(request) {
@@ -552,7 +560,7 @@
       '<button class="btn btn-primary request-send" type="button">提交回答</button></div></div>';
   }
 
-  function wireOverview(task, quietOnly) {
+  function wireOverview(task, quiet) {
     Array.prototype.forEach.call(document.querySelectorAll('.question'), function (card) {
       var requestId = card.getAttribute('data-request');
       var multi = card.getAttribute('data-multi') === '1';
@@ -583,7 +591,7 @@
           text: text ? text.value.trim() : null
         }).then(function () {
           toast('回答已提交');
-          lastOverviewSig = '';
+          lastSignature = '';
           renderOverview(task);
         }).catch(function (error) {
           send.disabled = false;
@@ -593,7 +601,7 @@
     });
 
     var stars = document.getElementById('stars');
-    if (stars && !quietOnly) {
+    if (stars && !quiet) {
       var rating = null;
       Array.prototype.forEach.call(stars.querySelectorAll('.star'), function (star) {
         star.addEventListener('click', function () {
@@ -615,40 +623,23 @@
     }
   }
 
-  // ---------- pane: mounted surfaces ----------
-
-  function renderSurface(task, kind) {
-    var slug = (task.runtime || {}).slug;
-    if (!slug) {
-      $('#pane').innerHTML = '<div class="card"><h2>还没有项目</h2>' +
-        '<p class="hint">AI 接管任务后，这里会打开对应页面。</p></div>';
-      return;
-    }
-    var url = '/p/' + enc(slug) + '/' + kind + '/';
-    $('#pane').innerHTML = '<div class="surface"><iframe src="' + esc(url) +
-      '" title="' + esc(kind) + '"></iframe></div>';
-    stopPoll();
-  }
-
   // ---------- router ----------
 
   function parseHash() {
     var raw = location.hash.replace(/^#\/?/, '');
     var parts = raw.split('/');
     if (parts[0] === 'task' && parts[1]) {
-      return { taskId: decodeURIComponent(parts[1]), tab: parts[2] || '' };
+      return { taskId: decodeURIComponent(parts[1]), focus: parts[2] || '' };
     }
-    return { taskId: null, tab: '' };
+    return { taskId: null, focus: '' };
   }
 
   function route() {
     stopPoll();
     var parsed = parseHash();
-    if (parsed.taskId) loadTaskPage(parsed.taskId, parsed.tab);
+    if (parsed.taskId) loadTask(parsed.taskId, parsed.focus);
     else renderNewTask();
   }
-
-  // ---------- boot ----------
 
   document.getElementById('new-task').addEventListener('click', function () {
     location.hash = '#/new';
