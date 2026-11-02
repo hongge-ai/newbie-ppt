@@ -103,6 +103,11 @@
     viewEl.innerHTML = html;
   }
 
+  function setAppTitle(text) {
+    var node = $('#app-title');
+    if (node) node.textContent = text;
+  }
+
   function notify(message, isError) {
     var bar = $('#notify');
     if (!bar) return;
@@ -114,65 +119,67 @@
 
   // ---------- tasks list view ----------
 
-  function taskCard(task) {
+  function railItem(task, activeId) {
     var title = task.display_title || task.topic || task.task_id;
-    var meta = [];
-    if (task.created_at) meta.push(task.created_at);
     var runtime = task.runtime || {};
-    if (runtime.stage_label) meta.push(runtime.stage_label);
+    var meta = [];
     if (runtime.blocking) meta.push('待你回答');
+    else if (runtime.stage_label) meta.push(runtime.stage_label);
+    else if (task.status === 'draft') meta.push('待配置');
+    else if (task.created_at) meta.push(task.created_at);
     return (
-      '<a class="task-card" href="#/task/' + encodeURIComponent(task.task_id) + '">' +
-      '<div class="task-card-head">' +
-      '<span class="task-title">' + esc(title) + '</span>' +
+      '<a class="rail-item' + (task.task_id === activeId ? ' is-active' : '') +
+      '" href="#/task/' + encodeURIComponent(task.task_id) + '">' +
+      '<span class="rail-item-head">' +
+      '<span class="rail-item-title">' + esc(title) + '</span>' +
       '<span class="badge badge-' + esc(task.status) + '">' + esc(statusLabel(task.status)) + '</span>' +
-      '</div>' +
-      '<div class="task-card-meta">' + meta.map(esc).join(' · ') + '</div>' +
-      '<div class="task-card-topic">' + esc(task.topic) + '</div>' +
+      '</span>' +
+      '<span class="rail-item-meta">' + esc(meta.join(' · ')) + '</span>' +
       '</a>'
     );
   }
 
-  function refreshTaskList() {
+  function refreshTaskList(activeId) {
     return api('GET', '/api/tasks').then(function (data) {
       setConnState(false);
-      var list = $('#task-list');
+      var list = $('#rail-tasks');
       if (!list) return;
+      var count = $('#rail-count');
+      if (count) count.textContent = data.tasks.length ? data.tasks.length + ' 个' : '';
       if (!data.tasks.length) {
-        list.innerHTML = '<div class="empty">还没有任务。在上方创建第一个。</div>';
+        list.innerHTML = '<div class="empty">还没有任务</div>';
         return;
       }
-      list.innerHTML = data.tasks.map(taskCard).join('');
+      list.innerHTML = data.tasks.map(function (task) {
+        return railItem(task, activeId || '');
+      }).join('');
     }).catch(function (err) {
       setConnState(true);
-      var list = $('#task-list');
+      var list = $('#rail-tasks');
       if (list) list.innerHTML = '<div class="empty">加载失败:' + esc(err.message) + '</div>';
     });
   }
 
-  function showTasks() {
+  function showNewTask() {
+    setAppTitle('新建任务');
+    refreshTaskList('');
     render(
-      '<section class="panel">' +
+      '<section class="panel panel-compose">' +
       '<h2>新建任务</h2>' +
+      '<p class="hint">写下主题或需求，创建后配置参数并提交；模板在确认页的 Stage 1 里选。</p>' +
       '<form id="create-form">' +
       '<label class="field"><span>主题 / 需求描述 *</span>' +
-      '<textarea id="create-topic" rows="3" placeholder="例如:基于这份季度报告做一份 10 页的汇报 PPT" required></textarea></label>' +
+      '<textarea id="create-topic" rows="4" placeholder="例如:基于这份季度报告做一份 10 页的汇报 PPT" required></textarea></label>' +
       '<div class="field-row">' +
       '<label class="field"><span>任务标题(可选)</span>' +
-      '<input id="create-title" type="text" maxlength="200" placeholder="展示在任务列表里"></label>' +
+      '<input id="create-title" type="text" maxlength="200" placeholder="展示在左侧任务列表里"></label>' +
       '</div>' +
       '<button type="submit" class="btn btn-primary">创建并配置</button>' +
       '</form>' +
-      '</section>' +
-      '<section class="panel">' +
-      '<h2>任务列表</h2>' +
-      '<div id="task-list" class="task-list"><div class="empty">加载中…</div></div>' +
       '</section>'
     );
 
-    loadOptions().then(function () {
-      refreshTaskList();
-    });
+    loadOptions();
 
     $('#create-form').addEventListener('submit', function (event) {
       event.preventDefault();
@@ -186,8 +193,7 @@
       }).catch(function (err) { notify('创建失败:' + err.message, true); });
     });
 
-    pollEvery(5, refreshTaskList);
-    refreshTaskList();
+    pollEvery(5, function () { refreshTaskList(''); });
   }
 
   // ---------- task detail view ----------
@@ -218,7 +224,7 @@
       '<div class="task-head">' +
       '<div><h2>' + esc(task.display_title || task.topic) + '</h2>' +
       '<div class="task-sub">' + esc(task.task_id) + ' · ' + esc(statusLabel(task.status)) + '</div></div>' +
-      '<a class="btn" href="#/tasks">← 返回列表</a>' +
+      '<a class="btn" href="#/new">+ 新建任务</a>' +
       '</div>' +
       '</section>' +
 
@@ -352,7 +358,7 @@
             '<pre class="agent-hint">' + esc(data.agent_hint) + '</pre>' +
             '<button id="copy-hint" class="btn btn-primary">复制触发语</button>' +
             '<a class="btn" href="#/task/' + encodeURIComponent(task.task_id) + '">查看任务</a>' +
-            '<a class="btn" href="#/tasks">返回列表</a>' +
+            '<a class="btn" href="#/new">+ 新建任务</a>' +
             '</section>'
           );
           $('#copy-hint').addEventListener('click', function () {
@@ -388,7 +394,7 @@
       '<div class="task-head">' +
       '<div><h2>' + esc(task.display_title || task.topic) + '</h2>' +
       '<div class="task-sub">' + esc(task.task_id) + ' · ' + esc(statusLabel(task.status)) + '</div></div>' +
-      '<a class="btn" href="#/tasks">← 返回列表</a>' +
+      '<a class="btn" href="#/new">+ 新建任务</a>' +
       '</div>' +
       '<p class="task-topic-full">' + esc(task.topic) + '</p>' +
       '<table class="kv-table">' +
@@ -409,6 +415,8 @@
     ]).then(function (results) {
       var task = results[0];
       setConnState(false);
+      setAppTitle('任务');
+      refreshTaskList(taskId);
       if (task.status === 'draft') {
         render(renderTaskForm(task, optionsCache, task.uploads_present || []));
         wireTaskForm(task);
@@ -419,7 +427,7 @@
     }).catch(function (err) {
       setConnState(true);
       render('<section class="panel"><h2>加载失败</h2><p>' + esc(err.message) + '</p>' +
-        '<a class="btn" href="#/tasks">← 返回列表</a></section>');
+        '<a class="btn" href="#/new">← 新建任务</a></section>');
     });
   }
 
@@ -553,9 +561,9 @@
 
   // ---------- mounted project surfaces ----------
 
-  // The three per-project pages live on this same port under /p/<slug>/<kind>/.
-  // They render into a container outside #view so the 2 s progress poll never
-  // reloads an open surface.
+  // The task's run owns three project pages on this same port. They open as
+  // workspace tabs next to the overview, and the iframe lives outside #view so
+  // the two-second progress poll never reloads an open surface.
   var SURFACES = [
     ['preview', '页面预览'],
     ['confirm', '阶段确认'],
@@ -563,17 +571,42 @@
   ];
 
   var surfaceHost = null;
+  var surfaceTabs = null;
   var surfaceSlug = null;
-  var surfaceKind = 'preview';
-  var surfaceOpen = false;
+  var surfaceKind = null;
 
   function surfaceUrl(slug, kind) {
     return '/p/' + encodeURIComponent(slug) + '/' + kind + '/';
   }
 
+  function activateSurface(kind) {
+    surfaceKind = kind;
+    if (!surfaceTabs || !surfaceHost || !viewEl) return;
+    var active = kind || 'overview';
+    Array.prototype.forEach.call(surfaceTabs.querySelectorAll('.workspace-tab'), function (button) {
+      button.classList.toggle('is-active', button.getAttribute('data-kind') === active);
+    });
+    if (!kind) {
+      surfaceHost.hidden = true;
+      viewEl.hidden = false;
+      return;
+    }
+    var frame = surfaceHost.querySelector('.surface-frame');
+    if (!frame) {
+      frame = document.createElement('iframe');
+      frame.className = 'surface-frame';
+      frame.title = '项目页面';
+      surfaceHost.appendChild(frame);
+    }
+    viewEl.hidden = true;
+    surfaceHost.hidden = false;
+    frame.src = surfaceUrl(surfaceSlug, kind);
+  }
+
   function syncSurfaces(progress) {
+    if (!surfaceTabs) surfaceTabs = $('#workspace-tabs');
     if (!surfaceHost) surfaceHost = $('#surface-panel');
-    if (!surfaceHost) return;
+    if (!surfaceTabs || !surfaceHost) return;
     var slug = (progress.runtime || {}).slug || null;
     if (!slug) {
       hideSurfaces();
@@ -581,41 +614,36 @@
     }
     if (slug === surfaceSlug) return;
     surfaceSlug = slug;
-    surfaceHost.hidden = false;
-    surfaceHost.innerHTML =
-      '<div class="surface-head"><h3>项目页面</h3><div class="surface-tabs">' +
+    surfaceTabs.hidden = false;
+    surfaceTabs.innerHTML =
+      '<button type="button" class="workspace-tab" data-kind="overview">概览</button>' +
       SURFACES.map(function (item) {
-        return '<button type="button" class="surface-tab' +
-          (item[0] === surfaceKind ? ' is-active' : '') + '" data-kind="' + item[0] + '">' +
+        return '<button type="button" class="workspace-tab" data-kind="' + item[0] + '">' +
           item[1] + '</button>';
-      }).join('') + '</div></div>' +
-      '<iframe class="surface-frame" title="项目页面" hidden></iframe>';
-    var frame = surfaceHost.querySelector('.surface-frame');
-    function open(kind) {
-      surfaceKind = kind;
-      frame.hidden = false;
-      frame.src = surfaceUrl(slug, surfaceKind);
-    }
-    if (surfaceOpen) open(surfaceKind);
-    Array.prototype.forEach.call(surfaceHost.querySelectorAll('.surface-tab'), function (button) {
+      }).join('');
+    Array.prototype.forEach.call(surfaceTabs.querySelectorAll('.workspace-tab'), function (button) {
       button.addEventListener('click', function () {
-        surfaceOpen = true;
-        Array.prototype.forEach.call(surfaceHost.querySelectorAll('.surface-tab'), function (other) {
-          other.classList.toggle('is-active', other === button);
-        });
-        open(button.getAttribute('data-kind'));
+        var kind = button.getAttribute('data-kind');
+        activateSurface(kind === 'overview' ? null : kind);
       });
     });
+    activateSurface(null);
   }
 
   function hideSurfaces() {
+    if (!surfaceTabs) surfaceTabs = $('#workspace-tabs');
     if (!surfaceHost) surfaceHost = $('#surface-panel');
+    if (surfaceTabs) {
+      surfaceTabs.hidden = true;
+      surfaceTabs.innerHTML = '';
+    }
     if (surfaceHost) {
       surfaceHost.hidden = true;
       surfaceHost.innerHTML = '';
     }
+    if (viewEl) viewEl.hidden = false;
     surfaceSlug = null;
-    surfaceOpen = false;
+    surfaceKind = null;
   }
 
   function wireInbox(taskId) {    Array.prototype.forEach.call(document.querySelectorAll('.ask-card'), function (card) {
@@ -715,6 +743,8 @@
   }
 
   function showProgress(taskId) {
+    setAppTitle('生成进度');
+    refreshTaskList(taskId);
     api('GET', '/api/tasks/' + encodeURIComponent(taskId) + '/progress')
       .then(function (progress) {
         setConnState(false);
@@ -763,7 +793,7 @@
       .catch(function (err) {
         setConnState(true);
         render('<section class="panel"><h2>进度加载失败</h2><p>' + esc(err.message) + '</p>' +
-          '<a class="btn" href="#/tasks">← 返回列表</a></section>');
+          '<a class="btn" href="#/new">+ 新建任务</a></section>');
       });
   }
 
@@ -781,9 +811,9 @@
     match = location.hash.match(/^#\/task\/([^/]+)\/?$/);
     if (match) {
       showTask(decodeURIComponent(match[1]));
-    } else {
-      showTasks();
+      return;
     }
+    showNewTask();
   }
 
   window.addEventListener('hashchange', route);

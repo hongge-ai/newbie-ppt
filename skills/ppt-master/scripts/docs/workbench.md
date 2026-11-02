@@ -103,6 +103,26 @@ Run surface (read-only except the answer; nothing here writes project files):
 The server binds `127.0.0.1` only and rejects foreign `Host`/`Origin`
 headers with 403, matching the other local preview servers.
 
+## Page map
+
+Every screen shares one shell: a top bar (brand, current page, connection state,
+one global **新建任务** action), a left rail holding the task list, and the
+workspace on the right.
+
+| Route | Workspace | Rail | Note |
+|---|---|---|---|
+| `#/new` (also the fallback) | compose form: topic + optional title | task list | the only place a task starts |
+| `#/task/<id>` — draft | editable form: params, requirements, uploads, template hint | active item | 保存修改 / 提交生成 |
+| `#/task/<id>` — submitted | read-only summary + 查看生成进度 | active item | template choice no longer appears here |
+| `#/task/<id>/progress` | **概览**: stage, progress, events, pending question, page thumbnails, exports, feedback | active item | tabs switch the workspace |
+| progress → 页面预览 / 阶段确认 / 规格评审 | the mounted surface fills the workspace | active item | iframe lives outside the polled view, so the 2 s refresh never reloads it |
+
+Shared interaction rules: the rail item is the only task switcher and marks the
+current task; the page title in the bar follows the view; the workspace scrolls
+independently of the rail; the mount tabs keep their state while the overview
+keeps polling. The three surface editors keep their own editor palette inside
+the frame; the shell around them stays light.
+
 ## Project surfaces
 
 The confirmation, preview, and spec-review pages are **not separate services**.

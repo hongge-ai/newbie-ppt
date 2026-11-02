@@ -8,22 +8,46 @@
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-  <header class="topbar">
-    <div class="topbar-inner">
-      <span class="brand">牛鼻 PPT 工作台</span>
-      <nav class="topnav">
-        <a href="#/tasks">任务</a>
-      </nav>
-      <span class="conn-state" id="conn-state" hidden>连接中断,重试中…</span>
+  <div class="app-shell">
+    <header class="app-bar">
+      <div class="app-brand">
+        <span class="brand-mark">PM</span>
+        <span class="brand-name">牛鼻 PPT</span>
+      </div>
+      <div class="app-title" id="app-title">任务</div>
+      <div class="app-actions">
+        <span class="conn-state" id="conn-state" hidden>连接中断,重试中…</span>
+        <button class="btn btn-primary" id="btn-new-task" type="button">+ 新建任务</button>
+      </div>
+    </header>
+
+    <div class="app-body">
+      <aside class="app-rail">
+        <div class="rail-head">
+          <span>任务</span>
+          <span class="rail-count" id="rail-count"></span>
+        </div>
+        <nav class="rail-tasks" id="rail-tasks">
+          <div class="empty">加载中…</div>
+        </nav>
+        <footer class="rail-foot" id="rail-foot">本地服务 · 7070</footer>
+      </aside>
+
+      <main class="app-workspace">
+        <div class="workspace-tabs" id="workspace-tabs" hidden></div>
+        <div class="workspace-body">
+          <div id="view" class="workspace-view">
+            <section class="placeholder">
+              <h1>工作台已启动</h1>
+              <p>加载中…</p>
+            </section>
+          </div>
+          <div id="surface-panel" class="surface-host" hidden></div>
+        </div>
+      </main>
     </div>
-  </header>
-  <div id="surface-panel" class="surface-host" hidden></div>
-  <main id="view" class="view">
-    <section class="placeholder">
-      <h1>工作台已启动</h1>
-      <p>加载中…</p>
-    </section>
-  </main>
+  </div>
+
   <div id="notify" class="notify" hidden></div>
   <script src="/static/app.js"></script>
 </body>
