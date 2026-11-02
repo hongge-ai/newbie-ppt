@@ -60,6 +60,8 @@ uv run python skills/ppt-master/scripts/source_to_md.py <file_or_URL_or_dir> [..
 uv run python skills/ppt-master/scripts/project_manager.py init <project_name>              # --format only for an exact registered canvas
 uv run python skills/ppt-master/scripts/project_manager.py import-sources <project_path> <sources...>
 uv run python skills/ppt-master/scripts/project_manager.py validate <project_path>
+uv run python skills/ppt-master/scripts/agent_bridge.py run start --project <project_path>   # then stage/progress/ask/wait; see scripts/docs/agent_bridge.md
+uv run python skills/ppt-master/scripts/webui/server.py --daemon                            # resident status UI, one port for every project
 uv run python skills/ppt-master/scripts/icon_sync.py <project_path> <lib/name> [...]        # missing names -> non-zero = re-pick
 uv run python skills/ppt-master/scripts/confirm_ui/server.py <project_path> --daemon        # then --wait-only --wait-stage stage1
 uv run python skills/ppt-master/scripts/analyze_images.py <project_path>/images

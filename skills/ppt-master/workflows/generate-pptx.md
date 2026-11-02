@@ -65,6 +65,8 @@ python3 ${SKILL_DIR}/scripts/project_manager.py import-sources <project_path> <s
 
 **Import rules**: pass the source path together with the Markdown Step 1 wrote beside it (a same-stem Markdown suppresses re-conversion and is imported with its sidecar and assets; the source alone is archived and converted again), both locations when `-o` wrote it elsewhere, and only the research pair when Topic Research ran (its facts JSON is imported as a file; no URL is fetched). Copy/move semantics, bitmap archiving, and the PPTX intake bundle it writes under `analysis/` (`<stem>.identity.json`, `<stem>.slide_library.json`, `source_profile.json`) are [`project.md`](../scripts/docs/project.md). Those artifacts are source facts and recommendation candidates, not replica constraints; Beautify stays single-deck.
 
+**Runtime status**: after `init`, keep [`agent_bridge.py`](../scripts/docs/agent_bridge.md) current at each step boundary — `run start`, `stage <name>` per step, `progress` as pages land, `run end` at completion; a resumed session calls `run start --resume` first. The bridge owns status only; [`confirm_ui.md`](../scripts/docs/confirm_ui.md) still owns confirmation payloads.
+
 **✅ Checkpoint** — project created, `sources/` complete, converted materials ready. `import-sources` exits 0 when any input converts: read the printed `skipped` reasons and treat those inputs as absent. Proceed to Step 3.
 
 ---
