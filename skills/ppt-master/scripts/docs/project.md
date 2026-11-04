@@ -41,7 +41,7 @@ Notes:
   ends in `_<YYYYMMDD>` is used as-is (no second date). Authoring records the
   canvas in `spec_lock.md`.
 - With `--format`, `init` preserves the registered form
-  `<name>_<format>_<YYYYMMDD>` and normalizes aliases such as `xhs`.
+  `<name>_<format>_<YYYYMMDD>`. The only formats are `ppt169` and `ppt43`.
 - Files outside `projects/` are always copied into `sources/`
 - `--move` applies only to sources under the repository's `projects/` tree
 - A directly supplied supported bitmap is also copied into `images/` with a

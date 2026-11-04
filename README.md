@@ -355,7 +355,7 @@ PPT Master reads the current process environment first, then the first `.env` fo
 | 🧭 | [Project Positioning](./docs/project-positioning.md) | Long-term positioning, product promises, and capability boundaries |
 | 🪟 | [Windows Installation](./docs/windows-installation.md) | Step-by-step setup guide for Windows users |
 | 📖 | [SKILL.md](./skills/ppt-master/SKILL.md) | Core workflow and rules |
-| 📐 | [Canvas Formats](./skills/ppt-master/references/canvas-formats.md) | PPT 16:9, Xiaohongshu, WeChat, and 10+ formats |
+| 📐 | [Canvas Formats](./skills/ppt-master/references/canvas-formats.md) | PowerPoint 16:9 and 4:3 only |
 | 🛠️ | [Scripts & Tools](./skills/ppt-master/scripts/README.md) | All scripts and commands |
 | 💼 | [Examples](https://hugohe3.github.io/ppt-master-examples/) | All example projects |
 | 🏗️ | [Technical Design](./docs/technical-design.md) | Architecture, design philosophy, why SVG |

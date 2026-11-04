@@ -107,8 +107,7 @@ def generate_examples_index(examples_dir: str = 'examples') -> str:
     content.append("\n## [List] Project List\n")
 
     # Define format display order
-    format_order = ['ppt169', 'ppt43', 'wechat',
-                    'xiaohongshu', 'moments', 'story', 'banner', 'a4']
+    format_order = ['ppt169', 'ppt43']
 
     for fmt_key in format_order:
         if fmt_key not in by_format:

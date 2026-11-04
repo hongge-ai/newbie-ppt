@@ -344,7 +344,7 @@ These invariants are stronger than ordinary implementation preferences. If a cha
 
 ## Canvas Format System
 
-PPT Master is not PPT-only — the same SVG → DrawingML pipeline produces square posters, 9:16 stories, A4 prints. Format-specific conventions (ratios, safe zones, brand areas) live in [`references/canvas-formats.md`](../skills/ppt-master/references/canvas-formats.md).
+Two canvases are registered — 16:9 (`ppt169`, 1280×720) and 4:3 (`ppt43`, 1024×768) — and `config.CANVAS_FORMATS` is the single source every surface reads. `references/canvas-formats.md` owns their ratios, safe areas and typography anchors.
 
 The architectural choice worth flagging: **viewBox is in pixels, not absolute units.** Pixel space makes layout reasoning unambiguous for the AI Executor (`x="100"` is unambiguously left + 100px) and inspectable in any browser. Conversion to PowerPoint's EMU happens once at export — picking pixels means the rest of the pipeline (Strategist, Executor, quality checker, post-processing) never thinks in EMU, which would be hostile both to AI generation and to human debugging.
 

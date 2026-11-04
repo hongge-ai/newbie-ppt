@@ -28,90 +28,6 @@
       "use_zh_tw": "傳統投影機",
       "use_en": "Traditional projectors",
       "use_ja": "従来型プロジェクター"
-    },
-    {
-      "id": "wechat",
-      "label": "公众号头图 2.35:1",
-      "label_zh": "公众号头图 2.35:1",
-      "label_zh_tw": "公眾號頭圖 2.35:1",
-      "label_en": "WeChat Header 2.35:1",
-      "label_ja": "WeChat ヘッダー 2.35:1",
-      "dim": "900×383",
-      "viewbox": "0 0 900 383",
-      "use_zh": "微信公众号文章封面",
-      "use_zh_tw": "微信公眾號文章封面",
-      "use_en": "WeChat article cover",
-      "use_ja": "WeChat記事のカバー画像"
-    },
-    {
-      "id": "xiaohongshu",
-      "label": "小红书 3:4",
-      "label_zh": "小红书 3:4",
-      "label_zh_tw": "小紅書 3:4",
-      "label_en": "RED 3:4",
-      "label_ja": "小紅書（RED）3:4",
-      "dim": "1242×1660",
-      "viewbox": "0 0 1242 1660",
-      "use_zh": "知识分享 / 种草封面",
-      "use_zh_tw": "知識分享 / 種草封面",
-      "use_en": "Knowledge sharing",
-      "use_ja": "知識共有／おすすめ紹介のカバー画像"
-    },
-    {
-      "id": "moments",
-      "label": "社交方图 1:1",
-      "label_zh": "社交方图 1:1",
-      "label_zh_tw": "社交方圖 1:1",
-      "label_en": "Social Square 1:1",
-      "label_ja": "SNS正方形 1:1",
-      "dim": "1080×1080",
-      "viewbox": "0 0 1080 1080",
-      "use_zh": "社交媒体方图",
-      "use_zh_tw": "社群媒體方圖",
-      "use_en": "Social square",
-      "use_ja": "SNS用正方形画像"
-    },
-    {
-      "id": "story",
-      "label": "竖屏 9:16",
-      "label_zh": "竖屏 9:16",
-      "label_zh_tw": "直式 9:16",
-      "label_en": "Vertical 9:16",
-      "label_ja": "縦型 9:16",
-      "dim": "1080×1920",
-      "viewbox": "0 0 1080 1920",
-      "use_zh": "短视频 / 竖屏封面",
-      "use_zh_tw": "短影片 / 直式封面",
-      "use_en": "Short-video / story cover",
-      "use_ja": "ショート動画／ストーリーズのカバー画像"
-    },
-    {
-      "id": "banner",
-      "label": "横幅 16:9",
-      "label_zh": "横幅 16:9",
-      "label_zh_tw": "橫幅 16:9",
-      "label_en": "Banner 16:9",
-      "label_ja": "バナー 16:9",
-      "dim": "1920×1080",
-      "viewbox": "0 0 1920 1080",
-      "use_zh": "网页横幅 / 大屏",
-      "use_zh_tw": "網頁橫幅 / 大螢幕",
-      "use_en": "Web banner / big screen",
-      "use_ja": "Webバナー／大画面"
-    },
-    {
-      "id": "a4",
-      "label": "A4 1:1.41",
-      "label_zh": "A4 1:1.41",
-      "label_zh_tw": "A4 1:1.41",
-      "label_en": "A4 1:1.41",
-      "label_ja": "A4 1:1.41",
-      "dim": "1240×1754",
-      "viewbox": "0 0 1240 1754",
-      "use_zh": "打印 / 文档导出",
-      "use_zh_tw": "列印 / 文件匯出",
-      "use_en": "Print / PDF export",
-      "use_ja": "印刷／PDFエクスポート"
     }
   ],
   "fonts": [
@@ -122,8 +38,14 @@
       "label_zh_tw": "微軟雅黑",
       "label_en": "Microsoft YaHei",
       "label_ja": "Microsoft YaHei",
-      "locales": ["zh-CN", "zh-SG", "zh-Hans"],
-      "scripts": ["Hans"],
+      "locales": [
+        "zh-CN",
+        "zh-SG",
+        "zh-Hans"
+      ],
+      "scripts": [
+        "Hans"
+      ],
       "category": "sans-serif",
       "css": "sans-serif",
       "availability": "office-safe"
@@ -135,8 +57,14 @@
       "label_zh_tw": "等線",
       "label_en": "DengXian",
       "label_ja": "DengXian",
-      "locales": ["zh-CN", "zh-SG", "zh-Hans"],
-      "scripts": ["Hans"],
+      "locales": [
+        "zh-CN",
+        "zh-SG",
+        "zh-Hans"
+      ],
+      "scripts": [
+        "Hans"
+      ],
       "category": "sans-serif",
       "css": "sans-serif",
       "availability": "office-safe"
@@ -148,8 +76,14 @@
       "label_zh_tw": "華文細黑",
       "label_en": "STXihei",
       "label_ja": "STXihei",
-      "locales": ["zh-CN", "zh-SG", "zh-Hans"],
-      "scripts": ["Hans"],
+      "locales": [
+        "zh-CN",
+        "zh-SG",
+        "zh-Hans"
+      ],
+      "scripts": [
+        "Hans"
+      ],
       "category": "sans-serif",
       "css": "sans-serif",
       "availability": "office-cloud"
@@ -161,8 +95,14 @@
       "label_zh_tw": "黑體",
       "label_en": "SimHei",
       "label_ja": "SimHei",
-      "locales": ["zh-CN", "zh-SG", "zh-Hans"],
-      "scripts": ["Hans"],
+      "locales": [
+        "zh-CN",
+        "zh-SG",
+        "zh-Hans"
+      ],
+      "scripts": [
+        "Hans"
+      ],
       "category": "sans-serif",
       "css": "sans-serif",
       "availability": "office-safe"
@@ -174,8 +114,14 @@
       "label_zh_tw": "宋體",
       "label_en": "SimSun",
       "label_ja": "SimSun",
-      "locales": ["zh-CN", "zh-SG", "zh-Hans"],
-      "scripts": ["Hans"],
+      "locales": [
+        "zh-CN",
+        "zh-SG",
+        "zh-Hans"
+      ],
+      "scripts": [
+        "Hans"
+      ],
       "category": "serif",
       "css": "serif",
       "availability": "office-safe"
@@ -187,8 +133,14 @@
       "label_zh_tw": "新宋體",
       "label_en": "NSimSun",
       "label_ja": "NSimSun",
-      "locales": ["zh-CN", "zh-SG", "zh-Hans"],
-      "scripts": ["Hans"],
+      "locales": [
+        "zh-CN",
+        "zh-SG",
+        "zh-Hans"
+      ],
+      "scripts": [
+        "Hans"
+      ],
       "category": "serif",
       "css": "serif",
       "availability": "windows-language-feature"
@@ -200,8 +152,14 @@
       "label_zh_tw": "華文中宋",
       "label_en": "STZhongsong",
       "label_ja": "STZhongsong",
-      "locales": ["zh-CN", "zh-SG", "zh-Hans"],
-      "scripts": ["Hans"],
+      "locales": [
+        "zh-CN",
+        "zh-SG",
+        "zh-Hans"
+      ],
+      "scripts": [
+        "Hans"
+      ],
       "category": "serif",
       "css": "serif",
       "availability": "office-cloud"
@@ -213,8 +171,14 @@
       "label_zh_tw": "仿宋",
       "label_en": "FangSong",
       "label_ja": "FangSong",
-      "locales": ["zh-CN", "zh-SG", "zh-Hans"],
-      "scripts": ["Hans"],
+      "locales": [
+        "zh-CN",
+        "zh-SG",
+        "zh-Hans"
+      ],
+      "scripts": [
+        "Hans"
+      ],
       "category": "serif",
       "css": "serif",
       "availability": "office-safe"
@@ -226,8 +190,14 @@
       "label_zh_tw": "華文仿宋",
       "label_en": "STFangsong",
       "label_ja": "STFangsong",
-      "locales": ["zh-CN", "zh-SG", "zh-Hans"],
-      "scripts": ["Hans"],
+      "locales": [
+        "zh-CN",
+        "zh-SG",
+        "zh-Hans"
+      ],
+      "scripts": [
+        "Hans"
+      ],
       "category": "serif",
       "css": "serif",
       "availability": "office-cloud"
@@ -239,8 +209,14 @@
       "label_zh_tw": "楷體",
       "label_en": "KaiTi",
       "label_ja": "KaiTi",
-      "locales": ["zh-CN", "zh-SG", "zh-Hans"],
-      "scripts": ["Hans"],
+      "locales": [
+        "zh-CN",
+        "zh-SG",
+        "zh-Hans"
+      ],
+      "scripts": [
+        "Hans"
+      ],
       "category": "calligraphic",
       "css": "serif",
       "availability": "office-safe"
@@ -252,8 +228,14 @@
       "label_zh_tw": "華文楷體",
       "label_en": "STKaiti",
       "label_ja": "STKaiti",
-      "locales": ["zh-CN", "zh-SG", "zh-Hans"],
-      "scripts": ["Hans"],
+      "locales": [
+        "zh-CN",
+        "zh-SG",
+        "zh-Hans"
+      ],
+      "scripts": [
+        "Hans"
+      ],
       "category": "calligraphic",
       "css": "serif",
       "availability": "office-cloud"
@@ -265,8 +247,14 @@
       "label_zh_tw": "華文行楷",
       "label_en": "STXingkai",
       "label_ja": "STXingkai",
-      "locales": ["zh-CN", "zh-SG", "zh-Hans"],
-      "scripts": ["Hans"],
+      "locales": [
+        "zh-CN",
+        "zh-SG",
+        "zh-Hans"
+      ],
+      "scripts": [
+        "Hans"
+      ],
       "category": "calligraphic",
       "css": "serif",
       "availability": "office-cloud"
@@ -278,8 +266,14 @@
       "label_zh_tw": "華文新魏",
       "label_en": "STXinwei",
       "label_ja": "STXinwei",
-      "locales": ["zh-CN", "zh-SG", "zh-Hans"],
-      "scripts": ["Hans"],
+      "locales": [
+        "zh-CN",
+        "zh-SG",
+        "zh-Hans"
+      ],
+      "scripts": [
+        "Hans"
+      ],
       "category": "calligraphic",
       "css": "serif",
       "availability": "office-cloud"
@@ -291,8 +285,14 @@
       "label_zh_tw": "微軟正黑體",
       "label_en": "Microsoft JhengHei",
       "label_ja": "Microsoft JhengHei",
-      "locales": ["zh-TW", "zh-HK", "zh-Hant"],
-      "scripts": ["Hant"],
+      "locales": [
+        "zh-TW",
+        "zh-HK",
+        "zh-Hant"
+      ],
+      "scripts": [
+        "Hant"
+      ],
       "category": "sans-serif",
       "css": "sans-serif",
       "availability": "office-safe"
@@ -304,8 +304,14 @@
       "label_zh_tw": "新細明體",
       "label_en": "PMingLiU",
       "label_ja": "PMingLiU",
-      "locales": ["zh-TW", "zh-HK", "zh-Hant"],
-      "scripts": ["Hant"],
+      "locales": [
+        "zh-TW",
+        "zh-HK",
+        "zh-Hant"
+      ],
+      "scripts": [
+        "Hant"
+      ],
       "category": "serif",
       "css": "serif",
       "availability": "office-safe"
@@ -317,8 +323,15 @@
       "label_zh_tw": "細明體",
       "label_en": "MingLiU",
       "label_ja": "MingLiU",
-      "locales": ["zh-TW", "zh-HK", "zh-MO", "zh-Hant"],
-      "scripts": ["Hant"],
+      "locales": [
+        "zh-TW",
+        "zh-HK",
+        "zh-MO",
+        "zh-Hant"
+      ],
+      "scripts": [
+        "Hant"
+      ],
       "category": "serif",
       "css": "serif",
       "availability": "windows-language-feature"
@@ -330,8 +343,13 @@
       "label_zh_tw": "細明體 HKSCS",
       "label_en": "MingLiU HKSCS",
       "label_ja": "MingLiU HKSCS",
-      "locales": ["zh-HK", "zh-Hant"],
-      "scripts": ["Hant"],
+      "locales": [
+        "zh-HK",
+        "zh-Hant"
+      ],
+      "scripts": [
+        "Hant"
+      ],
       "category": "serif",
       "css": "serif",
       "availability": "office-cloud"
@@ -343,8 +361,15 @@
       "label_zh_tw": "標楷體",
       "label_en": "DFKai-SB",
       "label_ja": "DFKai-SB",
-      "locales": ["zh-TW", "zh-HK", "zh-MO", "zh-Hant"],
-      "scripts": ["Hant"],
+      "locales": [
+        "zh-TW",
+        "zh-HK",
+        "zh-MO",
+        "zh-Hant"
+      ],
+      "scripts": [
+        "Hant"
+      ],
       "category": "calligraphic",
       "css": "serif",
       "availability": "windows-language-feature"
@@ -356,8 +381,12 @@
       "label_zh_tw": "游黑體",
       "label_en": "Yu Gothic",
       "label_ja": "游ゴシック",
-      "locales": ["ja-JP"],
-      "scripts": ["Jpan"],
+      "locales": [
+        "ja-JP"
+      ],
+      "scripts": [
+        "Jpan"
+      ],
       "category": "sans-serif",
       "css": "sans-serif",
       "availability": "office-safe"
@@ -369,8 +398,12 @@
       "label_zh_tw": "Meiryo",
       "label_en": "Meiryo",
       "label_ja": "メイリオ",
-      "locales": ["ja-JP"],
-      "scripts": ["Jpan"],
+      "locales": [
+        "ja-JP"
+      ],
+      "scripts": [
+        "Jpan"
+      ],
       "category": "sans-serif",
       "css": "sans-serif",
       "availability": "office-safe"
@@ -382,8 +415,12 @@
       "label_zh_tw": "BIZ UD黑體",
       "label_en": "BIZ UDGothic",
       "label_ja": "BIZ UDゴシック",
-      "locales": ["ja-JP"],
-      "scripts": ["Jpan"],
+      "locales": [
+        "ja-JP"
+      ],
+      "scripts": [
+        "Jpan"
+      ],
       "category": "sans-serif",
       "css": "sans-serif",
       "availability": "windows-language-feature"
@@ -395,8 +432,12 @@
       "label_zh_tw": "BIZ UDP黑體",
       "label_en": "BIZ UDPGothic",
       "label_ja": "BIZ UDPゴシック",
-      "locales": ["ja-JP"],
-      "scripts": ["Jpan"],
+      "locales": [
+        "ja-JP"
+      ],
+      "scripts": [
+        "Jpan"
+      ],
       "category": "sans-serif",
       "css": "sans-serif",
       "availability": "windows-language-feature"
@@ -408,8 +449,12 @@
       "label_zh_tw": "MS 黑體",
       "label_en": "MS Gothic",
       "label_ja": "ＭＳ ゴシック",
-      "locales": ["ja-JP"],
-      "scripts": ["Jpan"],
+      "locales": [
+        "ja-JP"
+      ],
+      "scripts": [
+        "Jpan"
+      ],
       "category": "sans-serif",
       "css": "sans-serif",
       "availability": "windows-language-feature"
@@ -421,8 +466,12 @@
       "label_zh_tw": "MS P黑體",
       "label_en": "MS PGothic",
       "label_ja": "ＭＳ Ｐゴシック",
-      "locales": ["ja-JP"],
-      "scripts": ["Jpan"],
+      "locales": [
+        "ja-JP"
+      ],
+      "scripts": [
+        "Jpan"
+      ],
       "category": "sans-serif",
       "css": "sans-serif",
       "availability": "windows-language-feature"
@@ -434,8 +483,12 @@
       "label_zh_tw": "游明體",
       "label_en": "Yu Mincho",
       "label_ja": "游明朝",
-      "locales": ["ja-JP"],
-      "scripts": ["Jpan"],
+      "locales": [
+        "ja-JP"
+      ],
+      "scripts": [
+        "Jpan"
+      ],
       "category": "serif",
       "css": "serif",
       "availability": "office-safe"
@@ -447,8 +500,12 @@
       "label_zh_tw": "BIZ UD明體 Medium",
       "label_en": "BIZ UDMincho Medium",
       "label_ja": "BIZ UD明朝 Medium",
-      "locales": ["ja-JP"],
-      "scripts": ["Jpan"],
+      "locales": [
+        "ja-JP"
+      ],
+      "scripts": [
+        "Jpan"
+      ],
       "category": "serif",
       "css": "serif",
       "availability": "windows-language-feature"
@@ -460,8 +517,12 @@
       "label_zh_tw": "BIZ UDP明體 Medium",
       "label_en": "BIZ UDPMincho Medium",
       "label_ja": "BIZ UDP明朝 Medium",
-      "locales": ["ja-JP"],
-      "scripts": ["Jpan"],
+      "locales": [
+        "ja-JP"
+      ],
+      "scripts": [
+        "Jpan"
+      ],
       "category": "serif",
       "css": "serif",
       "availability": "windows-language-feature"
@@ -473,8 +534,12 @@
       "label_zh_tw": "MS 明體",
       "label_en": "MS Mincho",
       "label_ja": "ＭＳ 明朝",
-      "locales": ["ja-JP"],
-      "scripts": ["Jpan"],
+      "locales": [
+        "ja-JP"
+      ],
+      "scripts": [
+        "Jpan"
+      ],
       "category": "serif",
       "css": "serif",
       "availability": "windows-language-feature"
@@ -486,8 +551,12 @@
       "label_zh_tw": "MS P明體",
       "label_en": "MS PMincho",
       "label_ja": "ＭＳ Ｐ明朝",
-      "locales": ["ja-JP"],
-      "scripts": ["Jpan"],
+      "locales": [
+        "ja-JP"
+      ],
+      "scripts": [
+        "Jpan"
+      ],
       "category": "serif",
       "css": "serif",
       "availability": "windows-language-feature"
@@ -499,8 +568,12 @@
       "label_zh_tw": "Malgun Gothic",
       "label_en": "Malgun Gothic",
       "label_ja": "Malgun Gothic",
-      "locales": ["ko-KR"],
-      "scripts": ["Kore"],
+      "locales": [
+        "ko-KR"
+      ],
+      "scripts": [
+        "Kore"
+      ],
       "category": "sans-serif",
       "css": "sans-serif",
       "availability": "office-safe"
@@ -512,8 +585,12 @@
       "label_zh_tw": "Microsoft GothicNeo",
       "label_en": "Microsoft GothicNeo",
       "label_ja": "Microsoft GothicNeo",
-      "locales": ["ko-KR"],
-      "scripts": ["Kore"],
+      "locales": [
+        "ko-KR"
+      ],
+      "scripts": [
+        "Kore"
+      ],
       "category": "sans-serif",
       "css": "sans-serif",
       "availability": "office-cloud"
@@ -525,8 +602,12 @@
       "label_zh_tw": "Dotum",
       "label_en": "Dotum",
       "label_ja": "Dotum",
-      "locales": ["ko-KR"],
-      "scripts": ["Kore"],
+      "locales": [
+        "ko-KR"
+      ],
+      "scripts": [
+        "Kore"
+      ],
       "category": "sans-serif",
       "css": "sans-serif",
       "availability": "windows-language-feature"
@@ -538,8 +619,12 @@
       "label_zh_tw": "Gulim",
       "label_en": "Gulim",
       "label_ja": "Gulim",
-      "locales": ["ko-KR"],
-      "scripts": ["Kore"],
+      "locales": [
+        "ko-KR"
+      ],
+      "scripts": [
+        "Kore"
+      ],
       "category": "sans-serif",
       "css": "sans-serif",
       "availability": "windows-language-feature"
@@ -551,8 +636,12 @@
       "label_zh_tw": "Batang",
       "label_en": "Batang",
       "label_ja": "Batang",
-      "locales": ["ko-KR"],
-      "scripts": ["Kore"],
+      "locales": [
+        "ko-KR"
+      ],
+      "scripts": [
+        "Kore"
+      ],
       "category": "serif",
       "css": "serif",
       "availability": "office-safe"
@@ -564,8 +653,12 @@
       "label_zh_tw": "Gungsuh",
       "label_en": "Gungsuh",
       "label_ja": "Gungsuh",
-      "locales": ["ko-KR"],
-      "scripts": ["Kore"],
+      "locales": [
+        "ko-KR"
+      ],
+      "scripts": [
+        "Kore"
+      ],
       "category": "calligraphic",
       "css": "serif",
       "availability": "windows-language-feature"
@@ -577,8 +670,12 @@
       "label_zh_tw": "BatangChe",
       "label_en": "BatangChe",
       "label_ja": "BatangChe",
-      "locales": ["ko-KR"],
-      "scripts": ["Kore"],
+      "locales": [
+        "ko-KR"
+      ],
+      "scripts": [
+        "Kore"
+      ],
       "category": "serif",
       "css": "serif",
       "availability": "windows-language-feature"
@@ -590,8 +687,12 @@
       "label_zh_tw": "DotumChe",
       "label_en": "DotumChe",
       "label_ja": "DotumChe",
-      "locales": ["ko-KR"],
-      "scripts": ["Kore"],
+      "locales": [
+        "ko-KR"
+      ],
+      "scripts": [
+        "Kore"
+      ],
       "category": "monospace",
       "css": "monospace",
       "availability": "windows-language-feature"
@@ -603,8 +704,12 @@
       "label_zh_tw": "GulimChe",
       "label_en": "GulimChe",
       "label_ja": "GulimChe",
-      "locales": ["ko-KR"],
-      "scripts": ["Kore"],
+      "locales": [
+        "ko-KR"
+      ],
+      "scripts": [
+        "Kore"
+      ],
       "category": "monospace",
       "css": "monospace",
       "availability": "windows-language-feature"
@@ -616,8 +721,12 @@
       "label_zh_tw": "GungsuhChe",
       "label_en": "GungsuhChe",
       "label_ja": "GungsuhChe",
-      "locales": ["ko-KR"],
-      "scripts": ["Kore"],
+      "locales": [
+        "ko-KR"
+      ],
+      "scripts": [
+        "Kore"
+      ],
       "category": "calligraphic",
       "css": "serif",
       "availability": "windows-language-feature"
@@ -629,8 +738,14 @@
       "label_zh_tw": "Arabic Typesetting",
       "label_en": "Arabic Typesetting",
       "label_ja": "Arabic Typesetting",
-      "locales": ["ar", "fa", "ur"],
-      "scripts": ["Arab"],
+      "locales": [
+        "ar",
+        "fa",
+        "ur"
+      ],
+      "scripts": [
+        "Arab"
+      ],
       "category": "serif",
       "css": "serif",
       "availability": "windows-language-feature"
@@ -642,8 +757,14 @@
       "label_zh_tw": "Sakkal Majalla",
       "label_en": "Sakkal Majalla",
       "label_ja": "Sakkal Majalla",
-      "locales": ["ar", "fa", "ur"],
-      "scripts": ["Arab"],
+      "locales": [
+        "ar",
+        "fa",
+        "ur"
+      ],
+      "scripts": [
+        "Arab"
+      ],
       "category": "serif",
       "css": "serif",
       "availability": "windows-language-feature"
@@ -655,8 +776,14 @@
       "label_zh_tw": "Urdu Typesetting",
       "label_en": "Urdu Typesetting",
       "label_ja": "Urdu Typesetting",
-      "locales": ["ur", "ar", "fa"],
-      "scripts": ["Arab"],
+      "locales": [
+        "ur",
+        "ar",
+        "fa"
+      ],
+      "scripts": [
+        "Arab"
+      ],
       "category": "calligraphic",
       "css": "serif",
       "availability": "windows-language-feature"
@@ -668,8 +795,12 @@
       "label_zh_tw": "Gisha",
       "label_en": "Gisha",
       "label_ja": "Gisha",
-      "locales": ["he"],
-      "scripts": ["Hebr"],
+      "locales": [
+        "he"
+      ],
+      "scripts": [
+        "Hebr"
+      ],
       "category": "sans-serif",
       "css": "sans-serif",
       "availability": "windows-language-feature"
@@ -681,8 +812,12 @@
       "label_zh_tw": "David",
       "label_en": "David",
       "label_ja": "David",
-      "locales": ["he"],
-      "scripts": ["Hebr"],
+      "locales": [
+        "he"
+      ],
+      "scripts": [
+        "Hebr"
+      ],
       "category": "serif",
       "css": "serif",
       "availability": "windows-language-feature"
@@ -694,8 +829,12 @@
       "label_zh_tw": "FrankRuehl",
       "label_en": "FrankRuehl",
       "label_ja": "FrankRuehl",
-      "locales": ["he"],
-      "scripts": ["Hebr"],
+      "locales": [
+        "he"
+      ],
+      "scripts": [
+        "Hebr"
+      ],
       "category": "serif",
       "css": "serif",
       "availability": "windows-language-feature"
@@ -707,8 +846,14 @@
       "label_zh_tw": "Nirmala UI",
       "label_en": "Nirmala UI",
       "label_ja": "Nirmala UI",
-      "locales": ["hi", "mr", "ne"],
-      "scripts": ["Deva"],
+      "locales": [
+        "hi",
+        "mr",
+        "ne"
+      ],
+      "scripts": [
+        "Deva"
+      ],
       "category": "sans-serif",
       "css": "sans-serif",
       "availability": "office-safe"
@@ -720,8 +865,14 @@
       "label_zh_tw": "Mangal",
       "label_en": "Mangal",
       "label_ja": "Mangal",
-      "locales": ["hi", "mr", "ne"],
-      "scripts": ["Deva"],
+      "locales": [
+        "hi",
+        "mr",
+        "ne"
+      ],
+      "scripts": [
+        "Deva"
+      ],
       "category": "sans-serif",
       "css": "sans-serif",
       "availability": "windows-language-feature"
@@ -733,8 +884,14 @@
       "label_zh_tw": "Aparajita",
       "label_en": "Aparajita",
       "label_ja": "Aparajita",
-      "locales": ["hi", "mr", "ne"],
-      "scripts": ["Deva"],
+      "locales": [
+        "hi",
+        "mr",
+        "ne"
+      ],
+      "scripts": [
+        "Deva"
+      ],
       "category": "serif",
       "css": "serif",
       "availability": "windows-language-feature"
@@ -746,8 +903,14 @@
       "label_zh_tw": "Kokila",
       "label_en": "Kokila",
       "label_ja": "Kokila",
-      "locales": ["hi", "mr", "ne"],
-      "scripts": ["Deva"],
+      "locales": [
+        "hi",
+        "mr",
+        "ne"
+      ],
+      "scripts": [
+        "Deva"
+      ],
       "category": "serif",
       "css": "serif",
       "availability": "windows-language-feature"
@@ -759,8 +922,12 @@
       "label_zh_tw": "Leelawadee UI",
       "label_en": "Leelawadee UI",
       "label_ja": "Leelawadee UI",
-      "locales": ["th"],
-      "scripts": ["Thai"],
+      "locales": [
+        "th"
+      ],
+      "scripts": [
+        "Thai"
+      ],
       "category": "sans-serif",
       "css": "sans-serif",
       "availability": "office-safe"
@@ -772,8 +939,12 @@
       "label_zh_tw": "Angsana New",
       "label_en": "Angsana New",
       "label_ja": "Angsana New",
-      "locales": ["th"],
-      "scripts": ["Thai"],
+      "locales": [
+        "th"
+      ],
+      "scripts": [
+        "Thai"
+      ],
       "category": "serif",
       "css": "serif",
       "availability": "windows-language-feature"
@@ -785,8 +956,12 @@
       "label_zh_tw": "Cordia New",
       "label_en": "Cordia New",
       "label_ja": "Cordia New",
-      "locales": ["th"],
-      "scripts": ["Thai"],
+      "locales": [
+        "th"
+      ],
+      "scripts": [
+        "Thai"
+      ],
       "category": "sans-serif",
       "css": "sans-serif",
       "availability": "windows-language-feature"
@@ -798,8 +973,15 @@
       "label_zh_tw": "Aptos",
       "label_en": "Aptos",
       "label_ja": "Aptos",
-      "locales": ["en", "und-Latn"],
-      "scripts": ["Latn", "Cyrl", "Grek"],
+      "locales": [
+        "en",
+        "und-Latn"
+      ],
+      "scripts": [
+        "Latn",
+        "Cyrl",
+        "Grek"
+      ],
       "category": "sans-serif",
       "css": "sans-serif",
       "availability": "office-safe"
@@ -811,8 +993,17 @@
       "label_zh_tw": "Arial",
       "label_en": "Arial",
       "label_ja": "Arial",
-      "locales": ["en", "und-Latn"],
-      "scripts": ["Latn", "Cyrl", "Grek", "Arab", "Hebr"],
+      "locales": [
+        "en",
+        "und-Latn"
+      ],
+      "scripts": [
+        "Latn",
+        "Cyrl",
+        "Grek",
+        "Arab",
+        "Hebr"
+      ],
       "category": "sans-serif",
       "css": "sans-serif",
       "availability": "office-safe"
@@ -824,8 +1015,17 @@
       "label_zh_tw": "Calibri",
       "label_en": "Calibri",
       "label_ja": "Calibri",
-      "locales": ["en", "und-Latn"],
-      "scripts": ["Latn", "Cyrl", "Grek", "Arab", "Hebr"],
+      "locales": [
+        "en",
+        "und-Latn"
+      ],
+      "scripts": [
+        "Latn",
+        "Cyrl",
+        "Grek",
+        "Arab",
+        "Hebr"
+      ],
       "category": "sans-serif",
       "css": "sans-serif",
       "availability": "office-safe"
@@ -837,8 +1037,17 @@
       "label_zh_tw": "Segoe UI",
       "label_en": "Segoe UI",
       "label_ja": "Segoe UI",
-      "locales": ["en", "und-Latn"],
-      "scripts": ["Latn", "Cyrl", "Grek", "Arab", "Hebr"],
+      "locales": [
+        "en",
+        "und-Latn"
+      ],
+      "scripts": [
+        "Latn",
+        "Cyrl",
+        "Grek",
+        "Arab",
+        "Hebr"
+      ],
       "category": "sans-serif",
       "css": "sans-serif",
       "availability": "office-safe"
@@ -850,8 +1059,15 @@
       "label_zh_tw": "Verdana",
       "label_en": "Verdana",
       "label_ja": "Verdana",
-      "locales": ["en", "und-Latn"],
-      "scripts": ["Latn", "Cyrl", "Grek"],
+      "locales": [
+        "en",
+        "und-Latn"
+      ],
+      "scripts": [
+        "Latn",
+        "Cyrl",
+        "Grek"
+      ],
       "category": "sans-serif",
       "css": "sans-serif",
       "availability": "office-safe"
@@ -863,8 +1079,18 @@
       "label_zh_tw": "Tahoma",
       "label_en": "Tahoma",
       "label_ja": "Tahoma",
-      "locales": ["en", "und-Latn"],
-      "scripts": ["Latn", "Cyrl", "Grek", "Arab", "Hebr", "Thai"],
+      "locales": [
+        "en",
+        "und-Latn"
+      ],
+      "scripts": [
+        "Latn",
+        "Cyrl",
+        "Grek",
+        "Arab",
+        "Hebr",
+        "Thai"
+      ],
       "category": "sans-serif",
       "css": "sans-serif",
       "availability": "office-safe"
@@ -876,8 +1102,15 @@
       "label_zh_tw": "Trebuchet MS",
       "label_en": "Trebuchet MS",
       "label_ja": "Trebuchet MS",
-      "locales": ["en", "und-Latn"],
-      "scripts": ["Latn", "Cyrl", "Grek"],
+      "locales": [
+        "en",
+        "und-Latn"
+      ],
+      "scripts": [
+        "Latn",
+        "Cyrl",
+        "Grek"
+      ],
       "category": "sans-serif",
       "css": "sans-serif",
       "availability": "office-safe"
@@ -889,8 +1122,15 @@
       "label_zh_tw": "Candara",
       "label_en": "Candara",
       "label_ja": "Candara",
-      "locales": ["en", "und-Latn"],
-      "scripts": ["Latn", "Cyrl", "Grek"],
+      "locales": [
+        "en",
+        "und-Latn"
+      ],
+      "scripts": [
+        "Latn",
+        "Cyrl",
+        "Grek"
+      ],
       "category": "sans-serif",
       "css": "sans-serif",
       "availability": "office-safe"
@@ -902,8 +1142,15 @@
       "label_zh_tw": "Corbel",
       "label_en": "Corbel",
       "label_ja": "Corbel",
-      "locales": ["en", "und-Latn"],
-      "scripts": ["Latn", "Cyrl", "Grek"],
+      "locales": [
+        "en",
+        "und-Latn"
+      ],
+      "scripts": [
+        "Latn",
+        "Cyrl",
+        "Grek"
+      ],
       "category": "sans-serif",
       "css": "sans-serif",
       "availability": "office-safe"
@@ -915,8 +1162,15 @@
       "label_zh_tw": "Bahnschrift",
       "label_en": "Bahnschrift",
       "label_ja": "Bahnschrift",
-      "locales": ["en", "und-Latn"],
-      "scripts": ["Latn", "Cyrl", "Grek"],
+      "locales": [
+        "en",
+        "und-Latn"
+      ],
+      "scripts": [
+        "Latn",
+        "Cyrl",
+        "Grek"
+      ],
       "category": "sans-serif",
       "css": "sans-serif",
       "availability": "windows"
@@ -928,8 +1182,15 @@
       "label_zh_tw": "Georgia",
       "label_en": "Georgia",
       "label_ja": "Georgia",
-      "locales": ["en", "und-Latn"],
-      "scripts": ["Latn", "Cyrl", "Grek"],
+      "locales": [
+        "en",
+        "und-Latn"
+      ],
+      "scripts": [
+        "Latn",
+        "Cyrl",
+        "Grek"
+      ],
       "category": "serif",
       "css": "serif",
       "availability": "office-safe"
@@ -941,8 +1202,17 @@
       "label_zh_tw": "Times New Roman",
       "label_en": "Times New Roman",
       "label_ja": "Times New Roman",
-      "locales": ["en", "und-Latn"],
-      "scripts": ["Latn", "Cyrl", "Grek", "Arab", "Hebr"],
+      "locales": [
+        "en",
+        "und-Latn"
+      ],
+      "scripts": [
+        "Latn",
+        "Cyrl",
+        "Grek",
+        "Arab",
+        "Hebr"
+      ],
       "category": "serif",
       "css": "serif",
       "availability": "office-safe"
@@ -954,8 +1224,15 @@
       "label_zh_tw": "Cambria",
       "label_en": "Cambria",
       "label_ja": "Cambria",
-      "locales": ["en", "und-Latn"],
-      "scripts": ["Latn", "Cyrl", "Grek"],
+      "locales": [
+        "en",
+        "und-Latn"
+      ],
+      "scripts": [
+        "Latn",
+        "Cyrl",
+        "Grek"
+      ],
       "category": "serif",
       "css": "serif",
       "availability": "office-safe"
@@ -967,8 +1244,15 @@
       "label_zh_tw": "Constantia",
       "label_en": "Constantia",
       "label_ja": "Constantia",
-      "locales": ["en", "und-Latn"],
-      "scripts": ["Latn", "Cyrl", "Grek"],
+      "locales": [
+        "en",
+        "und-Latn"
+      ],
+      "scripts": [
+        "Latn",
+        "Cyrl",
+        "Grek"
+      ],
       "category": "serif",
       "css": "serif",
       "availability": "office-safe"
@@ -980,8 +1264,15 @@
       "label_zh_tw": "Consolas",
       "label_en": "Consolas",
       "label_ja": "Consolas",
-      "locales": ["en", "und-Latn"],
-      "scripts": ["Latn", "Cyrl", "Grek"],
+      "locales": [
+        "en",
+        "und-Latn"
+      ],
+      "scripts": [
+        "Latn",
+        "Cyrl",
+        "Grek"
+      ],
       "category": "monospace",
       "css": "monospace",
       "availability": "office-safe"
@@ -993,8 +1284,17 @@
       "label_zh_tw": "Courier New",
       "label_en": "Courier New",
       "label_ja": "Courier New",
-      "locales": ["en", "und-Latn"],
-      "scripts": ["Latn", "Cyrl", "Grek", "Arab", "Hebr"],
+      "locales": [
+        "en",
+        "und-Latn"
+      ],
+      "scripts": [
+        "Latn",
+        "Cyrl",
+        "Grek",
+        "Arab",
+        "Hebr"
+      ],
       "category": "monospace",
       "css": "monospace",
       "availability": "office-safe"

@@ -87,15 +87,6 @@ _CUSTOM_REFERENCE_CATALOGS = (
     ),
 )
 
-# Display names the registry carried before it was aligned with
-# references/canvas-formats.md; locks written against them still validate.
-_LEGACY_CANVAS_NAMES = {
-    "xiaohongshu": ("小红书",),
-    "moments": ("Moments/Instagram",),
-    "story": ("Story/Vertical",),
-    "banner": ("Horizontal Banner",),
-}
-
 _MARKDOWN_H2_RE = re.compile(r"^##[ \t]+(.+?)[ \t]*$", re.MULTILINE)
 _MARKDOWN_SUBHEADING_RE = re.compile(r"^#{3,6}[ \t]+(.+?)[ \t]*$", re.MULTILINE)
 _MARKDOWN_DATA_LINE_RE = re.compile(

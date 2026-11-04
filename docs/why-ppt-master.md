@@ -90,7 +90,7 @@ Feed it almost anything: PDF, DOCX, PPTX, EPUB, HTML, LaTeX, RST, web URLs, WeCh
 
 ### Multi-Format Output
 
-Output is not limited to standard 16:9 and 4:3 slide ratios. Xiaohongshu 3:4, WeChat/Instagram 1:1, vertical Story 9:16, A4 print — same pipeline, just specify the format.
+Standard PowerPoint ratios only: 16:9 and 4:3, both native slide sizes, so the export stays a real presentation instead of a poster with a PPT extension.
 
 PowerPoint remains the project's core presentation artifact. When the same pipeline is used for social cards or print pages, those are adjacent canvas outputs — not a redefinition of the project's presentation focus.
 

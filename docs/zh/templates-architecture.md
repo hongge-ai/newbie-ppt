@@ -197,7 +197,7 @@ category: general | scenario | government | special
 native_structure_mode: structured
 summary: <一句话描述用途>
 keywords: [tag1, tag2, tag3]
-canvas_format: <ppt169 | ppt43 | a4 | ...>
+canvas_format: <ppt169 | ppt43>
 canvas_width: <像素>
 canvas_height: <像素>
 canvas_viewbox: "0 0 <width> <height>"

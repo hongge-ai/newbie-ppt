@@ -359,7 +359,7 @@ PPT Master 会优先读取当前进程环境变量，然后按顺序读取第一
 | 🧭 | [项目定位与能力边界](./docs/zh/project-positioning.md) | 长期定位、产品承诺与能力边界 |
 | 🪟 | [Windows 安装指南](./docs/zh/windows-installation.md) | Windows 用户手把手安装教程 |
 | 📖 | [SKILL.md](./skills/ppt-master/SKILL.md) | 核心流程与规则 |
-| 📐 | [画布格式](./skills/ppt-master/references/canvas-formats.md) | PPT 16:9、小红书、朋友圈等 10+ 种格式 |
+| 📐 | [画布格式](./skills/ppt-master/references/canvas-formats.md) | PPT 16:9 与 4:3 两种幻灯片画幅 |
 | 🛠️ | [脚本与工具](./skills/ppt-master/scripts/README.md) | 所有脚本和命令 |
 | 💼 | [示例](https://hugohe3.github.io/ppt-master-examples/) | 所有示例项目 |
 | 🏗️ | [技术路线](./docs/zh/technical-design.md) | 架构、设计哲学、为什么选 SVG |

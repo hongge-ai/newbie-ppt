@@ -232,7 +232,7 @@ category: general | scenario | government | special
 native_structure_mode: structured
 summary: <one-line use cases>
 keywords: [tag1, tag2, tag3]
-canvas_format: <ppt169 | ppt43 | a4 | ...>
+canvas_format: <ppt169 | ppt43>
 canvas_width: <pixels>
 canvas_height: <pixels>
 canvas_viewbox: "0 0 <width> <height>"
