@@ -43,7 +43,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
@@ -83,6 +83,12 @@ logger = logging.getLogger('workbench')
 # on project markers) from ever treating it as a project tree.
 WORKBENCH_DIR_NAME = '.workbench'
 TASKS_DIR_NAME = 'tasks'
+AGENTS_DIR_NAME = 'agents'
+ASSIGNMENTS_DIR_NAME = 'assignments'
+# An agent advertises itself by heartbeating; missing two beats means offline.
+AGENT_ONLINE_SECONDS = 45
+# A dispatch survives long enough for the agent to open the task and bind a run.
+ASSIGNMENT_TTL_SECONDS = 180
 TASK_FILE_NAME = 'task.json'
 FEEDBACK_FILE_NAME = 'feedback.json'
 UPLOADS_DIR_NAME = 'uploads'
@@ -119,10 +125,21 @@ _REQUEST_ID_RE = re.compile(r'\d{1,9}\Z')
 IMAGE_POLICY_VALUES = {'auto', 'none', 'web', 'ai'}
 PAGE_COUNT_MIN = 1
 PAGE_COUNT_MAX = 60
-AGENT_HINT_TEMPLATE = (
-    '请处理工作台任务 {task_id}:读取 projects/.workbench/tasks/{task_id}/task.json '
-    '并按其中的用户域参数生成 PPT。'
-)
+AGENT_HINT_TEMPLATE = """请接手 newbie-ppt 仓库中的一个工作台任务（任务号 {task_id}）。
+
+仓库根目录：{repo_root}
+任务文件：projects/.workbench/tasks/{task_id}/task.json（只读，含主题、需求、画幅、页数、语言、配图、受众；附件在同目录 uploads/）
+任务页面：{base_url}/#/task/{task_id}（用户在这里确认阶段、查看预览与交付物）
+
+执行要求：
+1. 先读 skills/ppt-master/SKILL.md，按 skills/ppt-master/workflows/generate-pptx.md 的 Generate PPTX 流程推进，不要跳过阶段门。
+2. 先检查是否已有本次运行：projects/ 下某项目的 .runtime/status.json 中 task_id 等于 {task_id}。
+   - 有：说明此前中断过。用 agent_bridge.py show --project <项目路径> 查看状态，再用 agent_bridge.py run start --resume --project <项目路径> 接续；不要从零重来，已确认的选择保留。
+   - 没有：新建项目（project_manager.py init <名称>），然后运行
+     agent_bridge.py run start --project <项目路径> --task {task_id}
+     把本次运行绑定到该任务，网页会自动显示进度。
+3. 模板不由任务指定：Stage 1 由用户在任务页面选择模板工作区或自由设计；未确认前不要进入 Stage 2。
+4. 需要用户决定时用 agent_bridge.py ask 提问；每完成一批页面用 progress 汇报；导出到 projects/<项目名>/exports/ 后结束运行。"""
 
 # Slide file names inside a generated project's svg_output/: a numeric
 # segment (with optional P prefix) followed by anything, e.g. P01.svg,
@@ -195,6 +212,68 @@ def _count_tasks(tasks_dir: Path) -> int:
     except OSError:
         return 0
     return count
+
+
+def _agents_dir(projects_root: Path) -> Path:
+    return projects_root / WORKBENCH_DIR_NAME / AGENTS_DIR_NAME
+
+
+def _assignments_dir(projects_root: Path) -> Path:
+    return projects_root / WORKBENCH_DIR_NAME / ASSIGNMENTS_DIR_NAME
+
+
+def _iso_after(seconds: int) -> str:
+    return (datetime.now() + timedelta(seconds=seconds)).isoformat(timespec='seconds')
+
+
+def _agent_online(record: dict) -> bool:
+    try:
+        last = datetime.fromisoformat(str(record.get('last_seen')))
+    except (TypeError, ValueError):
+        return False
+    return (datetime.now() - last).total_seconds() <= AGENT_ONLINE_SECONDS
+
+
+def _list_agents(projects_root: Path) -> list[dict]:
+    # Presence files are disposable: a live agent rewrites its own every beat.
+    agents = []
+    for path in sorted(_agents_dir(projects_root).glob('*.json')):
+        record = _read_json_object(path)
+        if not record.get('agent_id'):
+            continue
+        record['online'] = _agent_online(record)
+        agents.append(record)
+    agents.sort(key=lambda item: str(item.get('last_seen') or ''), reverse=True)
+    return agents
+
+
+def _assignment_for(projects_root: Path, task_id: str) -> Optional[dict]:
+    path = _assignments_dir(projects_root) / f'{task_id}.json'
+    if not path.is_file():
+        return None
+    record = _read_json_object(path)
+    try:
+        expires = datetime.fromisoformat(str(record.get('expires_at')))
+    except (TypeError, ValueError):
+        return None
+    if expires < datetime.now():
+        try:
+            path.unlink()
+        except OSError:
+            pass
+        return None
+    return record
+
+
+def _clear_assignment(projects_root: Path, task_id: str) -> bool:
+    path = _assignments_dir(projects_root) / f'{task_id}.json'
+    if not path.is_file():
+        return False
+    try:
+        path.unlink()
+        return True
+    except OSError:
+        return False
 
 
 def _now_iso() -> str:
@@ -1008,6 +1087,13 @@ def create_app(
         payload['status'] = _derived_state(task, runtime)
         payload['runtime'] = _runtime_summary(runtime)
         payload['uploads_present'] = _uploads_listing(task_dir)
+        payload['assignment'] = _assignment_for(projects_path, task_id)
+        if payload['status'] == 'submitted':
+            payload['agent_hint'] = AGENT_HINT_TEMPLATE.format(
+                task_id=task_id,
+                repo_root=_repo_root(projects_path),
+                base_url=request.host_url.rstrip('/'),
+            )
         resp = jsonify(payload)
         resp.headers['Cache-Control'] = 'no-store'
         return resp
@@ -1090,7 +1176,11 @@ def create_app(
         return jsonify({
             'status': 'submitted',
             'task_id': task_id,
-            'agent_hint': AGENT_HINT_TEMPLATE.format(task_id=task_id),
+            'agent_hint': AGENT_HINT_TEMPLATE.format(
+                task_id=task_id,
+                repo_root=_repo_root(projects_path),
+                base_url=request.host_url.rstrip('/'),
+            ),
         })
 
     def _project_or_abort(task_id: str):
@@ -1279,6 +1369,106 @@ def create_app(
         return _answer(project_path, req_id)
 
     # One service, one port: the per-project confirmation, preview, and spec
+
+    # ---------- agent presence and dispatch ----------
+    #
+    # Agents are separate processes. They register, heartbeat, and ask whether a
+    # task was dispatched to them; the page never guesses which AI is available.
+
+    @app.route('/api/agents', methods=['GET'])
+    def list_agent_presence():
+        return jsonify({'agents': _list_agents(projects_path)})
+
+    @app.route('/api/agents/register', methods=['POST'])
+    def register_agent():
+        data = request.get_json(silent=True) or {}
+        name = str(data.get('name') or '').strip()[:80]
+        agent_id = 'a-' + secrets.token_hex(4)
+        record = {
+            'agent_id': agent_id,
+            'name': name or ('AI ' + agent_id[-4:]),
+            'host': str(data.get('host') or '')[:120],
+            'pid': data.get('pid'),
+            'created_at': _now_iso(),
+            'last_seen': _now_iso(),
+        }
+        _agents_dir(projects_path).mkdir(parents=True, exist_ok=True)
+        write_json_atomic(_agents_dir(projects_path) / f'{agent_id}.json', record)
+        return jsonify(record), 201
+
+    @app.route('/api/agents/<agent_id>/heartbeat', methods=['POST'])
+    def heartbeat_agent(agent_id: str):
+        path = _agents_dir(projects_path) / f'{agent_id}.json'
+        if not path.is_file():
+            return jsonify({'error': 'unknown agent'}), 404
+        record = _read_json_object(path)
+        record['last_seen'] = _now_iso()
+        write_json_atomic(path, record)
+        return jsonify({'agent_id': agent_id, 'last_seen': record['last_seen']})
+
+    @app.route('/api/agents/<agent_id>/assignment', methods=['GET'])
+    def agent_assignment(agent_id: str):
+        path = _agents_dir(projects_path) / f'{agent_id}.json'
+        if not path.is_file():
+            return ('', 404)
+        record = _read_json_object(path)
+        record['last_seen'] = _now_iso()
+        write_json_atomic(path, record)
+        for item in sorted(_assignments_dir(projects_path).glob('*.json')):
+            assignment = _assignment_for(projects_path, item.stem)
+            if not assignment or assignment.get('agent_id') != agent_id:
+                continue
+            task_file = _task_file_path(projects_path, item.stem)
+            task = _read_json_object(task_file)
+            return jsonify({
+                'assignment': assignment,
+                'task': {
+                    'task_id': item.stem,
+                    'topic': task.get('topic'),
+                    'display_title': task.get('display_title'),
+                    'task_file': str(task_file),
+                },
+            })
+        return ('', 204)
+
+    @app.route('/api/tasks/<task_id>/assign', methods=['POST'])
+    def assign_task(task_id: str):
+        task, task_dir, error = _load_task_or_abort(task_id)
+        if error:
+            return error
+        if not task.get('submitted_at'):
+            return jsonify({'error': 'only submitted tasks can be dispatched'}), 409
+        runtime = _runtime_for(task_id)
+        if runtime and runtime.get('project_dir'):
+            return jsonify({'error': 'task already has a run'}), 409
+        data = request.get_json(silent=True) or {}
+        agent_id = str(data.get('agent_id') or '')
+        agent_path = _agents_dir(projects_path) / f'{agent_id}.json'
+        if not agent_id or not agent_path.is_file():
+            return jsonify({'error': 'unknown agent'}), 404
+        agent = _read_json_object(agent_path)
+        if not _agent_online(agent):
+            return jsonify({'error': 'agent is offline'}), 409
+        existing = _assignment_for(projects_path, task_id)
+        if existing and existing.get('agent_id') != agent_id:
+            return jsonify({'error': 'already dispatched to ' + str(existing.get('name'))}), 409
+        _assignments_dir(projects_path).mkdir(parents=True, exist_ok=True)
+        assignment = {
+            'task_id': task_id,
+            'agent_id': agent_id,
+            'name': agent.get('name'),
+            'created_at': _now_iso(),
+            'expires_at': _iso_after(ASSIGNMENT_TTL_SECONDS),
+        }
+        write_json_atomic(_assignments_dir(projects_path) / f'{task_id}.json', assignment)
+        return jsonify({'assignment': assignment})
+
+    @app.route('/api/tasks/<task_id>/assign', methods=['DELETE'])
+    def unassign_task(task_id: str):
+        _load_task_or_abort(task_id)
+        removed = _clear_assignment(projects_path, task_id)
+        return jsonify({'cleared': removed})
+
     # surfaces are mounted here instead of running their own servers.
     mount_surfaces(app, projects_path)
 

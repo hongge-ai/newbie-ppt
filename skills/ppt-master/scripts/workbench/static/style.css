@@ -420,3 +420,66 @@ input:focus, textarea:focus, select:focus { outline: 2px solid var(--brand-line)
 .bar > span { display: block; height: 100%; border-radius: 999px; background: var(--brand); }
 .bar-caption { margin: 6px 0 0; font-size: 12px; color: var(--muted); }
 .stuck { margin: 12px 0 0; font-size: 13px; color: var(--danger); }
+
+.canvas-picker { display: flex; gap: 10px; }
+
+.canvas-option {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font: inherit;
+  color: var(--ink-2);
+  cursor: pointer;
+  text-align: left;
+}
+.canvas-option strong { font-size: 16px; font-weight: 600; color: var(--ink); }
+.canvas-option small { font-size: 12px; color: var(--muted); }
+.canvas-option:hover { border-color: var(--brand-line); }
+.canvas-option.is-picked { border-color: var(--brand); background: var(--brand-soft); }
+.canvas-option.is-picked strong { color: var(--brand); }
+
+/* ---------- waiting-for-agent takeover ---------- */
+
+.card-takeover { border-color: var(--brand-line); }
+
+.hint-text {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--ink-2);
+  font: 13px/1.7 "Cascadia Mono", Consolas, "Microsoft YaHei", monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: all;
+}
+
+.copy-state { color: var(--ok); font-size: 13px; }
+
+/* ---------- agent presence and dispatch ---------- */
+
+.assigned { margin: 10px 0 4px; font-size: 15px; color: var(--ink); }
+.assigned b { color: var(--brand); }
+
+.agent-list { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 14px; }
+
+.agent-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 14px;
+}
+.agent-row:hover { border-color: var(--brand-line); }
+.agent-row input { width: 16px; height: 16px; }
+.agent-name { font-weight: 500; }
+.agent-meta { margin-left: auto; color: var(--muted); font-size: 12px; }

@@ -103,6 +103,24 @@ Run surface (read-only except the answer; nothing here writes project files):
 The server binds `127.0.0.1` only and rejects foreign `Host`/`Origin`
 headers with 403, matching the other local preview servers.
 
+## Agent presence and dispatch
+
+A submitted task is handed to an agent, and the page never guesses which agents
+exist. Agents announce themselves; the human always presses the dispatch.
+
+| Piece | Shape |
+|---|---|
+| Presence | `POST /api/agents/register` → `agent_id`; `POST /api/agents/<id>/heartbeat`; `GET /api/agents` lists them. A missing heartbeat for 45 s means offline. |
+| Dispatch | `POST /api/tasks/<id>/assign` `{agent_id}` only for a submitted task without a run; exclusive, revocable, and valid for 180 s. A second agent gets `409`. |
+| Delivery | The agent polls `GET /api/agents/<id>/assignment`; a dispatched task returns its `task_id`, `task_file` and hint. |
+| Command | `scripts/workbench_agent.py attach --name "<session>"` registers, heartbeats, waits for a dispatch, prints the assigned task as one JSON line, and exits. |
+
+The takeover card has exactly three states: **no agent** shows the attach
+command (never a copyable trigger sentence); **one agent** lists it with an
+explicit 分派 button; **several** list them as a radio group and dispatch the
+chosen one. Nothing is dispatched automatically, and one task never belongs to
+two agents.
+
 ## Page map
 
 One shell for every screen: a top bar (brand, one **新建任务** action, connection

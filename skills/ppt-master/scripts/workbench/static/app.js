@@ -2,6 +2,13 @@
 (function () {
   'use strict';
 
+  // The shell is never shown inside a frame: a surface that navigates here must
+  // drive the top window instead of nesting the workbench inside itself.
+  if (window.top !== window.self) {
+    document.body.textContent = '此页面不支持嵌套显示，请在工作台窗口中打开。';
+    return;
+  }
+
   var STATUS_LABELS = {
     draft: '草稿', submitted: '待处理', processing: '生成中',
     interrupted: '已中断', done: '已完成', failed: '失败', error: '损坏'
@@ -171,31 +178,224 @@
     });
   }
 
-  // ---------- new task ----------
+  // ---------- task form: #/new and a draft share one renderer ----------
+
+  var newTaskId = null;
+
+  function draftModel() {
+    return {
+      task_id: null,
+      topic: '',
+      display_title: null,
+      params: {
+        canvas: 'ppt169',
+        page_count: null,
+        primary_language: 'zh-CN',
+        speaker_notes: false,
+        image_policy: 'auto'
+      },
+      requirements: { audience: '', tone: '', extra: '' },
+      uploads_present: []
+    };
+  }
+
+  function canvasPickerHtml(value) {
+    return '<div class="canvas-picker">' +
+      [['ppt169', '16:9', '1280 × 720'], ['ppt43', '4:3', '1024 × 768']]
+        .map(function (item) {
+          return '<button type="button" class="canvas-option' +
+            (item[0] === value ? ' is-picked' : '') + '" data-canvas="' + item[0] + '">' +
+            '<strong>' + item[1] + '</strong><small>' + item[2] + '</small></button>';
+        }).join('') + '</div>';
+  }
+
+  function formHtml(model) {
+    var p = model.params || {};
+    var r = model.requirements || {};
+    var opts = optionsCache || {};
+    var editing = !!model.task_id;
+    return '<div class="card"><h2>任务</h2>' +
+      '<label class="field"><span>主题 / 需求描述</span>' +
+      '<textarea id="f-topic" rows="3" placeholder="例如：根据这份季度报告做一份 10 页的汇报 PPT">' +
+      esc(model.topic || '') + '</textarea></label>' +
+      '<label class="field"><span>任务标题（可选）</span>' +
+      '<input id="f-title" type="text" maxlength="200" value="' + esc(model.display_title || '') +
+      '" placeholder="显示在左侧任务列表"></label>' +
+      '<div class="field"><span>画幅</span>' + canvasPickerHtml(p.canvas || 'ppt169') + '</div>' +
+      '<div class="field-row">' +
+      '<label class="field"><span>页数</span><input id="f-pages" type="number" min="1" max="60" ' +
+      'value="' + esc(p.page_count == null ? '' : p.page_count) + '" placeholder="留空由 AI 决定"></label>' +
+      '<label class="field"><span>语言</span><select id="f-lang">' +
+      options(opts.languages, p.primary_language) + '</select></label>' +
+      '</div>' +
+      '<div class="field-row">' +
+      '<label class="field"><span>配图策略</span><select id="f-image">' +
+      options(opts.image_policies, p.image_policy) + '</select></label>' +
+      '<label class="field"><span>面向受众</span>' +
+      '<input id="f-audience" type="text" value="' + esc(r.audience) +
+      '" placeholder="谁会看这份演示"></label>' +
+      '</div>' +
+      '<div class="field-row">' +
+      '<label class="field"><span>语气风格</span>' +
+      '<input id="f-tone" type="text" value="' + esc(r.tone) + '" placeholder="例如：教程 / 正式 / 轻松"></label>' +
+      '<label class="field"><span>附加要求</span>' +
+      '<input id="f-extra" type="text" value="' + esc(r.extra) + '" placeholder="可选"></label>' +
+      '</div>' +
+      '<label class="field-check"><input id="f-notes" type="checkbox"' +
+      (p.speaker_notes ? ' checked' : '') + '> 生成讲者备注</label>' +
+      '<div class="actions">' +
+      (editing ? '<button class="btn" id="save-btn" type="button">保存修改</button>' : '') +
+      '<button class="btn btn-primary" id="submit-btn" type="button">' +
+      (editing ? '提交生成' : '创建并提交') + '</button></div>' +
+      '</div>' +
+      '<div class="card"><h2>参考材料</h2>' +
+      '<p class="card-hint">可选。提交时会一起交给 AI。</p>' +
+      '<ul class="list" id="upload-list">' + uploadRows(model.uploads_present || []) + '</ul>' +
+      '<label class="btn" for="f-files">上传文件</label>' +
+      '<input id="f-files" type="file" multiple hidden></div>';
+  }
+
+  function selectedCanvas() {
+    var picked = document.querySelector('.canvas-option.is-picked');
+    return picked ? picked.getAttribute('data-canvas') : 'ppt169';
+  }
+
+  function formValues() {
+    var pages = $('#f-pages').value.trim();
+    return {
+      topic: $('#f-topic').value.trim(),
+      display_title: $('#f-title').value.trim() || null,
+      params: {
+        canvas: selectedCanvas(),
+        page_count: pages ? parseInt(pages, 10) : null,
+        primary_language: $('#f-lang').value,
+        speaker_notes: $('#f-notes').checked,
+        image_policy: $('#f-image').value
+      },
+      requirements: {
+        audience: $('#f-audience').value.trim(),
+        tone: $('#f-tone').value.trim(),
+        extra: $('#f-extra').value.trim()
+      }
+    };
+  }
+
+  function wireCanvas() {
+    Array.prototype.forEach.call(document.querySelectorAll('.canvas-option'), function (button) {
+      button.addEventListener('click', function () {
+        Array.prototype.forEach.call(document.querySelectorAll('.canvas-option'), function (other) {
+          other.classList.remove('is-picked');
+        });
+        button.classList.add('is-picked');
+      });
+    });
+  }
+
+  function createTaskFromForm() {
+    var values = formValues();
+    if (!values.topic) { toast('请先填写主题', true); return Promise.reject(new Error('topic required')); }
+    return api('POST', '/api/tasks', {
+      topic: values.topic,
+      display_title: values.display_title,
+      params: values.params,
+      requirements: values.requirements
+    }).then(function (data) {
+      newTaskId = data.task_id;
+      return data.task_id;
+    });
+  }
+
+  function wireUploads(model) {
+    function currentTaskId() { return (model && model.task_id) || newTaskId; }
+
+    function refreshUploads(taskId) {
+      return api('GET', '/api/tasks/' + enc(taskId)).then(function (task) {
+        var list = $('#upload-list');
+        if (list) list.innerHTML = uploadRows(task.uploads_present || []);
+        wireDeletes(taskId);
+      });
+    }
+
+    function wireDeletes(taskId) {
+      Array.prototype.forEach.call(document.querySelectorAll('[data-del-upload]'), function (button) {
+        button.addEventListener('click', function () {
+          api('DELETE', '/api/tasks/' + enc(taskId) + '/uploads/' +
+            enc(button.getAttribute('data-del-upload')))
+            .then(function () { return refreshUploads(taskId); })
+            .catch(function (error) { toast('删除失败：' + error.message, true); });
+        });
+      });
+    }
+
+    $('#f-files').addEventListener('change', function (event) {
+      var files = Array.prototype.slice.call(event.target.files || []);
+      if (!files.length) return;
+      var ready = currentTaskId() ? Promise.resolve(currentTaskId()) : createTaskFromForm();
+      ready.then(function (taskId) {
+        var form = new FormData();
+        files.forEach(function (file) { form.append('files', file); });
+        return fetch('/api/tasks/' + enc(taskId) + '/uploads', { method: 'POST', body: form })
+          .then(function (response) {
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            toast('已上传 ' + files.length + ' 个文件');
+            return refreshUploads(taskId);
+          });
+      }).catch(function (error) {
+        if (error && error.message !== 'topic required') toast('上传失败：' + error.message, true);
+      });
+    });
+
+    var taskId = currentTaskId();
+    if (taskId) wireDeletes(taskId);
+  }
+
+  function wireSubmit(model) {
+    var editing = !!(model && model.task_id);
+    var submit = $('#submit-btn');
+    var save = $('#save-btn');
+
+    function persist(create) {
+      var values = formValues();
+      if (!values.topic) { toast('请填写主题', true); return; }
+      var ready = editing || newTaskId
+        ? Promise.resolve((model && model.task_id) || newTaskId)
+        : createTaskFromForm();
+      ready.then(function (taskId) {
+        return api('PATCH', '/api/tasks/' + enc(taskId), {
+          display_title: values.display_title,
+          params: values.params,
+          requirements: values.requirements
+        }).then(function () {
+          if (!create) { toast('已保存'); loadTask(taskId); return null; }
+          return api('POST', '/api/tasks/' + enc(taskId) + '/submit').then(function () {
+            toast('已提交，交给 AI 处理');
+            newTaskId = null;
+            location.hash = '#/task/' + enc(taskId);
+          });
+        });
+      }).catch(function (error) {
+        if (error && error.message !== 'topic required') toast('保存失败：' + error.message, true);
+      });
+    }
+
+    submit.addEventListener('click', function () { persist(true); });
+    if (save) save.addEventListener('click', function () { persist(false); });
+  }
 
   function renderNewTask() {
+    newTaskId = null;
     refreshRail('');
     workspace.innerHTML =
       '<div class="page-head"><div><h1>新建任务</h1>' +
-      '<div class="page-sub">写清主题或需求，创建后配置参数并提交。模板在确认页的 Stage 1 里选。</div></div></div>' +
-      '<div class="card"><form id="create-form">' +
-      '<label class="field"><span>主题 / 需求描述</span>' +
-      '<textarea id="create-topic" rows="5" placeholder="例如：根据这份季度报告做一份 10 页的汇报 PPT" required></textarea></label>' +
-      '<div class="field-row"><label class="field"><span>任务标题（可选）</span>' +
-      '<input id="create-title" type="text" maxlength="200" placeholder="显示在左侧任务列表"></label></div>' +
-      '<div class="actions"><button class="btn btn-primary" type="submit">创建并配置</button></div>' +
-      '</form></div>';
-
-    $('#create-form').addEventListener('submit', function (event) {
-      event.preventDefault();
-      var topic = $('#create-topic').value.trim();
-      if (!topic) { toast('请填写主题', true); return; }
-      api('POST', '/api/tasks', {
-        topic: topic,
-        display_title: $('#create-title').value.trim() || null
-      }).then(function (data) {
-        location.hash = '#/task/' + enc(data.task_id);
-      }).catch(function (error) { toast('创建失败：' + error.message, true); });
+      '<div class="page-sub">一次填完主题与参数，创建后直接提交给 AI。模板在确认页的 Stage 1 里选。</div>' +
+      '</div></div><div id="pane"><div class="loading">加载中…</div></div>';
+    loadOptions().then(function () {
+      var pane = $('#pane');
+      if (!pane) return;
+      pane.innerHTML = formHtml(draftModel());
+      wireCanvas();
+      wireUploads(null);
+      wireSubmit(null);
     });
     poll(5, function () { refreshRail(''); });
   }
@@ -237,8 +437,118 @@
       return;
     }
     workspace.innerHTML = headerHtml(task) + '<div id="pane"><div class="loading">加载中…</div></div>';
+
+    if (task.status === 'submitted') {
+      renderTakeover(task);
+      poll(5, function () { loadTask(task.task_id); });
+      return;
+    }
+
     renderOverview(task);
     poll(2, function () { renderOverview(task, true); });
+  }
+
+
+  // A submitted task waits for an agent to claim it. Agents register and
+  // heartbeat on their own; the page never guesses who is available, and the
+  // human always presses dispatch — even when exactly one agent is online.
+  function renderTakeover(task) {
+    var pane = $('#pane');
+    pane.innerHTML = '<div class="card card-takeover" id="takeover-card">' +
+      '<div class="loading">正在读取在线的 AI…</div></div>';
+    refreshTakeover(task);
+    poll(4, function () { refreshTakeover(task); });
+  }
+
+  function refreshTakeover(task) {
+    Promise.all([
+      api('GET', '/api/tasks/' + enc(task.task_id)),
+      api('GET', '/api/agents')
+    ]).then(function (results) {
+      var card = $('#takeover-card');
+      if (!card) return;
+      var detail = results[0] || {};
+      var agents = (results[1] && results[1].agents) || [];
+      card.innerHTML = takeoverHtml(detail, agents);
+      wireTakeover(task);
+    }).catch(function (error) {
+      var card = $('#takeover-card');
+      if (card) card.innerHTML = '<div class="empty">读取失败：' + esc(error.message) + '</div>';
+    });
+  }
+
+  function onlineAgents(agents) {
+    return (agents || []).filter(function (agent) { return agent.online; });
+  }
+
+  function takeoverHtml(detail, agents) {
+    var assignment = detail.assignment;
+    var online = onlineAgents(agents);
+    var head = '<h2>等待 AI 接管</h2>';
+
+    if (assignment) {
+      return head +
+        '<div class="assigned">已分派给 <b>' + esc(assignment.name || assignment.agent_id) +
+        '</b>，等待它接手…</div>' +
+        '<p class="card-hint">接手后页面会自动切到进度视图。分派只在几分钟内有效，过期可重新分派。</p>' +
+        '<div class="actions"><button class="btn" id="cancel-dispatch" type="button">撤销分派</button></div>';
+    }
+
+    if (!online.length) {
+      return head +
+        '<p class="card-hint">现在没有 AI 连接。在你正在使用的 AI 工具里运行下面这条命令，它会连到工作台并等待你分派：</p>' +
+        '<pre class="hint-text">uv run python skills/ppt-master/scripts/workbench_agent.py attach --name "我的 AI"</pre>' +
+        '<p class="card-hint">连上之后，这个页面会出现它的名字；由你点「分派」，任务才会交出去。</p>' +
+        '<div class="actions"><button class="btn" id="refresh-agents" type="button">重新检测</button></div>';
+    }
+
+    var rows = online.map(function (agent, index) {
+      return '<label class="agent-row">' +
+        '<input type="radio" name="agent" value="' + esc(agent.agent_id) + '"' +
+        (index === 0 ? ' checked' : '') + '>' +
+        '<span class="agent-name">' + esc(agent.name) + '</span>' +
+        '<span class="agent-meta">' + esc(agent.host || '') + ' · 在线</span>' +
+        '</label>';
+    }).join('');
+
+    return head +
+      '<p class="card-hint">' + online.length + ' 个 AI 已连接。选一个并点「分派」，任务才会交给它。' +
+      (online.length > 1 ? '一次只能分派给一个。' : '') + '</p>' +
+      '<div class="agent-list">' + rows + '</div>' +
+      '<div class="actions"><button class="btn btn-primary" id="dispatch-agent" type="button">分派</button>' +
+      '<button class="btn" id="refresh-agents" type="button">刷新</button></div>';
+  }
+
+  function wireTakeover(task) {
+    var dispatch = $('#dispatch-agent');
+    if (dispatch) {
+      dispatch.addEventListener('click', function () {
+        var picked = document.querySelector('input[name="agent"]:checked');
+        if (!picked) { toast('请选择一个 AI', true); return; }
+        dispatch.disabled = true;
+        api('POST', '/api/tasks/' + enc(task.task_id) + '/assign', {
+          agent_id: picked.value
+        }).then(function (data) {
+          toast('已分派给 ' + ((data.assignment || {}).name || 'AI'));
+          refreshTakeover(task);
+        }).catch(function (error) {
+          dispatch.disabled = false;
+          toast('分派失败：' + error.message, true);
+        });
+      });
+    }
+    var cancel = $('#cancel-dispatch');
+    if (cancel) {
+      cancel.addEventListener('click', function () {
+        api('DELETE', '/api/tasks/' + enc(task.task_id) + '/assign')
+          .then(function () { refreshTakeover(task); })
+          .catch(function (error) { toast('撤销失败：' + error.message, true); });
+      });
+    }
+    var refresh = $('#refresh-agents');
+    if (refresh) {
+      refresh.addEventListener('click', function () { refreshTakeover(task); });
+    }
   }
 
   // ---------- focus mode ----------
@@ -262,66 +572,10 @@
   // ---------- pane: form ----------
 
   function renderForm(pane, task) {
-    var p = task.params || {};
-    var r = task.requirements || {};
-    var opts = optionsCache || {};
-    pane.innerHTML =
-      '<div class="card"><h2>参数</h2>' +
-      '<p class="card-hint">画幅、页数、语言、配图与受众会影响整条生成链路。</p>' +
-      '<div class="field-row">' +
-      '<label class="field"><span>画幅</span><select id="f-canvas">' +
-      '<option value="">由 AI 决定</option>' + options(opts.canvas, p.canvas) + '</select></label>' +
-      '<label class="field"><span>页数</span><input id="f-pages" type="number" min="1" max="60" ' +
-      'value="' + esc(p.page_count == null ? '' : p.page_count) + '" placeholder="留空由 AI 决定"></label>' +
-      '</div>' +
-      '<div class="field-row">' +
-      '<label class="field"><span>语言</span><select id="f-lang">' +
-      options(opts.languages, p.primary_language) + '</select></label>' +
-      '<label class="field"><span>配图策略</span><select id="f-image">' +
-      options(opts.image_policies, p.image_policy) + '</select></label>' +
-      '</div>' +
-      '<label class="field"><span>面向受众</span>' +
-      '<input id="f-audience" type="text" value="' + esc(r.audience) + '" placeholder="谁会看这份演示"></label>' +
-      '<div class="field-row">' +
-      '<label class="field"><span>语气风格</span>' +
-      '<input id="f-tone" type="text" value="' + esc(r.tone) + '" placeholder="例如：教程 / 正式 / 轻松"></label>' +
-      '<label class="field"><span>附加要求</span>' +
-      '<input id="f-extra" type="text" value="' + esc(r.extra) + '" placeholder="可选"></label>' +
-      '</div>' +
-      '<label class="field-check"><input id="f-notes" type="checkbox"' +
-      (p.speaker_notes ? ' checked' : '') + '> 生成讲者备注</label>' +
-      '<div class="actions"><button class="btn" id="save-btn" type="button">保存修改</button>' +
-      '<button class="btn btn-primary" id="submit-btn" type="button">提交生成</button></div>' +
-      '</div>' +
-      '<div class="card"><h2>参考材料</h2>' +
-      '<p class="card-hint">可选。提交时会一起交给 AI。</p>' +
-      '<ul class="list" id="upload-list">' + uploadRows(task.uploads_present || []) + '</ul>' +
-      '<label class="btn" for="f-files">上传文件</label>' +
-      '<input id="f-files" type="file" multiple hidden></div>';
-
-    $('#save-btn').addEventListener('click', function () { saveTask(task.task_id, false); });
-    $('#submit-btn').addEventListener('click', function () { saveTask(task.task_id, true); });
-    $('#f-files').addEventListener('change', function (event) {
-      var files = Array.prototype.slice.call(event.target.files || []);
-      if (!files.length) return;
-      var form = new FormData();
-      files.forEach(function (file) { form.append('files', file); });
-      fetch('/api/tasks/' + enc(task.task_id) + '/uploads', { method: 'POST', body: form })
-        .then(function (response) {
-          if (!response.ok) throw new Error('HTTP ' + response.status);
-          toast('已上传 ' + files.length + ' 个文件');
-          loadTask(task.task_id);
-        })
-        .catch(function (error) { toast('上传失败：' + error.message, true); });
-    });
-    Array.prototype.forEach.call(pane.querySelectorAll('[data-del-upload]'), function (button) {
-      button.addEventListener('click', function () {
-        api('DELETE', '/api/tasks/' + enc(task.task_id) + '/uploads/' +
-          enc(button.getAttribute('data-del-upload')))
-          .then(function () { loadTask(task.task_id); })
-          .catch(function (error) { toast('删除失败：' + error.message, true); });
-      });
-    });
+    pane.innerHTML = formHtml(task);
+    wireCanvas();
+    wireUploads(task);
+    wireSubmit(task);
   }
 
   function uploadRows(uploads) {
@@ -332,39 +586,6 @@
         '<button class="btn btn-small btn-danger" data-del-upload="' + esc(item.name) +
         '" type="button">删除</button></li>';
     }).join('');
-  }
-
-  function formPayload() {
-    var pages = $('#f-pages').value.trim();
-    var payload = {
-      params: {
-        canvas: $('#f-canvas').value || null,
-        page_count: pages ? parseInt(pages, 10) : null,
-        primary_language: $('#f-lang').value,
-        speaker_notes: $('#f-notes').checked,
-        image_policy: $('#f-image').value
-      },
-      requirements: {
-        audience: $('#f-audience').value.trim(),
-        tone: $('#f-tone').value.trim(),
-        extra: $('#f-extra').value.trim()
-      }
-    };
-    if (!payload.params.canvas) delete payload.params.canvas;
-    return payload;
-  }
-
-  function saveTask(taskId, submit) {
-    api('PATCH', '/api/tasks/' + enc(taskId), formPayload())
-      .then(function () {
-        if (!submit) { toast('已保存'); return null; }
-        return api('POST', '/api/tasks/' + enc(taskId) + '/submit');
-      })
-      .then(function () {
-        if (submit) toast('已提交，交给 AI 处理');
-        loadTask(taskId);
-      })
-      .catch(function (error) { toast('保存失败：' + error.message, true); });
   }
 
   // ---------- overview: one primary column ----------

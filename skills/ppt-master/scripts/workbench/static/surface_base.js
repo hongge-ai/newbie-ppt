@@ -56,6 +56,48 @@
     };
   }
 
+  // A surface lives in an iframe of the workbench. Any link that leaves this
+  // surface (back to the task page, the preview, another project) must drive the
+  // top window, or the workbench would open inside itself.
+  function isSurfaceUrl(url) {
+    return url.pathname === base || url.pathname.indexOf(base + '/') === 0;
+  }
+
+  function externalize(anchor) {
+    var href = anchor.getAttribute('href');
+    if (!href || href.charAt(0) === '#' || href.indexOf('javascript:') === 0) return;
+    var url;
+    try { url = new URL(anchor.href, location.href); } catch (error) { return; }
+    if (url.origin !== location.origin || isSurfaceUrl(url)) return;
+    anchor.setAttribute('target', '_top');
+  }
+
+  function externalizeAll() {
+    Array.prototype.forEach.call(document.querySelectorAll('a[href]'), externalize);
+  }
+
+  document.addEventListener('click', function (event) {
+    var anchor = event.target && event.target.closest ? event.target.closest('a[href]') : null;
+    if (!anchor) return;
+    var href = anchor.getAttribute('href');
+    if (!href || href.charAt(0) === '#' || href.indexOf('javascript:') === 0) return;
+    var url;
+    try { url = new URL(anchor.href, location.href); } catch (error) { return; }
+    if (url.origin !== location.origin || isSurfaceUrl(url)) return;
+    event.preventDefault();
+    if (window.top !== window) window.top.location.href = url.href;
+    else location.href = url.href;
+  }, true);
+
+  document.addEventListener('DOMContentLoaded', function () {
+    externalizeAll();
+    if (window.MutationObserver) {
+      new MutationObserver(externalizeAll).observe(document.documentElement, {
+        childList: true, subtree: true
+      });
+    }
+  });
+
   // Ask the workbench which task this project belongs to, so a surface page
   // can link onward instead of dead-ending after its decision.
   fetch('/__wb/project-links/' + encodeURIComponent(slug))

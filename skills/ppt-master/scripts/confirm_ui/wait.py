@@ -14,7 +14,8 @@ Examples:
     python3 scripts/confirm_ui/wait.py projects/demo_ppt169_20261031 --stage final --timeout 1800
 
 Dependencies:
-    None beyond the confirmation module's own imports; nothing is served here.
+    The confirmation module's imports, plus ``agent_bridge`` so a bound run
+    keeps its writer lease while a human takes their time on the page.
 """
 
 from __future__ import annotations
@@ -41,12 +42,16 @@ from confirm_ui.server import (  # noqa: E402
     _stage2_ready_error,
 )
 from console_encoding import configure_utf8_stdio  # noqa: E402
+from agent_bridge import beat as beat_run  # noqa: E402
 
 
 EXIT_CONFIRMED = 0
 EXIT_NOT_READY = 1
 EXIT_TIMEOUT = 124
 POLL_SECONDS = 0.5
+# The bridge lease expires after 60 s; a waiting run must keep it alive or the
+# workbench would report the run as interrupted while its human is deciding.
+BEAT_SECONDS = 20
 
 
 def wait_for_stage(project: Path, stage: str = "final", timeout: int = 900) -> int:
@@ -54,8 +59,17 @@ def wait_for_stage(project: Path, stage: str = "final", timeout: int = 900) -> i
     confirm_dir = project / CONFIRM_DIR_NAME
     result_file = confirm_dir / RESULT_NAME
     deadline = None if timeout <= 0 else time.monotonic() + timeout
+    last_beat = 0.0
 
     while True:
+        now = time.monotonic()
+        if now - last_beat >= BEAT_SECONDS:
+            last_beat = now
+            try:
+                beat_run(project)
+            except Exception:  # no bound run, expired lease, or read-only: keep waiting
+                pass
+
         if not _fresh_template_restart(confirm_dir) and _result_stage(result_file) == stage:
             if stage == "stage1":
                 try:
