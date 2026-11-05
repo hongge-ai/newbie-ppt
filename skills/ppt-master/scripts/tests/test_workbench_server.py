@@ -156,12 +156,13 @@ class TaskLifecycleTests(unittest.TestCase):
         # patch
         response = self.client.patch(f'/api/tasks/{task_id}', json={
             'display_title': 'Q3 汇报',
-            'requirements': {'audience': '管理层'},
+            'requirements': {'feel': '克制专业，像咨询报告'},
             'params': {'canvas': 'ppt43', 'page_count': 10, 'speaker_notes': True},
         })
         self.assertEqual(response.status_code, 200)
         task = self.client.get(f'/api/tasks/{task_id}').get_json()
         self.assertEqual(task['display_title'], 'Q3 汇报')
+        self.assertEqual(task['requirements'], {'feel': '克制专业，像咨询报告'})
         self.assertEqual(task['params']['canvas'], 'ppt43')
         self.assertEqual(task['params']['page_count'], 10)
         self.assertTrue(task['params']['speaker_notes'])
@@ -194,6 +195,97 @@ class TaskLifecycleTests(unittest.TestCase):
             with self.subTest(patch=patch_payload):
                 response = self.client.patch(f'/api/tasks/{task_id}', json=patch_payload)
                 self.assertEqual(response.status_code, 400)
+
+    def test_title_stays_editable_after_submission(self) -> None:
+        task_id = self._create('做一个季度汇报')
+        self.client.post(f'/api/tasks/{task_id}/submit')
+        response = self.client.patch(
+            f'/api/tasks/{task_id}', json={'display_title': 'Q3 经营分析'},
+        )
+        self.assertEqual(response.status_code, 200, response.get_json())
+        self.assertEqual(
+            self.client.get(f'/api/tasks/{task_id}').get_json()['display_title'],
+            'Q3 经营分析',
+        )
+        # Every other user-domain field is still frozen.
+        self.assertEqual(
+            self.client.patch(
+                f'/api/tasks/{task_id}',
+                json={'display_title': 'X', 'topic': 'y'},
+            ).status_code,
+            409,
+        )
+
+    def test_confirm_requires_a_template_workspace(self) -> None:
+        task = server._default_task('t20260101-000000-abcd', '主题', None)
+        payload, error = server._stage1_confirm_payload(task, {
+            'contract': {},
+            'template_mode': 'free_design',
+            'options_sha256': 'a' * 8,
+        })
+        self.assertIsNone(payload)
+        self.assertIn('free design is disabled', error)
+        payload, error = server._stage1_confirm_payload(task, {
+            'contract': {},
+            'template_mode': 'templates',
+            'selection_keys': [],
+            'options_sha256': 'a' * 8,
+        })
+        self.assertIsNone(payload)
+        self.assertIn('at least one', error)
+        payload, error = server._stage1_confirm_payload(task, {
+            'contract': {},
+            'template_mode': 'templates',
+            'selection_keys': ['library:brand:accenture'],
+            'options_sha256': 'a' * 8,
+        })
+        self.assertIsNone(error)
+        self.assertEqual(payload['template_selection'], {
+            'mode': 'templates',
+            'selection_keys': ['library:brand:accenture'],
+        })
+
+    def test_plan_review_is_due_only_with_a_stage2_plan(self) -> None:
+        project = self.projects_root / 'plan_demo'
+        confirm = project / 'confirm_ui'
+        confirm.mkdir(parents=True)
+        self.assertEqual(
+            server._plan_state(project),
+            {'review_due': False, 'confirmed': False},
+        )
+        (confirm / 'result.json').write_text(
+            json.dumps({'stage': 'stage1', 'status': 'stage1-confirmed'}),
+            encoding='utf-8',
+        )
+        self.assertFalse(server._plan_state(project)['review_due'])
+        (confirm / 'recommendations.stage2.json').write_text(
+            json.dumps({'stage': 'stage2'}), encoding='utf-8',
+        )
+        self.assertEqual(
+            server._plan_state(project),
+            {'review_due': True, 'confirmed': False},
+        )
+        (confirm / 'result.json').write_text(
+            json.dumps({'stage': 'final', 'status': 'confirmed'}),
+            encoding='utf-8',
+        )
+        self.assertEqual(
+            server._plan_state(project),
+            {'review_due': False, 'confirmed': True},
+        )
+
+    def test_proposal_carries_the_ai_title(self) -> None:
+        task = server._default_task('t20260101-000000-abcd', '校园咖啡店改造', None)
+        payload = server._proposal_payload(task, {
+            'stage': 'stage1',
+            'display_title': 'Q3 经营分析汇报',
+            'audience': {'value': '班子'},
+        }, 200)
+        self.assertTrue(payload['available'])
+        self.assertEqual(payload['title'], 'Q3 经营分析汇报')
+        self.assertEqual(payload['contract']['audience'], '班子')
+        empty = server._proposal_payload(task, {'stage': 'stage1'}, 200)
+        self.assertEqual(empty['title'], '')
 
     def test_submitted_task_is_frozen(self) -> None:
         task_id = self._create()
@@ -295,6 +387,22 @@ class TaskLifecycleTests(unittest.TestCase):
         self.assertTrue(data['image_policies'])
         self.assertTrue(data['languages'])
         self.assertTrue(data['page_counts'])
+        styles = data['visual_styles']
+        self.assertTrue(styles)
+        self.assertTrue(all(item['preview_url'].startswith('/static/style_previews/')
+                            for item in styles))
+
+    def test_proposal_needs_a_project(self) -> None:
+        task_id = self._create()
+        self.client.post(f'/api/tasks/{task_id}/submit')
+        proposal = self.client.get(f'/api/tasks/{task_id}/proposal').get_json()
+        self.assertFalse(proposal['available'])
+        self.assertTrue(proposal['reason'])
+        response = self.client.post(
+            f'/api/tasks/{task_id}/confirm',
+            json={'contract': {}, 'template_mode': 'free_design'},
+        )
+        self.assertEqual(response.status_code, 409)
 
 
 class ProgressAndFeedbackTests(unittest.TestCase):

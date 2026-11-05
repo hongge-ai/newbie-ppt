@@ -17,7 +17,7 @@ Global stop/continue rules for all three routes plus concrete Generate PPTX hand
 | Confirm UI launch failure | No | Re-check `confirm_ui/result.json` once, then chat fallback | No | [`generate-pptx`](../generate-pptx.md) Step 4 chat confirmation |
 | Confirm UI wait timeout | No, if no final result yet | Re-check `result.json` once; server cleanup stays mandatory | Only if the user still wants the page | Step 4 same stage or chat fallback |
 | User switches from Confirm UI to chat mid-stage | Yes until the current stage is confirmed | Follow the in-run switch in [`confirm-surface.md`](../../references/confirm-surface.md): keep persisted confirmed stages, continue the current and remaining stages in chat, never relaunch UI | Confirm in chat unless delegated | Step 4 current chat stage |
-| Stage 1 completed, then interrupted while UI remains selected | Yes until final Stage 2 is confirmed | Read Stage 1 `result.json`, derive a fresh `recommendations.stage2.json` without changing Stage 1, then `confirm_ui/wait.py --stage final` | Usually no | Step 4 final Stage 2 write/wait |
+| Stage 1 completed, then interrupted while UI remains selected | Yes until final Stage 2 is confirmed | Read Stage 1 `result.json`, derive a fresh `recommendations.stage2.json` without changing Stage 1, then `confirm_ui/wait.py <project> --stage final` | Usually no | Step 4 final Stage 2 write/wait |
 | Missing final confirmation | Yes | None | User confirms or changes the values | Step 4 final confirmation |
 | Final confirmed value or later explicit override missing, changed, or weakened in `design_spec.md` | Yes | Repair from the retained final-confirmation object plus any newer explicit instruction; only a fresh recovery turn with no retained state reads persisted evidence once | Only when the value genuinely cannot be honored | Step 4 Gate 1 |
 | `spec_lock.md` changes confirmed identity or omits a required anchor/routing decision | Yes | Re-author the affected rows from the completed Design Spec and context; do not enumerate page-local literals | No unless the Design Spec is incomplete | Step 4 Gate 2 |
@@ -86,3 +86,5 @@ Global stop/continue rules for all three routes plus concrete Generate PPTX hand
 | Browser annotations saved after export | [`live-preview`](../stages/live-preview.md) Step 2 |
 
 **Default — resume at the owning failed step**: do not restart planning or regenerate prior artifacts unless the owning source changed.
+
+

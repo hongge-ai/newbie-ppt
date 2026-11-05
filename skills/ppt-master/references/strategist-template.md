@@ -38,7 +38,7 @@ Conditional extension for applying an installed Brand/Style/Layout/Deck workspac
 
 **Plan wording**: for Layout/Deck, state prototype use/order, what stays literal, and what may change, naming exact SVG basenames for prototype-specific exceptions rather than roles such as "cover". For Brand/Style, state identity or Direction / method constraints and free composition unless structure comes from another workspace.
 
-**Two-stage boundary**: an installed template changes the content of final Stage 2, never the confirmation sequence. Run Stage 1 → Stage 2 in order in both Confirm UI and chat fallback; template inspection is not user confirmation.
+**Two-stage boundary**: an installed template changes the content of final Stage 2, never the confirmation sequence. Run Stage 1 → Stage 2 in order in both the UI and chat fallback; the user confirms each, and template inspection is not itself a confirmation.
 
 ---
 
@@ -77,3 +77,5 @@ A Style installed alongside Layout/Deck changes only Direction / method, never f
 - **Input prototypes**: one `page_layouts` row per page using a complete Slide prototype. Strict preserves that SVG's contract; adaptive keeps its Master and may declare a new output Layout. Mirror preserves authored visuals and text-node topology; a JSON-first Chart/Table may regenerate only its derived preview children.
 
 **Visualization compatibility**: use `page_layouts` with optional Chart/Table `page_visualizations` only when the prototype shell can carry the actual §IX information model; the reference changes neither Layout identity, slot topology, nor visualization type. Qualitative relationships stay in §IX and are composed Slide-locally. Without an exact match, adaptive starts from the closest neutral prototype and declares an output Layout; strict selects an existing compatible Layout or revises the outline. Never omit `page_layouts` on a structured route or write legacy `page_charts`.
+
+

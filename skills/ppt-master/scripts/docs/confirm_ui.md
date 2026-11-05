@@ -2,13 +2,14 @@
 
 > The interactive surface for [`generate-pptx`](../../workflows/generate-pptx.md)
 > Step 4. Stage 1 shows the communication recommendation
-> and the template/free-design choice on one page and confirms both with one
+> and the template/free-design choice in the task page and confirms both with one
 > submission. That submission writes the Strategist contract to `result.json`
 > and the selection sidecar to `template_selection.json`. The agent then installs
-> any selected workspace; the server verifies its `template_install.json` before
-> exposing final Stage 2, which reads installed template state and confirms the coordinated deck
-> solution plus production mechanics. The chat path mirrors these boundaries
-> without fabricating UI receipts.
+> any selected workspace; the server verifies its `template_install.json`, the
+> agent authors `recommendations.stage2.json`, and this surface renders it for the
+> second confirmation — colour, typography, icons, template application, page
+> count, image strategy — embedded in the same task page. The chat path mirrors
+> these boundaries without fabricating UI receipts.
 
 ## Authority and Scope
 
@@ -19,7 +20,7 @@
 | Step 4 gate and pipeline order | [`generate-pptx.md`](../../workflows/generate-pptx.md) |
 | Confirm UI schema | This document |
 | Stage 1 / final Stage 2 field membership | This document |
-| Server launch / wait / shutdown behavior | This document |
+| Server launch / wait / finalize / shutdown behavior | This document |
 | Port and lock behavior | This document |
 | Chat fallback equivalence | This document |
 | Confirmed-value precedence | [`generate-pptx.md`](../../workflows/generate-pptx.md) plus this document's `result.json` contract |
@@ -58,12 +59,12 @@ http://127.0.0.1:<workbench port>/p/<project slug>/confirm/
 ```
 
 There is no per-project server to launch, no port to pick, and nothing to shut
-down: the workbench already owns the process. The agent's only CLI is the wait,
-which reads the receipts the page writes:
+down: the workbench already owns the process. The agent's CLI is the wait, which
+reads the receipt the page writes:
 
 ```bash
-python3 scripts/confirm_ui/wait.py <project_path> --stage stage1   # combined Stage 1
-python3 scripts/confirm_ui/wait.py <project_path> --stage final    # final Stage 2
+python3 scripts/confirm_ui/wait.py <project_path> --stage stage1   # contract + template
+python3 scripts/confirm_ui/wait.py <project_path> --stage final    # the plan review
 ```
 
 - `wait.py` returns `0` when the target stage is persisted, `1` when the stage is
@@ -78,8 +79,9 @@ python3 scripts/confirm_ui/wait.py <project_path> --stage final    # final Stage
   with `embedded=True`, which disables the idle watchdog and turns
   `/api/shutdown` into a no-op so a browser view can never end the shared
   process.
-- Stage 2 checks the selected roots and the installer's receipt directly. There
-  is no manual completion command or handoff sidecar.
+- The Stage-2 gate checks the selected roots and the installer's receipt before
+  the page renders the plan. There is no manual completion command or handoff
+  sidecar.
 - A run starts with `recommendations.stage1.json` containing `template_options`. The complete recommendation's canonical JSON SHA-256 participates in the option digest. Changing its content starts a new round and invalidates old selections, results, installation receipts and Stage-2 recommendations. To deliberately repeat identical choices in a new round, change a top-level `revision` value; touching timestamps or reformatting JSON does not start a round. Legacy standalone options/handoff files are ignored. Old results without the content binding require Stage 1 again.
 - No per-project lock and no idle timeout: the workbench owns the lifecycle, and the page is one more view inside it.
 - Stage-1 `GET /api/recommendations` embeds the server-built candidate catalog
@@ -317,53 +319,61 @@ The front-end loads `/api/catalogs` (served by the confirm server) and falls bac
 
 UI recommendations, selection and result files live under
 `<project_path>/confirm_ui/`. Stage 1 embeds `template_options` and submits
-`result.json` with `template_selection.json`. Stage 2 requires matching selection
-and installation content (or free design); see the protocol above. Chat uses the
-same logical order without fabricating UI receipts.
+`result.json` with `template_selection.json`. The Stage-2 plan requires matching
+selection and installation content (or free design) and is confirmed on the same
+page. Chat uses the same logical order without fabricating UI receipts.
 
-### Current two-stage flow
+### Two confirmations, one page
 
-The page runs a **two-stage Strategist wizard in one browser session**. Stage 1
-contains the communication contract and template/free-design controls. Each stage
-has its own Strategist-authored file and top-level `"stage"` selector. The active,
-unconfirmed stage may be overwritten any number of times when the user asks for
-a better recommendation; refresh the page to load the replacement. Once the
-user confirms it, normal progression writes the next stage file rather than
-repurposing the previous one. The server derives the active Strategist filename
-from `result.json` and its Stage-1 content binding; verified installation is the prerequisite for Stage 2.
+Both gates live in the workbench task page. Stage 1 is an inline card carrying
+the communication contract, the template/free-design choice (with each
+candidate's real prototype thumbnails), and an optional display-only preview of
+the visual direction. Stage 2 is this surface embedded directly under that card
+once `recommendations.stage2.json` exists: colour, typography, icons, template
+application, page count, image strategy, generation mode. The user still owns
+every one of those values — the Strategist's plan is a proposal until the user
+submits it.
+
+Each stage has its own Strategist-authored file and top-level `"stage"` selector:
+the active, unconfirmed stage may be overwritten any number of times when the
+user asks for a better recommendation. The server derives the active Strategist
+filename from `result.json` and its Stage-1 content binding; verified
+installation is the prerequisite for rendering Stage 2.
 
 A changed Stage-1 recommendation starts a new round; unchanged content resumes
 the current round. A new `revision` value can request another round with the same
 choices. Stale selection/results and Stage-2 files cannot satisfy the new content
 binding. Completed results stay closed until a new round starts.
 
-| Recommendation file | Declared stage | Page renders | Button | On submit |
+| Recommendation file | Declared stage | Rendered by | Confirmed by | On submit |
 |---|---|---|---|---|
-| `recommendations.stage1.json` (embedded `template_options`) | `"stage1"` | communication contract — content language; audience; open `communication_intent`; audience outcome; core message / primary delivery context + optional secondary use / artifact afterlife / `content_divergence` (all prose fields may be blank); canvas; free-design/template mode and conditional candidate selectors | **Confirm contract & template choice** | writes Stage-1 `result.json` plus `template_selection.json` in one submission; the page stays open and polls while the agent installs and the server verifies the selected roots |
-| `recommendations.stage2.json` | `"stage2"` | complete deck solution and production — conditional natural-language template application, reading mode, mode, page count, visual direction, color, icons, typography, image usage/rendering, conditional AI acquisition path, proactive notes/custom-animation/narration-audio toggles, generation mode, Design Spec review toggle, and Design Spec depth | **Confirm final plan** | writes `result.json` `{ stage: "final", status: "confirmed", <all fields> }`, then shuts the page down |
+| `recommendations.stage1.json` (embedded `template_options`) | `"stage1"` | the task page's proposal card: communication contract — content language; audience; open `communication_intent`; audience outcome; core message / primary delivery context + optional secondary use / artifact afterlife / `content_divergence` (all prose fields may be blank); canvas; free-design/template mode with candidate thumbnails; optional `preview` and `display_title` | **the user**, once (`POST /api/confirm`) | writes Stage-1 `result.json` plus `template_selection.json` in one submission |
+| `recommendations.stage2.json` | `"stage2"` | this surface, embedded under the card: complete deck solution and production — template application, reading mode, mode, page count, visual direction, colour, icons, typography, image usage/rendering, conditional AI acquisition path, proactive notes/custom-animation/narration-audio toggles, generation mode, Design Spec review toggle, and Design Spec depth | **the user**, once (`POST /api/confirm`, `stage: "final"`) | writes `result.json` `{ stage: "final", status: "confirmed", <all fields> }` |
+
+The workbench knows the review is due from two facts on disk — a `stage1` result
+and an authored `recommendations.stage2.json` — and exposes them as
+`plan.review_due` in the task progress payload. Nothing is applied without the
+user's submission.
 
 In the UI branch, the AI authors Stage 1 without reading candidate indexes or
 workspaces — template facts already in context inform only the canvas and page
 range ([`generate-pptx.md`](../../workflows/generate-pptx.md) Step 4) — then
-launches the combined page. In chat/delegated confirmation it authors the
-same communication recommendation before listing template candidates. After
-the one Stage-1 confirmation, the AI installs any selection, completes the
-handoff/equivalent state, then inspects only the project-local template and
-authors the complete final Stage-2 solution plus production mechanics once from
-the user's actual communication contract. An edit inside
-the current stage never requests another recommendation. The page preserves
-earlier answers across transitions. `GET /api/session` reports `phase:
-"strategist"` with current Stage 1 from launch; after Stage-1 submission it
-reports `waiting_agent` until the bound handoff and fresh Stage-2 file exist.
-`GET /api/recommendations`
+posts the handoff summary. In chat/delegated confirmation it authors the same
+communication recommendation before listing template candidates. After
+the Stage-1 confirmation, the AI installs any selection, then inspects only
+the project-local template and authors the complete Stage-2 plan plus production
+mechanics once from the user's actual communication contract. An edit inside
+the current stage never requests another recommendation. `GET /api/session`
+reports `phase: "strategist"` with current Stage 1 from launch; after Stage-1
+submission it reports `waiting_agent` until the bound handoff and fresh Stage-2
+file exist. `GET /api/recommendations`
 is `no-store`, and the server folds confirmed earlier-stage choices back into
-the final Stage-2 payload so an in-run refresh preserves the confirmed Stage-1
-communication contract. Unsubmitted Stage-2 edits are browser-local and a
-completed final result is never reopened.
+the served Stage-2 payload so an in-run refresh preserves the confirmed Stage-1
+communication contract. A completed final result is never reopened.
 
 **Progression guard.** Stage 1 requires valid recommendations with embedded
 template options. Its submit binds the result and selection to that content.
-Stage 2 requires the current confirmed result, the selected roots' verified
+The final stage requires the current confirmed result, the selected roots' verified
 installation (or free design), and a recommendation with matching
 `selection_sha256`. File timestamps do not authorize progression.
 `/api/confirm` accepts only the submit stage matching the
@@ -383,6 +393,7 @@ state and does not confirm a choice.
   "stage": "stage1",
   "lang": "zh",
   "primary_language": "zh-CN",
+  "display_title": "三季度经营分析汇报",
   "template_options": {
     "schema_version": 1,
     "phase": "template",
@@ -409,9 +420,26 @@ state and does not confirm a choice.
   "artifact_afterlife": {
     "value": "作为审批记录、项目交接依据和季度审计材料"
   },
-  "content_divergence": { "value": "" }
+  "content_divergence": { "value": "" },
+  "preview": {
+    "visual_style": "swiss-minimal",
+    "note": "以瑞士极简打底：严格栅格、大留白，数据页用单色柱状图，标题写成判断句。"
+  }
 }
 ```
+
+`preview` is optional and display-only: the workbench renders `visual_style` as
+that catalog style's preview image (ids come from `catalogs.json`
+`visual_styles`) plus `note` as one paragraph, so the user sees the intended
+look before confirming. It is never submitted, never overrides a confirmed
+value, and an unknown id simply shows the note text. Omit it and the card says
+the direction will be decided during generation.
+
+`display_title` is optional and display-only too: it is the name the card
+proposes for the task (the compose form asks for none). The page shows it as an
+editable field, and the user's confirmed value is written to `task.json` by the
+workbench — it never enters `result.json`, and `result.json` never carries a
+title.
 
 All seven Stage-1 prose values may be blank. `primary_language` is required canonical BCP-47. The server normalizes legacy English / Chinese / Japanese / Korean aliases, rejects `und` and Chinese without script/region, and carries it forward; `lang` is UI-only. Prose submits verbatim, including `""`. A profile's `{ "locked": true }` value is read-only, persisted, and stripped of that marker in final `result.json`.
 
@@ -586,9 +614,10 @@ by the server.
 
 - Bespoke mode / style prose lives only in the required behavior sibling; image custom prose lives in `image_strategy.behavior`. Canvas / icons retain free-text edge cases, color / typography retain `name: "custom"`, and image usage remains a source-id array plus `image_notes`.
 - `image_ai_path` and `image_strategy` appear only with `image_usage: ai` and remain confirmed downstream. The page is default; explicit/failure chat fallback keeps identical fields. `image_ai_path` selects the Step 5 path, and [`strategist-image.md`](../../references/strategist-image.md) §2 retains the selected rendering or custom behavior as the deck-level image identity anchor; individual prompts still adapt subject, composition, and atmosphere within it.
-- Stage-1 **Confirm contract & template choice** writes the Stage-1 `result.json` and `template_selection.json` together, then keeps the page open while the agent installs the selection. A successful Stage-1 wait is explicitly intermediate and cannot end the task. In the same active run, the agent writes Stage 2 bound to the selection after installation and enters the final wait while the page keeps polling. Stage-2 **Confirm final plan** saves the final `result.json` and shows the confirmed overlay. The AI reads each receipt at its owning boundary; chat fallback mirrors the same decisions without UI artifacts. The page never outlives the workbench process, so Step 4 has nothing to release.
+- Stage-1 **确认并生成** writes the Stage-1 `result.json` and `template_selection.json` together. A successful Stage-1 wait is explicitly intermediate and cannot end the task. In the same active run, the agent installs the selection, writes the Stage-2 plan bound to it, and the task page embeds this surface for the second confirmation; the user submits the final `result.json` and sees the confirmed overlay. The AI reads each receipt at its owning boundary; chat fallback mirrors the same decisions without UI artifacts. The page never outlives the workbench process, so Step 4 has nothing to release.
 
 ## Scope
 
 - Confirmation surface only — Strategist authors every recommendation; the page never generates deck content.
 - No SVG / layout preview here — that is the live preview server's job (`workflows/stages/live-preview.md`, Step 6).
+

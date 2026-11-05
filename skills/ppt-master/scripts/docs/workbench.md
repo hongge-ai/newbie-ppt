@@ -80,11 +80,13 @@ Task surface (server writes `task.json`; frozen once submitted):
 | GET `/api/tasks` | `{tasks: [...]}` newest-first summaries with derived `status` and a `runtime` block; corrupt records appear with `status: "error"` |
 | POST `/api/tasks` | `{topic, display_title?, params?}` → `201 {task_id}`; creates a draft |
 | GET `/api/tasks/<id>` | The user-domain record plus derived `status`, `runtime`, and `uploads_present` |
-| PATCH `/api/tasks/<id>` | Merge user-domain fields (draft only; 409 once submitted) |
+| PATCH `/api/tasks/<id>` | Merge user-domain fields (draft only); after submit only `display_title` is accepted, anything else is 409 |
 | POST `/api/tasks/<id>/uploads` | Multipart files → `201 {uploads: [{name, size}]}` (draft only; raw staging, never converts) |
 | DELETE `/api/tasks/<id>/uploads/<name>` | Remove one staged file (draft only) |
 | POST `/api/tasks/<id>/submit` | Freeze the user domain → `{status: "submitted", agent_hint}` |
-| GET `/api/tasks/<id>/progress` | Derived read-only view: `status`, `runtime`, `events`, `requests`, `slides`, `quality`, `exports`, `confirm` |
+| GET `/api/tasks/<id>/progress` | Derived read-only view: `status`, `runtime`, `events`, `requests`, `slides`, `quality`, `exports`, `confirm`, `plan` (`{review_due, confirmed}`) |
+| GET `/api/tasks/<id>/proposal` | The AI's Stage-1 proposal, proxied from the mounted confirmation surface: `{available, contract, constraints, preview, template_options}` or `{available: false, reason}` |
+| POST `/api/tasks/<id>/confirm` | The Stage-1 confirmation: `{display_title, contract, selection_keys, options_sha256}` → the title lands in `task.json`, the rest goes to the surface that owns `result.json`. `template_mode` is always `templates`: free design is rejected (`400`), and at least one workspace key is required. Stage 2 submits through the embedded surface, not this route |
 | GET `/api/tasks/<id>/slides/<name>` | One page SVG (numeric-prefix name whitelist) |
 | GET `/api/tasks/<id>/exports/<name>` | One exported PPTX download (`.pptx` whitelist, attachment) |
 | GET `/api/tasks/<id>/images/<path>` | One project image asset so inline page previews resolve |
@@ -128,11 +130,33 @@ state), a left rail holding the task list, and the workspace on the right.
 
 | Route | Workspace |
 |---|---|
-| `#/new` (fallback) | compose form: topic + optional title |
-| `#/task/<id>` | the task itself — form while draft; once submitted, one primary column: state conclusion, progress bar, pending question, deliverables, tool entries, collapsible parameters and activity, feedback |
+| `#/new` (fallback) | compose form: topic, "what it should feel like", canvas, page count, language, image policy, materials — no title field |
+| `#/task/<id>` | the task itself in four states — draft form; **proposal** (the AI's contract, style preview, a mandatory template workspace picker with real thumbnails, one **确认并生成**); **plan review** (the same page embeds the confirmation surface for Stage 2 — colour, typography, icons, template application, page count, image strategy); running (state line, progress bar, pending question, deliverables, collapsible parameters and activity, feedback) |
 | `#/task/<id>/preview` | page preview in focus mode |
-| `#/task/<id>/confirm` | Stage 1 / Stage 2 confirmation in focus mode |
+| `#/task/<id>/confirm` | the full confirmation surface in focus mode — a fallback for the embedded review, not the normal path |
 | `#/task/<id>/spec` | spec review in focus mode |
+
+**One page, four states**: creating a task and confirming it are the same route.
+A submitted task with `runtime.stage == confirm_stage1` renders the proposal card
+inline, above the status card, so nothing jumps to another page; confirming calls
+`POST /api/tasks/<id>/confirm`, which the mounted surface turns into
+`result.json` + `template_selection.json`. The card opens with the title the AI
+suggested for this task — the compose form never asks for one — then lists the
+contract fields, the AI's style preview, and the template choice; canvas, page
+count, and language render read-only because they are the user's own constraints
+from the compose form.
+
+**Template choice is mandatory.** The card offers no free-design option: the user
+picks at least one registered workspace (one per kind) and the confirmation is
+rejected without it. The agent therefore initializes Stage 1 with
+`default_mode: "templates"` for a workbench task.
+
+When the agent has authored `recommendations.stage2.json` and the result is still
+`stage1`, the progress payload reports `plan.review_due` and the same page embeds
+the confirmation surface below the card. That second confirmation is where the
+user still owns the production decisions; the workbench never applies the
+authored plan on its own, and the surface writes the final `result.json` only on
+the user's submit.
 
 **Focus mode** is the tool presentation: entering one of the three surfaces hides
 the task header and every task card, leaving a single slim bar (`← <task> /
@@ -153,7 +177,7 @@ project's slug:
 
 | Surface | Mount path | What the human does there |
 |---|---|---|
-| Confirmation | `/p/<slug>/confirm/` | Stage 1 contract + template choice; final Stage 2 |
+| Confirmation | `/p/<slug>/confirm/` | the full Stage-1 form and template picker; kept as the fallback for the inline proposal card |
 | Preview | `/p/<slug>/preview/` | watch pages land, direct-edit, annotate |
 | Spec review | `/p/<slug>/spec/` | block drafts, comments, apply |
 
@@ -242,19 +266,19 @@ helper: `scripts/atomic_io.py`). The server re-reads `task.json` from disk on
 every request and re-derives the run view, so agent write-backs are visible
 without restart.
 
-### task.json v3 schema
+### task.json v5 schema
 
 ```jsonc
 {
-  "schema_version": 4,
+  "schema_version": 5,
   "task_id": "t20261015-143022-a1b2",
   "created_at": "2026-10-15T14:30:22",
   "submitted_at": null,               // set once, on submit
   "updated_at": "…",
 
-  "display_title": "Q3 汇报",
+  "display_title": "Q3 汇报",        // AI names it; the user may rename it any time
   "topic": "非空任务主题",
-  "requirements": {"audience": "", "tone": "", "extra": ""},
+  "requirements": {"feel": ""},       // "what it should feel like", free text
   "params": {
     "canvas": "ppt169",               // config.CANVAS_FORMATS key
     "page_count": null,               // hint, not a hard constraint
@@ -265,6 +289,12 @@ without restart.
   "uploads": [{"name": "需求文档.docx", "size": 12345}]   // snapshot taken at submit
 }
 ```
+
+`requirements.feel` is the only free-text requirement the compose form asks for.
+Audience, intent, core message, and delivery context are **not** task fields: the
+AI authors them as the Stage-1 proposal, and the user edits them on the card
+before confirming. Keeping them out of `task.json` is what stops the same fact
+from having two editable homes.
 
 There is deliberately no `status`, `project_dir`, `agent_log`, `error`,
 `deliverables`, or `template_selection` key. Records carrying them are normalized on read: only the
@@ -305,16 +335,19 @@ route with its normal Confirm UI stages.
    when uploads exist — its move semantics carry the staged files into
    `sources/`; conversion and any research then follow the selected profile's
    normal source-intake rules.
-5. **Templates**: nothing to install from the task. Stage 1's confirmed
-   choice is either free design or ≥1 workspace root; when it names roots,
-   the page hands them to [`apply-template-workspace.md`](../../workflows/stages/apply-template-workspace.md)
-   before Stage 2, and the run reads only the project-local `templates/`
-   afterwards.
-6. **User domain is explicit**: `topic`, `requirements`, and `params`
+5. **Templates and the second stage**: nothing to install from the task. Stage 1's
+   confirmed choice is either free design or ≥1 workspace root; when it names
+   roots, the page hands them to [`apply-template-workspace.md`](../../workflows/stages/apply-template-workspace.md),
+   and the run reads only the project-local `templates/` afterwards. There is no
+   second human gate: after the install, author `recommendations.stage2.json` and
+   wait for the user to confirm it in the embedded plan review (`confirm_ui/wait.py <project> --stage final`).
+6. **User domain is explicit**: `topic`, `requirements.feel`, and `params`
    (language, page count, canvas, image policy, speaker notes) are the user's
    stated requirements for this run — honor them as explicit requests in the
    profile's normal confirmation/spec mechanics; they are hints the profile
-   reconciles with its own gates, not replacements for them.
+   reconciles with its own gates, not replacements for them. Because they are
+   constraints rather than proposals, never change them silently: a better value
+   is only ever proposed back to the user.
 7. **Report back**: the workbench reads the run view, so there is nothing to
    write back into `task.json`. Keep `stage` current, publish `progress` as
    pages land, and end the run with `run end --outcome done|failed` — that
@@ -346,13 +379,14 @@ Manual checklist, run on a disposable checkout:
 1. `uv run python scripts/workbench/server.py` opens the browser at the logged URL.
 2. The task list renders; creating a task from a topic jumps to its detail page.
 3. The detail form edits params, uploads a file, and the file appears in the list.
-4. The detail form carries no template control: submitting shows the copyable
-   agent hint, and afterwards the page is a read-only summary.
-5. The confirmation surface is the only place a template is chosen; its Stage 1
-   lists the four registered kinds with real previews, and its Stage 2 follows
-   in the same page without a reload.
-6. After the final confirmation the page offers 查看任务进度 and 打开页面预览
-   instead of a dead "you can close this page" overlay.
+4. The detail form carries no template control, no audience field, and no title field: submitting
+   shows the takeover card with the three dispatch states, never a copyable
+   trigger sentence.
+5. The proposal card is where a template is chosen: it lists the four registered
+   kinds, shows the AI's style preview and contract, and one 确认并生成 writes
+   `result.json` + `template_selection.json` without leaving the page.
+6. After confirming, the same page switches to progress; the preview tool shows
+   pages landing as they are generated.
 7. With a hand-attached fake project (`agent_bridge.py run start --task
    <task_id>` in a scratch project plus a few `svg_output/*.svg` and one
    `exports/*.pptx`), the progress page renders stage, events, page
@@ -369,3 +403,9 @@ Manual checklist, run on a disposable checkout:
 
 Run with `--no-browser` and forward the port over SSH; the server binds
 loopback only, so the tunnel endpoint is the sole exposure.
+
+
+
+
+
+

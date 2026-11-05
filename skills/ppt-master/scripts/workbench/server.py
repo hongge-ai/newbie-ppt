@@ -92,7 +92,7 @@ ASSIGNMENT_TTL_SECONDS = 180
 TASK_FILE_NAME = 'task.json'
 FEEDBACK_FILE_NAME = 'feedback.json'
 UPLOADS_DIR_NAME = 'uploads'
-TASK_SCHEMA_VERSION = 4
+TASK_SCHEMA_VERSION = 5
 # task.json carries the user's own decisions only. Run state — stage, progress,
 # errors, deliverables — lives in the project's `.runtime/` and is derived, so
 # the server and the agent never write the same file.
@@ -128,7 +128,7 @@ PAGE_COUNT_MAX = 60
 AGENT_HINT_TEMPLATE = """请接手 newbie-ppt 仓库中的一个工作台任务（任务号 {task_id}）。
 
 仓库根目录：{repo_root}
-任务文件：projects/.workbench/tasks/{task_id}/task.json（只读，含主题、需求、画幅、页数、语言、配图、受众；附件在同目录 uploads/）
+任务文件：projects/.workbench/tasks/{task_id}/task.json（只读，含主题、想要的感觉、画幅、页数、语言、配图、讲者备注；附件在同目录 uploads/）
 任务页面：{base_url}/#/task/{task_id}（用户在这里确认阶段、查看预览与交付物）
 
 执行要求：
@@ -163,6 +163,37 @@ _SKILL_DIR = Path(__file__).resolve().parents[2]
 # repository checkout simply gets <install-parent>/projects as its root.
 DEFAULT_PROJECTS_ROOT = _SKILL_DIR.parent.parent / 'projects'
 _OPTIONS_PATH = Path(__file__).resolve().parent / 'static' / 'options.json'
+# The visual-style catalog and its preview SVGs are package-wide assets owned by
+# the confirmation surface; the workbench renders them in the task page so a
+# user sees the intended style before generation starts.
+_CATALOGS_PATH = _SCRIPTS_DIR / 'confirm_ui' / 'static' / 'catalogs.json'
+_STYLE_PREVIEW_PREFIX = '/static/style_previews/'
+
+
+def _visual_style_catalog() -> list:
+    """Flatten confirm_ui's visual-style catalog into preview-ready entries."""
+    try:
+        catalogs = _read_json_object(_CATALOGS_PATH, retries=0)
+    except (OSError, json.JSONDecodeError, ValueError):
+        return []
+    styles = []
+    for group in catalogs.get('visual_styles') or []:
+        if not isinstance(group, dict):
+            continue
+        group_label = group.get('group_zh') or group.get('group') or ''
+        for item in group.get('items') or []:
+            if not isinstance(item, dict) or not item.get('id'):
+                continue
+            style_id = str(item['id'])
+            styles.append({
+                'id': style_id,
+                'label': item.get('label_zh') or item.get('label') or style_id,
+                'group': group_label,
+                'description': item.get('desc_zh') or item.get('desc') or '',
+                'preview_url': _STYLE_PREVIEW_PREFIX + urllib.parse.quote(style_id) + '.svg',
+            })
+    return styles
+
 
 
 def _repo_root(projects_root: Path) -> Path:
@@ -335,7 +366,7 @@ def _default_task(task_id: str, topic: str, display_title: Optional[str]) -> dic
         'updated_at': now,
         'display_title': display_title,
         'topic': topic,
-        'requirements': {'audience': '', 'tone': '', 'extra': ''},
+        'requirements': {'feel': ''},
         'params': {
             'canvas': 'ppt169',
             'page_count': None,
@@ -420,7 +451,7 @@ def _apply_user_patch(task: dict, payload: object) -> Optional[str]:
         requirements = payload['requirements']
         if not isinstance(requirements, dict):
             return 'requirements must be a JSON object'
-        for key in ('audience', 'tone', 'extra'):
+        for key in ('feel',):
             if key in requirements:
                 value = requirements[key]
                 if value is not None and not isinstance(value, str):
@@ -686,6 +717,27 @@ def _slide_sort_key(name: str):
     return (int(digits.group(1)) if digits else 0, name)
 
 
+def _plan_state(project_path: Path) -> dict:
+    """Say whether the AI's Stage-2 plan is waiting for the user's review.
+
+    The task page embeds the confirmation surface while this is true; the
+    surface itself decides what to render, so the workbench only needs the
+    two facts that make the second confirmation due: a stage-1 result and an
+    authored Stage-2 recommendation.
+    """
+    confirm_dir = project_path / 'confirm_ui'
+    try:
+        result = _read_json_object(confirm_dir / 'result.json', retries=0)
+    except (OSError, json.JSONDecodeError, ValueError):
+        result = {}
+    stage = result.get('stage')
+    authored = (confirm_dir / 'recommendations.stage2.json').is_file()
+    return {
+        'review_due': stage == 'stage1' and authored,
+        'confirmed': stage == 'final',
+    }
+
+
 def _task_progress_payload(task: dict, runtime: Optional[dict]) -> dict:
     """Derive the read-only progress view from the run view and project tree.
 
@@ -706,6 +758,7 @@ def _task_progress_payload(task: dict, runtime: Optional[dict]) -> dict:
         'quality': {'report_exists': False},
         'exports': [],
         'confirm': None,
+        'plan': None,
     }
     if not project_dir:
         return payload
@@ -742,7 +795,122 @@ def _task_progress_payload(task: dict, runtime: Optional[dict]) -> dict:
         }
     except (OSError, json.JSONDecodeError, ValueError):
         payload['confirm'] = None
+    payload['plan'] = _plan_state(project_path)
     return payload
+
+
+# The Stage-1 communication contract, in the order the card renders it. These
+# are the only fields the user edits in the proposal step; production details
+# stay with the Strategist.
+_STAGE1_PROSE_FIELDS = (
+    'audience',
+    'communication_intent',
+    'audience_outcome',
+    'core_message',
+    'delivery_context',
+    'artifact_afterlife',
+    'content_divergence',
+)
+_PROSE_MAX_CHARS = 4000
+
+
+def _proposal_payload(task: dict, data: dict, status: int) -> dict:
+    """Shape one Stage-1 proposal for the task page, or explain its absence."""
+    if status != 200:
+        return {
+            'available': False,
+            'reason': str(data.get('error') or f'HTTP {status}'),
+        }
+    if data.get('stage') != 'stage1':
+        return {'available': False, 'reason': '当前没有待确认的建议。'}
+    contract = {}
+    for field in _STAGE1_PROSE_FIELDS:
+        entry = data.get(field)
+        if isinstance(entry, dict):
+            entry = entry.get('value')
+        contract[field] = '' if entry is None else str(entry)
+    params = task.get('params') or {}
+    preview = data.get('preview')
+    suggested_title = data.get('display_title')
+    return {
+        'available': True,
+        'stage': 'stage1',
+        'title': suggested_title.strip() if isinstance(suggested_title, str) else '',
+        'contract': contract,
+        'constraints': {
+            'canvas': params.get('canvas'),
+            'page_count': params.get('page_count'),
+            'primary_language': params.get('primary_language'),
+        },
+        'preview': preview if isinstance(preview, dict) else None,
+        'template_options': data.get('template_options') or {},
+    }
+
+
+def _rename_task(task: dict, task_dir: Path, title: object) -> Optional[str]:
+    """Persist a user-confirmed title; return an error message or None.
+
+    The title is metadata, so it stays writable after submission — the user
+    confirms the AI's naming together with the contract.
+    """
+    if title is None:
+        return None
+    if not isinstance(title, str):
+        return 'display_title must be a string'
+    cleaned = title.strip()
+    if len(cleaned) > 200:
+        return 'display_title must be at most 200 characters'
+    if not cleaned or cleaned == (task.get('display_title') or ''):
+        return None
+    task['display_title'] = cleaned
+    task['updated_at'] = _now_iso()
+    write_json_atomic(task_dir / TASK_FILE_NAME, task)
+    return None
+
+
+def _stage1_confirm_payload(task: dict, data: dict) -> tuple[Optional[dict], Optional[str]]:
+    """Build the Stage-1 submission the confirmation surface expects.
+
+    Canvas and language stay the user's own constraints: they were chosen on
+    the task and render read-only, so a stale card can never overwrite them.
+    """
+    if not isinstance(data, dict):
+        return None, 'payload must be a JSON object'
+    contract = data.get('contract')
+    if not isinstance(contract, dict):
+        return None, 'contract must be a JSON object'
+    params = task.get('params') or {}
+    payload = {
+        'stage': 'stage1',
+        'canvas': params.get('canvas'),
+        'primary_language': params.get('primary_language'),
+    }
+    for field in _STAGE1_PROSE_FIELDS:
+        value = contract.get(field, '')
+        if value is not None and not isinstance(value, str):
+            return None, f'contract.{field} must be a string'
+        text = (value or '').strip()
+        if len(text) > _PROSE_MAX_CHARS:
+            return None, f'contract.{field} is too long'
+        payload[field] = text
+    # Free design is not offered: every workbench task starts from a template
+    # workspace, so the visual system cannot drift from what the user chose.
+    if (data.get('template_mode') or 'templates') != 'templates':
+        return None, 'free design is disabled: choose a template workspace'
+    keys = data.get('selection_keys') or []
+    if not isinstance(keys, list) or not keys:
+        return None, 'choose at least one template workspace'
+    if any(not isinstance(key, str) or not key for key in keys):
+        return None, 'selection_keys must be a list of non-empty strings'
+    options_sha = data.get('options_sha256')
+    if not isinstance(options_sha, str) or not options_sha:
+        return None, 'options_sha256 is required'
+    payload['template_selection'] = {
+        'mode': 'templates',
+        'selection_keys': list(keys),
+    }
+    payload['options_sha256'] = options_sha
+    return payload, None
 
 
 def _read_feedback(task_dir: Path) -> Optional[dict]:
@@ -1025,6 +1193,7 @@ def create_app(
             'page_counts': static_options.get('page_counts', []),
             'image_policies': static_options.get('image_policies', []),
             'languages': static_options.get('languages', []),
+            'visual_styles': _visual_style_catalog(),
         })
         resp.headers['Cache-Control'] = 'no-store'
         return resp
@@ -1100,13 +1269,22 @@ def create_app(
 
     @app.route('/api/tasks/<task_id>', methods=['PATCH'])
     def patch_task(task_id: str):
-        """Merge user-domain edits; rejected once the task is submitted."""
+        """Merge user-domain edits; only the title survives submission.
+
+        Everything the run depends on is frozen on submit. `display_title` is
+        presentation metadata — it names the task in the rail and never reaches
+        the run — so the AI may name it and the user may rename it at any time.
+        """
         task, task_dir, error = _load_task_or_abort(task_id)
         if error:
             return error
+        payload = request.get_json(silent=True)
         if task.get('submitted_at'):
-            return jsonify({'error': 'only draft tasks can be edited'}), 409
-        error = _apply_user_patch(task, request.get_json(silent=True))
+            if not isinstance(payload, dict) or set(payload) - {'display_title'}:
+                return jsonify({'error': 'only the title can change after submission'}), 409
+            if 'display_title' not in payload:
+                return jsonify({'error': 'only the title can change after submission'}), 409
+        error = _apply_user_patch(task, payload)
         if error:
             return jsonify({'error': error}), 400
         task['updated_at'] = _now_iso()
@@ -1235,6 +1413,80 @@ def create_app(
         if error:
             return error
         return _answer(project_path, req_id)
+
+    def _confirm_surface(task_id: str):
+        """Return the mounted confirmation app for one task's project."""
+        runtime = _runtime_for(task_id) or {}
+        slug = runtime.get('slug')
+        mount = app.extensions.get('surface_mount')
+        if not slug or mount is None:
+            return None
+        try:
+            return mount.app_for(slug, 'confirm')
+        except KeyError:
+            return None
+
+    @app.route('/api/tasks/<task_id>/proposal', methods=['GET'])
+    def get_task_proposal(task_id: str):
+        """Read the AI-authored Stage-1 proposal through the mounted surface.
+
+        The confirmation surface owns the recommendation files and the
+        receipts, so this route proxies its JSON instead of keeping a second
+        copy of the contract on the workbench side.
+        """
+        task, _task_dir, error = _load_task_or_abort(task_id)
+        if error:
+            return error
+        surface = _confirm_surface(task_id)
+        if surface is None:
+            resp = jsonify({
+                'available': False,
+                'reason': 'AI 还没有建立项目，建议生成后会出现在这里。',
+            })
+            resp.headers['Cache-Control'] = 'no-store'
+            return resp
+        with surface.test_client() as client:
+            response = client.get('/api/recommendations')
+            data = response.get_json(silent=True) or {}
+        resp = jsonify(
+            _proposal_payload(task, data, response.status_code)
+        )
+        resp.headers['Cache-Control'] = 'no-store'
+        return resp
+
+    @app.route('/api/tasks/<task_id>/confirm', methods=['POST'])
+    def confirm_task(task_id: str):
+        """Submit the one confirmation through the surface that owns it.
+
+        The workbench never writes `result.json` itself: it builds the same
+        Stage-1 payload the confirmation page sends and lets the mounted
+        surface persist it.
+        """
+        task, task_dir, error = _load_task_or_abort(task_id)
+        if error:
+            return error
+        surface = _confirm_surface(task_id)
+        if surface is None:
+            return jsonify({'error': 'task has no project yet'}), 409
+        request_body = request.get_json(silent=True)
+        if not isinstance(request_body, dict):
+            return jsonify({'error': 'payload must be a JSON object'}), 400
+        payload, payload_error = _stage1_confirm_payload(task, request_body)
+        if payload_error:
+            return jsonify({'error': payload_error}), 400
+        title = request_body.get('display_title')
+        if title is not None and not isinstance(title, str):
+            return jsonify({'error': 'display_title must be a string'}), 400
+        if isinstance(title, str) and len(title.strip()) > 200:
+            return jsonify({'error': 'display_title must be at most 200 characters'}), 400
+        with surface.test_client() as client:
+            response = client.post('/api/confirm', json=payload)
+            body = response.get_json(silent=True) or {}
+        if response.status_code == 200:
+            title_error = _rename_task(task, task_dir, title)
+            if title_error:
+                return jsonify({'error': title_error}), 400
+        return jsonify(body), response.status_code
 
     @app.route('/api/tasks/<task_id>/feedback', methods=['GET'])
     def get_task_feedback(task_id: str):

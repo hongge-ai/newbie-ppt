@@ -54,6 +54,9 @@
   var optionsCache = null;
   var pollTimer = null;
   var lastSignature = '';
+  // Which task's proposal card is mounted, so polling never rebuilds it and
+  // wipes text the user is editing.
+  var proposalTaskId = null;
 
   // ---------- helpers ----------
 
@@ -194,7 +197,7 @@
         speaker_notes: false,
         image_policy: 'auto'
       },
-      requirements: { audience: '', tone: '', extra: '' },
+      requirements: { feel: '' },
       uploads_present: []
     };
   }
@@ -218,9 +221,9 @@
       '<label class="field"><span>主题 / 需求描述</span>' +
       '<textarea id="f-topic" rows="3" placeholder="例如：根据这份季度报告做一份 10 页的汇报 PPT">' +
       esc(model.topic || '') + '</textarea></label>' +
-      '<label class="field"><span>任务标题（可选）</span>' +
-      '<input id="f-title" type="text" maxlength="200" value="' + esc(model.display_title || '') +
-      '" placeholder="显示在左侧任务列表"></label>' +
+      '<label class="field"><span>想要的感觉（可选）</span>' +
+      '<input id="f-feel" type="text" value="' + esc(r.feel) +
+      '" placeholder="例如：克制专业，像咨询报告；或轻快一点给学生看"></label>' +
       '<div class="field"><span>画幅</span>' + canvasPickerHtml(p.canvas || 'ppt169') + '</div>' +
       '<div class="field-row">' +
       '<label class="field"><span>页数</span><input id="f-pages" type="number" min="1" max="60" ' +
@@ -231,18 +234,10 @@
       '<div class="field-row">' +
       '<label class="field"><span>配图策略</span><select id="f-image">' +
       options(opts.image_policies, p.image_policy) + '</select></label>' +
-      '<label class="field"><span>面向受众</span>' +
-      '<input id="f-audience" type="text" value="' + esc(r.audience) +
-      '" placeholder="谁会看这份演示"></label>' +
-      '</div>' +
-      '<div class="field-row">' +
-      '<label class="field"><span>语气风格</span>' +
-      '<input id="f-tone" type="text" value="' + esc(r.tone) + '" placeholder="例如：教程 / 正式 / 轻松"></label>' +
-      '<label class="field"><span>附加要求</span>' +
-      '<input id="f-extra" type="text" value="' + esc(r.extra) + '" placeholder="可选"></label>' +
-      '</div>' +
       '<label class="field-check"><input id="f-notes" type="checkbox"' +
       (p.speaker_notes ? ' checked' : '') + '> 生成讲者备注</label>' +
+      '</div>' +
+      '<p class="card-hint">受众、核心信息、使用场景这些，AI 读完材料后会在下一步给建议，你改完确认一次就开跑。</p>' +
       '<div class="actions">' +
       (editing ? '<button class="btn" id="save-btn" type="button">保存修改</button>' : '') +
       '<button class="btn btn-primary" id="submit-btn" type="button">' +
@@ -264,7 +259,6 @@
     var pages = $('#f-pages').value.trim();
     return {
       topic: $('#f-topic').value.trim(),
-      display_title: $('#f-title').value.trim() || null,
       params: {
         canvas: selectedCanvas(),
         page_count: pages ? parseInt(pages, 10) : null,
@@ -273,9 +267,7 @@
         image_policy: $('#f-image').value
       },
       requirements: {
-        audience: $('#f-audience').value.trim(),
-        tone: $('#f-tone').value.trim(),
-        extra: $('#f-extra').value.trim()
+        feel: $('#f-feel').value.trim()
       }
     };
   }
@@ -296,7 +288,6 @@
     if (!values.topic) { toast('请先填写主题', true); return Promise.reject(new Error('topic required')); }
     return api('POST', '/api/tasks', {
       topic: values.topic,
-      display_title: values.display_title,
       params: values.params,
       requirements: values.requirements
     }).then(function (data) {
@@ -362,7 +353,6 @@
         : createTaskFromForm();
       ready.then(function (taskId) {
         return api('PATCH', '/api/tasks/' + enc(taskId), {
-          display_title: values.display_title,
           params: values.params,
           requirements: values.requirements
         }).then(function () {
@@ -387,7 +377,7 @@
     refreshRail('');
     workspace.innerHTML =
       '<div class="page-head"><div><h1>新建任务</h1>' +
-      '<div class="page-sub">一次填完主题与参数，创建后直接提交给 AI。模板在确认页的 Stage 1 里选。</div>' +
+      '<div class="page-sub">把想做的说清楚就行：主题、材料、画幅页数语言。受众和方案由 AI 读完材料后给建议，你改完确认一次。</div>' +
       '</div></div><div id="pane"><div class="loading">加载中…</div></div>';
     loadOptions().then(function () {
       var pane = $('#pane');
@@ -404,6 +394,7 @@
 
   function loadTask(taskId, focus) {
     lastSignature = '';
+    proposalTaskId = null;
     Promise.all([
       api('GET', '/api/tasks/' + enc(taskId)),
       loadOptions()
@@ -436,7 +427,9 @@
       renderForm($('#pane'), task);
       return;
     }
-    workspace.innerHTML = headerHtml(task) + '<div id="pane"><div class="loading">加载中…</div></div>';
+    workspace.innerHTML = headerHtml(task) +
+      '<div id="proposal-slot"></div>' +
+      '<div id="pane"><div class="loading">加载中…</div></div>';
 
     if (task.status === 'submitted') {
       renderTakeover(task);
@@ -551,6 +544,241 @@
     }
   }
 
+  // ---------- proposal: the one confirmation, inline ----------
+
+  var KIND_LABELS = { brand: '品牌', style: '风格', layout: '版式', deck: '整套' };
+
+  function proposalFieldHtml(field, label, value, placeholder, rows) {
+    return '<label class="field"><span>' + esc(label) + '</span>' +
+      '<textarea data-contract="' + esc(field) + '" rows="' + (rows || 2) +
+      '" placeholder="' + esc(placeholder || '') + '">' + esc(value) + '</textarea></label>';
+  }
+
+  function stylePreviewHtml(proposal) {
+    var preview = proposal.preview || {};
+    var styles = (optionsCache || {}).visual_styles || [];
+    var chosen = styles.filter(function (item) { return item.id === preview.visual_style; })[0];
+    var html = '<div class="style-block"><div class="subhead">风格预览</div>';
+    if (chosen) {
+      html += '<div class="style-hero">' +
+        '<img src="' + esc(chosen.preview_url) + '" alt="' + esc(chosen.label) + '">' +
+        '<div><strong>' + esc(chosen.label) + '</strong>' +
+        '<p class="card-hint">' + esc(preview.note || chosen.description) + '</p></div></div>';
+    } else if (preview.note) {
+      html += '<p class="preview-note">' + esc(preview.note) + '</p>';
+    } else {
+      html += '<p class="card-hint">AI 还没有写视觉方向，会在生成时按材料和你填的感觉来定。</p>';
+    }
+    if (styles.length) {
+      html += '<details class="style-gallery"><summary>看看还有哪些视觉方向（仅参考）</summary>' +
+        '<div class="style-strip">' + styles.map(function (item) {
+          return '<figure class="style-thumb' + (item.id === preview.visual_style ? ' is-chosen' : '') +
+            '" title="' + esc(item.label) + '"><img src="' + esc(item.preview_url) +
+            '" alt="' + esc(item.label) + '"><figcaption>' + esc(item.label) + '</figcaption></figure>';
+        }).join('') + '</div></details>';
+    }
+    return html + '</div>';
+  }
+
+  function candidateCardHtml(item, picked) {
+    // Identity-only workspaces (brand / style) have no prototype pages; the
+    // card is just its name and summary.
+    var thumbs = item.id
+      ? '<span class="tpl-thumbs" data-thumbs><span class="tpl-thumb is-loading"></span></span>'
+      : '';
+    return '<button type="button" class="tpl-card' + (picked ? ' is-picked' : '') +
+      '" data-key="' + esc(item.key) + '" data-kind="' + esc(item.kind) + '"' +
+      (item.id ? ' data-id="' + esc(item.id) + '"' : '') + '>' + thumbs +
+      '<span class="tpl-name">' + esc(item.label) + '</span>' +
+      (item.summary ? '<span class="tpl-desc">' + esc(item.summary) + '</span>' : '') +
+      '</button>';
+  }
+
+  function templateBlockHtml(options) {
+    var library = (options && options.library) || {};
+    var explicit = (options && options.explicit) || [];
+    var preselected = (options && options.preselected_keys) || [];
+    var groups = ['brand', 'style', 'layout', 'deck'].map(function (kind) {
+      var items = (library[kind] || []).concat(explicit.filter(function (item) {
+        return item.kind === kind;
+      }));
+      if (!items.length) return '';
+      return '<div class="tpl-group"><div class="tpl-group-name">' + esc(KIND_LABELS[kind] || kind) + '</div>' +
+        '<div class="tpl-grid" data-kind="' + esc(kind) + '">' + items.map(function (item) {
+          return candidateCardHtml(item, preselected.indexOf(item.key) >= 0);
+        }).join('') + '</div></div>';
+    }).join('');
+    if (!groups) {
+      return '<div class="tpl-block"><div class="subhead">模板</div>' +
+        '<p class="card-hint">项目里没有可用的模板工作区，无法继续；请先把模板登记到模板库。</p></div>';
+    }
+    return '<div class="tpl-block"><div class="subhead">模板（必选）</div>' +
+      '<p class="card-hint">选一个工作区，AI 会按它的身份和版式来做；每类最多选一个，至少要选一个。</p>' +
+      '<div class="tpl-picker">' + groups + '</div>' +
+      '</div>';
+  }
+
+  // Each candidate shows its real prototype pages, served by the mounted
+  // confirmation surface next to this page.
+  function loadTemplateThumbs(slot, slug) {
+    Array.prototype.forEach.call(slot.querySelectorAll('.tpl-card[data-id]'), function (card) {
+      var holder = card.querySelector('[data-thumbs]');
+      if (!holder || holder.getAttribute('data-loaded')) return;
+      holder.setAttribute('data-loaded', '1');
+      var base = '/p/' + enc(slug) + '/confirm';
+      fetch(base + '/api/template-roster/' + enc(card.getAttribute('data-kind')) +
+        '/' + enc(card.getAttribute('data-id')))
+        .then(function (response) { return response.ok ? response.json() : null; })
+        .then(function (data) {
+          var pages = (data && data.roster) || [];
+          if (!pages.length) {
+            holder.remove();
+            return;
+          }
+          holder.innerHTML = pages.slice(0, 3).map(function (page) {
+            return '<img class="tpl-thumb" src="' + esc(base + page.url) + '" alt="">';
+          }).join('');
+        })
+        .catch(function () { holder.innerHTML = ''; });
+    });
+  }
+
+  function proposalHtml(task, proposal) {
+    var c = proposal.contract || {};
+    var cons = proposal.constraints || {};
+    var opts = optionsCache || {};
+    var canvasItem = (opts.canvas || []).filter(function (item) {
+      return item.id === cons.canvas;
+    })[0];
+    var locked = [
+      ['画幅', canvasItem ? canvasItem.label : (cons.canvas || '—')],
+      ['页数', cons.page_count == null ? '由 AI 决定' : cons.page_count + ' 页'],
+      ['语言', optionLabel(opts.languages, cons.primary_language)]
+    ].map(function (row) {
+      return '<span class="locked"><em>' + esc(row[0]) + '</em>' + esc(row[1]) + '</span>';
+    }).join('');
+
+    return '<div class="card card-proposal">' +
+      '<h2>AI 建议</h2>' +
+      '<p class="card-hint">AI 读完材料后给的判断，都可以直接改；改完点一次「确认并生成」就开始。</p>' +
+      '<label class="field"><span>任务标题</span>' +
+      '<input id="proposal-title" type="text" maxlength="200" value="' +
+      esc(proposal.title || task.display_title || task.topic || '') +
+      '" placeholder="AI 会按材料起名，你可以改"></label>' +
+      '<div class="locked-row">' + locked + '<span class="locked-note">这些是你在新建时定的</span></div>' +
+      proposalFieldHtml('audience', '受众是谁', c.audience, '谁会看这份演示', 2) +
+      proposalFieldHtml('communication_intent', '这次要达成什么', c.communication_intent, '汇报 / 说服 / 对齐 / 教学…', 2) +
+      proposalFieldHtml('core_message', '核心信息', c.core_message, '希望被记住的那一句', 2) +
+      '<details class="more-fields"><summary>展开其余契约字段</summary>' +
+      proposalFieldHtml('audience_outcome', '期望的受众变化', c.audience_outcome, '看完之后他们会知道 / 相信 / 做什么', 2) +
+      proposalFieldHtml('delivery_context', '使用场景', c.delivery_context, '现场主讲 / 会后自读 / 录制播放', 2) +
+      proposalFieldHtml('artifact_afterlife', '会后去向', c.artifact_afterlife, '审批记录 / 交接依据 / 归档', 2) +
+      proposalFieldHtml('content_divergence', '与原文的偏离', c.content_divergence, '留空表示在原文范围内合理重组', 2) +
+      '</details>' +
+      stylePreviewHtml(proposal) +
+      templateBlockHtml(proposal.template_options) +
+      '<div class="actions"><button class="btn btn-primary" id="confirm-btn" type="button">确认并生成</button>' +
+      '<a class="btn" href="#/task/' + enc(task.task_id) + '/confirm">打开完整确认页</a></div>' +
+      '<p class="card-hint">这是第一次确认：定契约和模板。之后 AI 会把完整方案（配色、字体、页数、配图）拿回来，你再确认一次才开跑。</p>' +
+      '</div>';
+  }
+
+  function wireProposal(task, proposal, slot, slug) {
+    if (slug) loadTemplateThumbs(slot, slug);
+    // One workspace per kind: picking a card replaces its siblings' pick.
+    Array.prototype.forEach.call(slot.querySelectorAll('.tpl-card'), function (card) {
+      card.addEventListener('click', function () {
+        var grid = card.parentNode;
+        Array.prototype.forEach.call(grid.querySelectorAll('.tpl-card'), function (other) {
+          other.classList.remove('is-picked');
+        });
+        card.classList.add('is-picked');
+      });
+    });
+    var button = slot.querySelector('#confirm-btn');
+    if (!button) return;
+    button.addEventListener('click', function () {
+      var contract = {};
+      Array.prototype.forEach.call(slot.querySelectorAll('[data-contract]'), function (node) {
+        contract[node.getAttribute('data-contract')] = node.value.trim();
+      });
+      var keys = Array.prototype.map.call(slot.querySelectorAll('.tpl-card.is-picked'), function (card) {
+        return card.getAttribute('data-key');
+      });
+      if (!keys.length) {
+        toast('先选一个模板工作区，再确认', true);
+        return;
+      }
+      var titleNode = slot.querySelector('#proposal-title');
+      button.disabled = true;
+      api('POST', '/api/tasks/' + enc(task.task_id) + '/confirm', {
+        contract: contract,
+        display_title: titleNode ? titleNode.value.trim() : '',
+        template_mode: 'templates',
+        selection_keys: keys,
+        options_sha256: (proposal.template_options || {}).options_sha256
+      }).then(function () {
+        toast('已确认，AI 开始生成');
+        proposalTaskId = null;
+        loadTask(task.task_id);
+      }).catch(function (error) {
+        button.disabled = false;
+        toast('确认失败：' + error.message, true);
+      });
+    });
+  }
+
+  function renderProposal(task, slot, slug) {
+    slot.innerHTML = '<div class="card"><div class="loading">正在读取 AI 的建议…</div></div>';
+    api('GET', '/api/tasks/' + enc(task.task_id) + '/proposal').then(function (proposal) {
+      if (!proposal.available) {
+        slot.innerHTML = '<div class="card"><h2>等待 AI 给建议</h2><p class="hint">' +
+          esc(proposal.reason || '') + '</p></div>';
+        return;
+      }
+      slot.innerHTML = proposalHtml(task, proposal);
+      wireProposal(task, proposal, slot, slug);
+    }).catch(function (error) {
+      slot.innerHTML = '<div class="card"><h2>建议读取失败</h2><p class="hint">' +
+        esc(error.message) + '</p></div>';
+    });
+  }
+
+  // The Stage-2 plan is the AI's proposal, not a verdict: it opens in the
+  // confirmation surface right here so colours, typography, template
+  // application, page count and image strategy stay the user's to change.
+  function renderPlanReview(task, slot, slug) {
+    slot.innerHTML = '<div class="card card-plan">' +
+      '<h2>方案已就绪，等你确认</h2>' +
+      '<p class="card-hint">AI 按你确认的契约配好了方案。配色、字体、图标、模板怎么用、页数、配图策略都在下面，改完点「确认最终方案」；确认之后才落终稿。</p>' +
+      '<div class="plan-frame"><iframe src="/p/' + enc(slug) +
+      '/confirm/" title="方案确认"></iframe></div></div>';
+  }
+
+  function syncProposalSlot(task, progress) {
+    var slot = $('#proposal-slot');
+    if (!slot) return;
+    var runtime = progress.runtime || {};
+    var slug = runtime.slug;
+    var plan = progress.plan || {};
+    if (plan.review_due && slug) {
+      if (proposalTaskId === 'plan:' + task.task_id) return;
+      proposalTaskId = 'plan:' + task.task_id;
+      renderPlanReview(task, slot, slug);
+    } else if (runtime.stage === 'confirm_stage1') {
+      if (proposalTaskId === task.task_id) return;
+      proposalTaskId = task.task_id;
+      renderProposal(task, slot, slug);
+    } else if (runtime.stage === 'template_install') {
+      if (proposalTaskId === 'install:' + task.task_id) return;
+      proposalTaskId = 'install:' + task.task_id;
+      slot.innerHTML = '<div class="card"><h2>正在安装模板</h2>' +
+        '<p class="card-hint">已确认，AI 正在把选中的模板装进项目，装好后会把完整方案拿回来给你过目。</p></div>';
+    } else {
+      slot.innerHTML = '';
+    }
+  }
+
   // ---------- focus mode ----------
 
   function renderFocus(task, kind) {
@@ -601,10 +829,11 @@
     if (task.status === 'failed') return '生成失败';
     if (task.status === 'interrupted') return 'AI 已停止，等待接续';
     if (runtime.blocking) return '等待你的回答';
+    if (runtime.stage === 'confirm_stage1') return '等你确认方案';
     if (runtime.progress && runtime.progress.total) {
       return '正在生成 · ' + runtime.progress.done + '/' + runtime.progress.total + ' 页';
     }
-    if (runtime.stage_label) return '正在生成 · ' + runtime.stage_label;
+    if (runtime.stage) return '正在生成 · ' + (STAGE_LABELS[runtime.stage] || runtime.stage);
     return '正在生成';
   }
 
@@ -622,16 +851,6 @@
     return '<div class="bar" role="progressbar" aria-valuenow="' + done +
       '" aria-valuemin="0" aria-valuemax="' + total + '"><span style="width:' + percent +
       '%"></span></div>';
-  }
-
-  function nextAction(task, progress) {
-    var runtime = progress.runtime || {};
-    if (openRequests(progress).length) return null;
-    if (runtime.stage === 'confirm_stage1' || runtime.stage === 'template_install') {
-      return '<a class="btn btn-primary" href="#/task/' + enc(task.task_id) +
-        '/confirm">去完成阶段确认</a>';
-    }
-    return '';
   }
 
   function renderOverview(task, quiet) {
@@ -659,7 +878,7 @@
         '<p class="card-hint">' + esc(stageCaption(runtime, progress.status)) + '</p>' +
         progressBar(runtime, progress.status) +
         (runtime.error ? '<p class="empty">' + esc(runtime.error.message || '') + '</p>' : '') +
-        '<div class="next-actions">' + nextAction(task, progress) + '</div></div>';
+        '</div>';
 
       if (requests.length) {
         html += requests.map(function (item) { return requestHtml(item.request); }).join('');
@@ -715,6 +934,7 @@
 
       $('#pane').innerHTML = html;
       wireOverview(task, quiet);
+      syncProposalSlot(task, progress);
     }).catch(function (error) {
       setConn(true);
       if (!quiet) {
@@ -743,9 +963,7 @@
       ['语言', optionLabel(opts.languages, p.primary_language)],
       ['配图', optionLabel(opts.image_policies, p.image_policy)],
       ['讲者备注', p.speaker_notes ? '开启' : '关闭'],
-      ['面向受众', r.audience || '—'],
-      ['语气风格', r.tone || '—'],
-      ['附加要求', r.extra || '—']
+      ['想要的感觉', r.feel || '—']
     ];
     if (task.runtime && task.runtime.error) rows.push(['错误', task.runtime.error.message || '']);
     return '<dl class="meta">' + rows.map(function (row) {
@@ -871,3 +1089,4 @@
   route();
   refreshRail('');
 })();
+
