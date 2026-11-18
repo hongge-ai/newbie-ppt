@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720" data-pptx-page-role="ending" font-family="Microsoft YaHei, Segoe UI, sans-serif" font-size="24">
+  <defs>
+    <linearGradient id="p12RiverFade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0F172A" stop-opacity="0.82"/>
+      <stop offset="50%" stop-color="#0F172A" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#0F172A" stop-opacity="0.92"/>
+    </linearGradient>
+  </defs>
+
+  <rect id="p12-bg" x="0" y="0" width="1280" height="720" fill="#FAF7F2"/>
+
+  <g id="p12-header" data-pptx-bounds="60 38 1160 94">
+    <rect x="60" y="44" width="4" height="22" fill="#B83B2A"/>
+    <text x="74" y="62" font-size="18" font-weight="bold" fill="#B83B2A">肆 · 文学史回响 · LITERARY LEGACY &amp; CULTURAL GENOMICS</text>
+    <text x="60" y="110" font-family="SimSun, Georgia, serif" font-size="40" font-weight="bold" fill="#1E293B">文学史回响：革除六朝浮靡，“阁以文传”的千年文化基因</text>
+    <line x1="60" y1="128" x2="1220" y2="128" stroke="#D8D0C3" stroke-width="1.5"/>
+  </g>
+
+  <g id="p12-river-banner" data-pptx-bounds="60 148 1160 220">
+    <image href="../images/yangtze_eternal_flow.jpg" x="60" y="148" width="1160" height="220" preserveAspectRatio="xMidYMid slice"/>
+    <rect x="60" y="148" width="1160" height="220" fill="url(#p12RiverFade)"/>
+    <rect x="60" y="148" width="1160" height="220" fill="none" stroke="#D8D0C3" stroke-width="1"/>
+
+    <text x="640" y="226" font-family="SimSun, Georgia, serif" font-size="40" font-weight="bold" fill="#FAF7F2" text-anchor="middle">“阁中帝子今何在？槛外长江空自流。”</text>
+    <line x1="440" y1="262" x2="840" y2="262" stroke="#B83B2A" stroke-width="2"/>
+    <text x="640" y="306" font-size="18" fill="#F0EBE1" text-anchor="middle">楼阁终有倾圮兴废，唯少年王勃在逆境中唱出的青云壮志与浩渺诗境，随浩荡江河万古长流。</text>
+  </g>
+
+  <g id="p12-col-1" data-pptx-bounds="60 388 368 266">
+    <rect x="60" y="388" width="368" height="266" rx="4" fill="#FFFFFF" stroke="#D8D0C3" stroke-width="1"/>
+    <rect x="60" y="388" width="368" height="5" rx="2" fill="#2E6B7E"/>
+    <use data-icon="tabler-outline/sparkles" x="84" y="410" width="24" height="24" fill="#2E6B7E" stroke-width="2"/>
+    <text x="116" y="430" font-size="20" font-weight="bold" fill="#1E293B">骈文史上的美学跨越</text>
+    <text x="84" y="468" font-size="14" fill="#1F242D">一扫齐梁以来绮错婉媚与浮靡之风，<tspan x="84" dy="22">亦突破初唐宫廷“上官体”的应制局限；</tspan><tspan x="84" dy="22">将铺采摛文的骈俪体制、</tspan><tspan x="84" dy="22">苍凉深挚的身世之感与刚健昂扬的哲思</tspan><tspan x="84" dy="22">完美融为一体，开创盛唐风骨新境。</tspan></text>
+  </g>
+
+  <g id="p12-col-2" data-pptx-bounds="456 388 368 266">
+    <rect x="456" y="388" width="368" height="266" rx="4" fill="#FFFFFF" stroke="#D8D0C3" stroke-width="1"/>
+    <rect x="456" y="388" width="368" height="5" rx="2" fill="#B83B2A"/>
+    <use data-icon="tabler-outline/award" x="480" y="410" width="24" height="24" fill="#B83B2A" stroke-width="2"/>
+    <text x="512" y="430" font-size="20" font-weight="bold" fill="#1E293B">杜甫与韩愈千古定论</text>
+    <text x="480" y="468" font-size="14" fill="#1F242D"><tspan font-weight="bold" fill="#B83B2A">杜甫《戏为六绝句》力赞四杰：</tspan><tspan x="480" dy="22">“王杨卢骆当时体，轻薄为文哂未休。</tspan><tspan x="480" dy="22" font-weight="bold" fill="#1E293B">尔曹身与名俱灭，不废江河万古流！”</tspan></text>
+    <text x="480" y="556" font-size="14" fill="#1F242D"><tspan font-weight="bold" fill="#2E6B7E">韩愈《新修滕王阁记》：</tspan><tspan x="480" dy="22">“江南多临观之美，而滕王阁独为第一，</tspan><tspan x="480" dy="22">有瑰伟绝特之称，殆以王君序之故！”</tspan></text>
+  </g>
+
+  <g id="p12-col-3" data-pptx-bounds="852 388 368 266">
+    <rect x="852" y="388" width="368" height="266" rx="4" fill="#1E293B"/>
+    <rect x="852" y="388" width="368" height="5" rx="2" fill="#B83B2A"/>
+    <use data-icon="tabler-outline/book" x="876" y="410" width="24" height="24" fill="#B83B2A" stroke-width="2"/>
+    <text x="908" y="430" font-size="20" font-weight="bold" fill="#FAF7F2">融入民族精神文化基因</text>
+    <text x="876" y="468" font-size="14" fill="#D8D0C3">全篇凝练出近三十则经典成语，<tspan x="876" dy="22">成为千百年来汉语世界日用而不觉的母语基因：</tspan></text>
+
+    <rect x="876" y="524" width="320" height="110" rx="3" fill="#111827"/>
+    <text x="892" y="552" font-size="13" fill="#FAF7F2">物华天宝 · 人杰地灵 · 水天一色<tspan x="892" dy="22">渔舟唱晚 · 雁阵惊寒 · 兴尽悲来</tspan><tspan x="892" dy="22"><tspan font-weight="bold" fill="#B83B2A">老当益壮 · 穷且益坚 · 青云之志</tspan></tspan><tspan x="892" dy="22">东隅桑榆 · 萍水相逢 · 乘风破浪</tspan></text>
+  </g>
+
+  <g id="p12-footer" data-pptx-bounds="60 672 1160 28" font-size="14" fill="#596273">
+    <text x="60" y="692">出处：唐杜甫《戏为六绝句》、唐韩愈《新修滕王阁记》、清储欣《唐宋十大家全集录》 [F015–F021, F040–F042]</text>
+    <text x="1220" y="692" text-anchor="end">12 / 12</text>
+  </g>
+</svg>

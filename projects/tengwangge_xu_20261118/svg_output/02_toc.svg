@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720" data-pptx-page-role="toc" font-family="Microsoft YaHei, Segoe UI, sans-serif" font-size="24">
+  <rect id="toc-bg" x="0" y="0" width="1280" height="720" fill="#FAF7F2"/>
+
+  <g id="toc-header" data-pptx-bounds="60 40 1160 92">
+    <text x="60" y="62" font-size="18" font-weight="bold" fill="#B83B2A">CONTENTS · 导读总览</text>
+    <text x="60" y="112" font-family="SimSun, Georgia, serif" font-size="42" font-weight="bold" fill="#1E293B">导读脉络：从重阳胜饯到江河万古流</text>
+    <line x1="60" y1="130" x2="1220" y2="130" stroke="#D8D0C3" stroke-width="1.5"/>
+  </g>
+
+  <g id="toc-left-thesis" data-pptx-bounds="60 152 330 500">
+    <g id="p02-thesis-panel" data-pptx-authoring="preset" data-pptx-object="shape" data-pptx-prst="snip2DiagRect" data-pptx-frame="60 152 330 500" data-pptx-av-adj1="val 0" data-pptx-av-adj2="val 8000" fill="#1E293B" stroke="none">
+      <path d="M 60 152 L 363.6 152 L 390 178.4 L 390 652 L 390 652 L 86.4 652 L 60 625.6 L 60 152 Z"/>
+    </g>
+    <rect x="86" y="186" width="48" height="4" fill="#B83B2A"/>
+    <use data-icon="tabler-outline/compass" x="86" y="210" width="32" height="32" fill="#B83B2A" stroke-width="2"/>
+    <text x="86" y="278" font-family="SimSun, Georgia, serif" font-size="32" font-weight="bold" fill="#FAF7F2">一序观初唐<tspan x="86" dy="44">四步入文心</tspan></text>
+    <text x="86" y="378" fill="#F0EBE1">全课循“本事考辨—<tspan x="86" dy="36">四层总纲—原文深读—</tspan><tspan x="86" dy="36">美学定评”层层递进，</tspan><tspan x="86" dy="36">打通历史现场与骈文</tspan><tspan x="86" dy="36">声色肌理。</tspan></text>
+    <line x1="86" y1="564" x2="360" y2="564" stroke="#D8D0C3" stroke-opacity="0.3" stroke-width="1"/>
+    <text x="86" y="596" font-size="18" fill="#D8D0C3">上元二年（675）· 洪州滕王阁<tspan x="86" dy="28">七百七十三字千古绝唱</tspan></text>
+  </g>
+
+  <g id="toc-part-1" data-pptx-bounds="420 152 800 98">
+    <rect x="420" y="152" width="800" height="96" rx="4" fill="#F0EBE1"/>
+    <text x="440" y="220" font-family="SimSun, Georgia, serif" font-size="64" font-weight="bold" fill="#B83B2A">01</text>
+    <use data-icon="tabler-outline/book" x="534" y="170" width="26" height="26" fill="#1E293B" stroke-width="2"/>
+    <text x="570" y="192" font-size="28" font-weight="bold" fill="#1E293B">壹 · 知人论世（P03–P04）</text>
+    <text x="534" y="230" fill="#1F242D">二十六岁除名才子省父本事、作序年份定谳与重阳受笔传奇</text>
+  </g>
+
+  <g id="p02-arrow-1" data-pptx-authoring="preset" data-pptx-object="shape" data-pptx-prst="downArrow" data-pptx-frame="454 254 18 22" fill="#B83B2A" stroke="none">
+    <path d="M 454 267 L 458.5 267 L 458.5 254 L 467.5 254 L 467.5 267 L 472 267 L 463 276 Z"/>
+  </g>
+
+  <g id="toc-part-2" data-pptx-bounds="420 280 800 98">
+    <rect x="420" y="280" width="800" height="96" rx="4" fill="#FFFFFF" stroke="#D8D0C3" stroke-width="1"/>
+    <text x="440" y="348" font-family="SimSun, Georgia, serif" font-size="64" font-weight="bold" fill="#1E293B">02</text>
+    <use data-icon="tabler-outline/columns" x="534" y="298" width="26" height="26" fill="#2E6B7E" stroke-width="2"/>
+    <text x="570" y="320" font-size="28" font-weight="bold" fill="#1E293B">贰 · 章法纵览（P05）</text>
+    <text x="534" y="358" fill="#1F242D">紧扣五重题眼的“述事—绘景—抒情—言志”四重交响结构</text>
+  </g>
+
+  <g id="p02-arrow-2" data-pptx-authoring="preset" data-pptx-object="shape" data-pptx-prst="downArrow" data-pptx-frame="454 382 18 22" fill="#B83B2A" stroke="none">
+    <path d="M 454 395 L 458.5 395 L 458.5 382 L 467.5 382 L 467.5 395 L 472 395 L 463 404 Z"/>
+  </g>
+
+  <g id="toc-part-3" data-pptx-bounds="420 408 800 98">
+    <rect x="420" y="408" width="800" height="96" rx="4" fill="#F0EBE1"/>
+    <text x="440" y="476" font-family="SimSun, Georgia, serif" font-size="64" font-weight="bold" fill="#2E6B7E">03</text>
+    <use data-icon="tabler-outline/mountain" x="534" y="426" width="26" height="26" fill="#B83B2A" stroke-width="2"/>
+    <text x="570" y="448" font-size="28" font-weight="bold" fill="#1E293B">叁 · 文本细读（P06–P09）</text>
+    <text x="534" y="486" fill="#1F242D">雄州形胜、落霞孤鹜画境、兴尽悲来转折与附诗长江浩叹</text>
+  </g>
+
+  <g id="p02-arrow-3" data-pptx-authoring="preset" data-pptx-object="shape" data-pptx-prst="downArrow" data-pptx-frame="454 510 18 22" fill="#B83B2A" stroke="none">
+    <path d="M 454 523 L 458.5 523 L 458.5 510 L 467.5 510 L 467.5 523 L 472 523 L 463 532 Z"/>
+  </g>
+
+  <g id="toc-part-4" data-pptx-bounds="420 536 800 116">
+    <rect x="420" y="536" width="800" height="114" rx="4" fill="#FFFFFF" stroke="#B83B2A" stroke-width="1.5"/>
+    <text x="440" y="610" font-family="SimSun, Georgia, serif" font-size="64" font-weight="bold" fill="#B83B2A">04</text>
+    <use data-icon="tabler-outline/award" x="534" y="556" width="26" height="26" fill="#B83B2A" stroke-width="2"/>
+    <text x="570" y="578" font-size="28" font-weight="bold" fill="#1E293B">肆 · 艺术与回响（P10–P12）</text>
+    <text x="534" y="618" fill="#1F242D">三十余典四维图谱、传本异文对照、四六声色与韩愈杜甫定评</text>
+  </g>
+
+  <g id="toc-footer" data-pptx-bounds="60 672 1160 28" font-size="14" fill="#596273">
+    <text x="60" y="692">《滕王阁序》深度导读 · 结构导航</text>
+    <text x="1220" y="692" text-anchor="end">02 / 12</text>
+  </g>
+</svg>

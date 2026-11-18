@@ -1,0 +1,78 @@
+{
+  "primary_language": "zh-CN",
+  "canvas": "ppt169",
+  "audience": "高中及以上古诗文学习者、文学经典导读听众与传统文化爱好者（熟悉“落霞与孤鹜齐飞”等名句，希望进一步贯通创作本事、全篇章法、典故深意与骈文声色美学）",
+  "communication_intent": "先以知人论世厘清王勃上元二年省父作序的历史真相，再循“述事—绘景—抒情—言志”四层章法精读原文与典故，最终阐明四六骈文声色造诣及“穷且益坚、不坠青云之志”的精神力量",
+  "audience_outcome": "听众能够准确复述《滕王阁序》紧扣五重题眼的四层行文逻辑，辨析核心典故的正反化用与重要传本异文，并深刻理解王勃如何将齐梁浮靡骈文升华为唐代刚健风骨",
+  "core_message": "《滕王阁序》不仅以“落霞孤鹜、水天一色”铸就中国骈文声色与空间美学的巅峰，更在“兴尽悲来、时运不齐”的人生低谷中挺立起“穷且益坚，不坠青云之志”的不屈人格，成就“阁以文传”的千年绝唱",
+  "delivery_context": "主要为有主讲人引导的 30–45 分钟文学导读课堂或专题讲座投影演示；次要支持课后自主精读复习与教研留存",
+  "artifact_afterlife": "作为古诗文经典导读课件、自主复习讲义与文学鉴赏参考档案长期留存复用",
+  "content_divergence": "",
+  "delivery_purpose": "balanced",
+  "page_count": "12",
+  "mode": "custom",
+  "mode_behavior": "由 narrative 负责从二十六岁除名省父到即席挥毫、从兴尽悲来到青云不坠的戏剧转折与情感张力，由 instructional 负责“述事—绘景—抒情—言志”四层文本拆解、典故溯源与四六声律的循序导读；章节与转折页用叙事推进标题，细读与对照页用清晰教学标题。",
+  "visual_style": "custom",
+  "visual_style_behavior": "以用户选定的 photo-editorial 为主导骨架，封面、章节与写景高潮页采用全出血或大画幅摄影区配留白旁注、跨图边界大标题与半透明遮罩；无实景图支撑的分析与校勘页按 photo-editorial 规范切换为 editorial 杂志分栏、细分割线、眉题编号与引文拔高结构，全程零装饰性阴影。",
+  "color": {
+    "name": "落霞丹青 · 暖白画刊",
+    "palette": {
+      "background": "#FAF7F2",
+      "secondary_bg": "#F0EBE1",
+      "primary": "#1E293B",
+      "accent": "#B83B2A",
+      "secondary_accent": "#2E6B7E",
+      "body_text": "#1F242D"
+    }
+  },
+  "icons": "tabler-outline",
+  "typography": {
+    "name": "宋体衬线标题 + 微软雅黑正文",
+    "heading": {
+      "css": "serif",
+      "english": "Georgia",
+      "primary": "SimSun",
+      "sample_primary": "",
+      "sample_english": ""
+    },
+    "body": {
+      "css": "sans-serif",
+      "english": "Segoe UI",
+      "primary": "Microsoft YaHei",
+      "sample_primary": "",
+      "sample_english": ""
+    },
+    "body_size": 24,
+    "sizes": {
+      "title": 42,
+      "subtitle": 32,
+      "annotation": 18
+    },
+    "note": "",
+    "body_size_unit": "px"
+  },
+  "image_usage": [
+    "web",
+    "ai"
+  ],
+  "image_notes": "封面（P01）与重阳本事页（P04）优先采用南昌赣江畔滕王阁实景纪实摄影（web）；第二层绘景主视觉页（P07，hero_page）、章节总纲页（P05）与终章回响页（P12）采用“落霞与孤鹜齐飞、秋水共长天一色”及浩荡长江的高质感意境画面（ai/web）；其余章法脉络、典故异文对照与骈文声律页遵循摄影画刊无图时的编辑出版分栏版式，不堆砌无关配图。",
+  "image_strategy": {
+    "name": "人文地理摄影与暮色光影",
+    "rendering": "custom",
+    "visual": "真实建筑江景纪实摄影质感，结合黄昏斜阳薄雾与深秋冷暖色调分级",
+    "mood": "苍茫隽永、气势恢宏，宛如《国家地理》或人文历史特刊的跨页专题影像",
+    "behavior": "由 corporate-photo 负责真实物理材质、自然景深、三分法构图与杂志级纪实影调，由 warm-scene 负责秋日黄昏低角度霞光、远山薄霭与前景中景远景的大气透视层次；色调锚定暮山黛青与落霞丹红，人物仅作远景剪影，画面内绝无文字水印。"
+  },
+  "image_ai_path": "auto",
+  "proactive_speaker_notes": true,
+  "proactive_custom_animations": false,
+  "proactive_narration_audio": false,
+  "generation_mode": "continuous",
+  "refine_spec": false,
+  "design_spec_depth": "brief",
+  "stage": "final",
+  "status": "confirmed",
+  "stage1_sha256": "9530439f502b79972b14fbee2aba24be449847c344e6638437a1f189acdfe799",
+  "selection_sha256": "6170beeaa65e6eeb1b6775bd1a25ad29c9f6aef2b837a739f17c6962456811f0",
+  "confirmed_at": "2026-11-18T15:39:02"
+}

@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720" data-pptx-page-role="content" font-family="Microsoft YaHei, Segoe UI, sans-serif" font-size="24">
+  <rect id="p09-bg" x="0" y="0" width="1280" height="720" fill="#FAF7F2"/>
+
+  <g id="p09-header" data-pptx-bounds="60 38 1160 94">
+    <rect x="60" y="44" width="4" height="22" fill="#B83B2A"/>
+    <text x="74" y="62" font-size="18" font-weight="bold" fill="#B83B2A">贰 · 第四层·言志与附诗 · PERSONAL TESTAMENT &amp; POETIC CODA</text>
+    <text x="60" y="110" font-family="SimSun, Georgia, serif" font-size="40" font-weight="bold" fill="#1E293B">第四层·言志与附诗：书生报国初心与“槛外长江空自流”</text>
+    <line x1="60" y1="128" x2="1220" y2="128" stroke="#D8D0C3" stroke-width="1.5"/>
+  </g>
+
+  <g id="p09-left-prose" data-pptx-bounds="60 150 560 504">
+    <rect x="60" y="150" width="560" height="504" rx="4" fill="#FFFFFF" stroke="#D8D0C3" stroke-width="1"/>
+
+    <use data-icon="tabler-outline/feather" x="84" y="174" width="28" height="28" fill="#B83B2A" stroke-width="2"/>
+    <text x="122" y="196" font-size="22" font-weight="bold" fill="#1E293B">自叙言志：报国初心与万里孝思</text>
+
+    <rect x="84" y="222" width="512" height="126" rx="4" fill="#F0EBE1"/>
+    <text x="104" y="252" font-size="16" font-weight="bold" fill="#B83B2A">【弱冠壮怀 · 请缨破浪】</text>
+    <text x="104" y="282" font-size="15" fill="#1F242D">“勃，三尺微命，一介书生。<tspan x="104" dy="24">无路请缨，等终军之弱冠；</tspan><tspan x="104" dy="24">有怀投笔，慕宗悫之长风。”</tspan></text>
+
+    <rect x="84" y="362" width="512" height="136" rx="4" fill="#F0EBE1"/>
+    <text x="104" y="392" font-size="16" font-weight="bold" fill="#2E6B7E">【万里省父 · 鲤庭之孝】</text>
+    <text x="104" y="422" font-size="15" fill="#1F242D">“舍簪笏于百龄，奉晨昏于万里。<tspan x="104" dy="24">非谢家之宝树，接孟氏之芳邻。</tspan><tspan x="104" dy="24">他日趋庭，叨陪鲤对；今兹捧袂，喜托龙门。”</tspan></text>
+
+    <line x1="84" y1="516" x2="596" y2="516" stroke="#D8D0C3" stroke-width="1"/>
+    <text x="84" y="546" font-size="15" fill="#596273"><tspan font-weight="bold" fill="#1E293B">知音感念：</tspan>借李膺“龙门”、子期“流水”感念阎公知遇；<tspan x="84" dy="24">叹兰亭、梓泽盛筵难再，恭请群公“请洒潘江，各倾陆海”。</tspan><tspan x="84" dy="24">王勃退居末座，以敬畏之心“敢竭鄙怀，恭疏短引”。</tspan></text>
+  </g>
+
+  <g id="p09-right-poem" data-pptx-bounds="640 150 580 504">
+    <rect x="640" y="150" width="580" height="504" rx="4" fill="#1E293B"/>
+
+    <use data-icon="tabler-outline/book" x="668" y="174" width="28" height="28" fill="#B83B2A" stroke-width="2"/>
+    <text x="706" y="196" font-size="22" font-weight="bold" fill="#FAF7F2">篇末附诗：七言古风八句全录</text>
+
+    <rect x="668" y="218" width="524" height="280" rx="4" fill="#111827" stroke="#B83B2A" stroke-width="1.5"/>
+
+    <g font-family="SimSun, Georgia, serif" font-size="18" fill="#FAF7F2">
+      <text x="692" y="254"><tspan fill="#F0EBE1" font-weight="bold">首联：</tspan>滕王高阁临江渚，佩玉鸣鸾罢歌舞。<tspan fill="#D8D0C3" font-size="13">（立阁随扫繁华）</tspan></text>
+      <text x="692" y="314"><tspan fill="#F0EBE1" font-weight="bold">颔联：</tspan>画栋朝飞南浦云，珠帘暮卷西山雨。<tspan fill="#D8D0C3" font-size="13">（朝暮水天变幻）</tspan></text>
+      <text x="692" y="374"><tspan fill="#F0EBE1" font-weight="bold">颈联：</tspan>闲云潭影日悠悠，物换星移几度秋。<tspan fill="#D8D0C3" font-size="13">（岁月时光流转）</tspan></text>
+      <text x="692" y="434"><tspan fill="#B83B2A" font-weight="bold">尾联：</tspan><tspan font-weight="bold" font-size="20">阁中帝子今何在？槛外长江空自流。</tspan></text>
+    </g>
+
+    <line x1="668" y1="516" x2="1192" y2="516" stroke="#374151" stroke-width="1"/>
+    <text x="668" y="546" font-size="14" fill="#9CA3AF">诗序互文：前序铺陈人世极致繁华与壮志豪情，<tspan x="668" dy="22">后诗一笔收束于永恒苍茫的浩荡长江；</tspan><tspan x="668" dy="22">“诗凝序神、序引诗境”，完成中国古代序跋文体的艺术绝顶。</tspan></text>
+  </g>
+
+  <g id="p09-footer" data-pptx-bounds="60 672 1160 28" font-size="14" fill="#596273">
+    <text x="60" y="692">典故与版本：《汉书·终军传》《宋书·宗悫传》《论语·季氏》鲤庭侍父、《后汉书·李膺传》登龙门 [F020, F021, F033–F035]</text>
+    <text x="1220" y="692" text-anchor="end">09 / 12</text>
+  </g>
+</svg>

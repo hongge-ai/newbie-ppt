@@ -193,6 +193,11 @@ PERSONAL_NOTES.md
 # Use cloud sync (iCloud/Dropbox) for backup and multi-device access
 projects/*
 !projects/README.md
+!projects/tengwangge_xu_20261118/
+projects/tengwangge_xu_20261118/.runtime/
+projects/tengwangge_xu_20261118/backup/
+
+.tmp-diagram/
 
 # Derived template review exports (local review only; never template input)
 skills/ppt-master/templates/brands/*/exports/

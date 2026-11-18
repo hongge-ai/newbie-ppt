@@ -1,0 +1,70 @@
+{
+  "project": "tengwangge_xu_20261118",
+  "generated_at": "2026-11-18",
+  "deck_rendering": "custom",
+  "color_scheme": {
+    "background": "#FAF7F2",
+    "secondary_bg": "#F0EBE1",
+    "primary": "#1E293B",
+    "accent": "#B83B2A",
+    "secondary_accent": "#2E6B7E",
+    "body_text": "#1F242D"
+  },
+  "items": [
+    {
+      "filename": "tengwang_pavilion_cover.jpg",
+      "purpose": "封面盛唐江干飞阁流丹暮色历史意境主图",
+      "page_role": "hero_page",
+      "text_policy": "none",
+      "aspect_ratio": "16:9",
+      "image_size": "2K",
+      "prompt": "Editorial architectural and landscape photography with golden-hour deep twilight grading, natural optical depth of field, and authentic physical timber, stone, and water textures. On the right half of the frame, a majestic Tang-dynasty multi-tiered wooden riverside pavilion with sweeping upturned vermilion eaves (#B83B2A) and dark slate-tiled roofs (#1E293B) rises atop a steep riverside cliff overlooking a wide, calm autumn river (#2E6B7E); soft warm amber lantern glow illuminates the carved wooden brackets from within, reflecting gently on the dark water below, while the left half of the frame opens onto a calm twilight river expanse and deep dusk sky reserved as clean negative space for an SVG editorial cover headline. No modern skyscrapers, neon lights, or crowds. Composed as a 1280x720px image for hero_page use. NO text of any kind anywhere in the image — no letters, numbers, signs, plaques, watermarks, labels, or written symbols. Color values (HEX codes like #B83B2A) and color names are rendering guidance only — do NOT display HEX codes, color names, or palette labels as visible text anywhere in the image.",
+      "alt_text": "Grand Tang-style vermilion riverside pavilion glowing at dusk beside a wide calm autumn river",
+      "status": "Generated"
+    },
+    {
+      "filename": "tengwang_pavilion_banquet.jpg",
+      "purpose": "P04 重阳胜饯与唐代高阁飞檐意境配图",
+      "page_role": "local",
+      "text_policy": "none",
+      "aspect_ratio": "4:3",
+      "image_size": "2K",
+      "prompt": "Magazine-quality editorial architectural photography blended with warm late-afternoon autumn sunlight and atmospheric depth. Viewed from an elevated terrace perspective, intricate Tang-dynasty vermilion wooden columns, layered dougong brackets (#B83B2A), and dark grey upturned roof eaves (#1E293B) frame a sweeping vista of a misty autumn river confluence (#2E6B7E) and golden-haze sandbanks (#FAF7F2) far below, evoking the grandeur of a classical Double Ninth gathering in an ancient riverside tower with zero modern buildings or wires. Natural sidelight casts crisp architectural shadows across the wooden railing. Composed as a 960x720px image for local use. NO text of any kind anywhere in the image — no letters, numbers, signs, plaques, watermarks, labels, or written symbols. Color values (HEX codes like #B83B2A) and color names are rendering guidance only — do NOT display HEX codes, color names, or palette labels as visible text anywhere in the image.",
+      "alt_text": "Elevated view of Tang-style vermilion pavilion eaves overlooking a misty autumn river",
+      "status": "Generated"
+    },
+    {
+      "filename": "autumn_hills_chapter.jpg",
+      "purpose": "P05 章法总纲页寒潭暮山深秋意境背景图",
+      "page_role": "local",
+      "text_policy": "none",
+      "aspect_ratio": "16:9",
+      "image_size": "2K",
+      "prompt": "Editorial landscape photography blended with golden-hour cinematic twilight atmosphere, natural depth of field, and authentic physical water and mountain textures. Deep purple-slate distant mountain ridges anchored to #1E293B rise through soft autumn mist across the left two-thirds of the frame, while a crystal-clear, still cold autumn river pool in #2E6B7E fills the foreground and reflects a pale warm ivory haze #FAF7F2 and a subtle ribbon of late-sunset crimson-amber glow #B83B2A along the horizon. Low-angle dusk light casts long soft atmospheric transitions from foreground water reeds to mid-ground misty cliffs and distant peaks, leaving the right third calmer and open in composition. Composed as a 1280x720px image for local use. NO text of any kind anywhere in the image — no letters, numbers, signs, watermarks, labels, or written symbols. Color values (HEX codes like #1E293B) and color names are rendering guidance only — do NOT display HEX codes, color names, or palette labels as visible text anywhere in the image.",
+      "alt_text": "Misty purple autumn mountains and clear cold river pool at dusk",
+      "status": "Generated"
+    },
+    {
+      "filename": "sunset_lone_wild_duck_hero.jpg",
+      "purpose": "P07 第二层绘景落霞与孤鹜齐飞秋水共长天一色全幅主视觉",
+      "page_role": "hero_page",
+      "text_policy": "none",
+      "aspect_ratio": "16:9",
+      "image_size": "2K",
+      "prompt": "Magazine-grade editorial nature photography infused with cinematic golden-hour twilight lighting after autumn rain clears, capturing authentic water ripples, luminous cloud textures, and deep atmospheric perspective. Luminous crimson-amber sunset clouds echoing #B83B2A drift across the upper-right sky as a single wild duck in crisp dark silhouette glides gracefully in mid-air alongside the glowing clouds; below, a vast mirror-calm autumn river in deep teal-blue #2E6B7E and twilight slate #1E293B merges seamlessly into the distant horizon sky with warm ivory highlights #FAF7F2 so water and sky become one continuous expanse. The upper-left sky and lower foreground water remain calm, uncluttered negative space reserved for an SVG editorial headline overlay. Composed as a 1280x720px image for hero_page use. NO text of any kind anywhere in the image — no letters, numbers, signs, watermarks, labels, or written symbols. Color values (HEX codes like #B83B2A) and color names are rendering guidance only — do NOT display HEX codes, color names, or palette labels as visible text anywhere in the image.",
+      "alt_text": "Crimson sunset clouds with a solitary wild duck flying over vast autumn river merging with the sky",
+      "status": "Generated"
+    },
+    {
+      "filename": "yangtze_eternal_flow.jpg",
+      "purpose": "P12 终章槛外长江空自流浩荡秋江与高阁凭栏收束图",
+      "page_role": "local",
+      "text_policy": "none",
+      "aspect_ratio": "16:9",
+      "image_size": "2K",
+      "prompt": "Authentic editorial architectural and river photography with contemplative golden-hour twilight grading and true optical depth of field. Viewed from an elevated vantage point just behind a dark weathered Tang-dynasty wooden pavilion balustrade in the lower-left foreground (#1E293B), a vast and empty autumn river (#2E6B7E) stretches diagonally across the frame and flows endlessly into a misty warm-ivory (#FAF7F2) and muted sunset-amber (#B83B2A) horizon, with no modern buildings, boats, or people in sight. Soft low evening light catches gentle currents on the wide river surface, evoking timeless historical solitude and grandeur. Composed as a 1280x720px image for local use. NO text of any kind anywhere in the image — no letters, numbers, signs, watermarks, labels, or written symbols. Color values (HEX codes like #1E293B) and color names are rendering guidance only — do NOT display HEX codes, color names, or palette labels as visible text anywhere in the image.",
+      "alt_text": "View past traditional wooden pavilion railing over an endless autumn river at twilight",
+      "status": "Generated"
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720" data-pptx-page-role="content" font-family="Microsoft YaHei, Segoe UI, sans-serif" font-size="24">
+  <rect id="p06-bg" x="0" y="0" width="1280" height="720" fill="#FAF7F2" />
+
+  <g id="p06-header" data-pptx-bounds="60 38 1160 94">
+    <rect x="60" y="44" width="4" height="22" fill="#B83B2A" />
+    <text x="74" y="62" font-size="18" font-weight="bold" fill="#B83B2A">贰 · 第一层·述事 · NARRATIVE OPENING &amp; CELESTIAL AXIS</text>
+    <text x="60" y="110" font-family="SimSun, Georgia, serif" font-size="42" font-weight="bold" fill="#1E293B">第一层·述事：天地坐标中的“物华天宝”与“人杰地灵”</text>
+    <line x1="60" y1="128" x2="1220" y2="128" stroke="#D8D0C3" stroke-width="1.5" />
+  </g>
+
+  <g id="p06-quote-banner" data-pptx-bounds="60 148 1160 88">
+    <rect x="60" y="148" width="1160" height="88" rx="4" fill="#1E293B" />
+    
+  <g transform="translate(80, 172) scale(1.66667)" fill="none" stroke="#B83B2A" stroke-width="2">
+    <path d="M10 11h-4a1 1 0 0 1 -1 -1v-3a1 1 0 0 1 1 -1h3a1 1 0 0 1 1 1v6c0 2.667 -1.333 4.333 -4 5" />
+    <path d="M19 11h-4a1 1 0 0 1 -1 -1v-3a1 1 0 0 1 1 -1h3a1 1 0 0 1 1 1v6c0 2.667 -1.333 4.333 -4 5" />
+  </g>
+    <text x="136" y="202" font-family="SimSun, Georgia, serif" font-size="28" font-weight="bold" fill="#FAF7F2">“物华天宝，龙光射牛斗之墟；人杰地灵，徐孺下陈蕃之榻。”</text>
+    <text x="1196" y="202" font-size="16" fill="#D8D0C3" text-anchor="end">—— 破空而起的天文地脉与盛唐气象</text>
+  </g>
+
+  <g id="p06-col-1" data-pptx-bounds="60 256 368 400">
+    <rect x="60" y="256" width="368" height="400" rx="4" fill="#FFFFFF" stroke="#D8D0C3" stroke-width="1" />
+    <rect x="60" y="256" width="368" height="6" rx="3" fill="#2E6B7E" />
+    
+  <g transform="translate(84, 278) scale(1.16667)" fill="none" stroke="#2E6B7E" stroke-width="2">
+    <path d="M8 16l2 -6l6 -2l-2 6l-6 2" />
+    <path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" />
+    <path d="M12 3l0 2" />
+    <path d="M12 19l0 2" />
+    <path d="M3 12l2 0" />
+    <path d="M19 12l2 0" />
+  </g>
+    <text x="122" y="300" font-size="24" font-weight="bold" fill="#1E293B">天地大开大合</text>
+    <text x="84" y="340" font-size="18" font-weight="bold" fill="#2E6B7E">星宿分野与水陆枢要</text>
+    <text fill="#1F242D" font-size="16" x="84" y="374">“豫章故郡，洪都新府。</text><text fill="#1F242D" font-size="16" x="84" y="400">星分翼轸，地接衡庐。</text><text fill="#1F242D" font-size="16" x="84" y="426">襟三江而带五湖，</text><text fill="#1F242D" font-size="16" x="84" y="452">控蛮荆而引瓯越。”</text><line x1="84" y1="492" x2="404" y2="492" stroke="#F0EBE1" stroke-width="1.5" />
+    <text fill="#596273" font-size="15" x="84" y="524">上应二十八宿翼轸分野，</text><text fill="#596273" font-size="15" x="84" y="548">下控江南五湖与荆楚瓯越，</text><text fill="#596273" font-size="15" x="84" y="572">以极度宏阔的时空俯瞰立骨，</text><text fill="#596273" font-size="15" x="84" y="596">起笔即破除六朝纤巧之态。</text></g>
+
+  <g id="p06-col-2" data-pptx-bounds="456 256 368 400">
+    <rect x="456" y="256" width="368" height="400" rx="4" fill="#F0EBE1" stroke="#B83B2A" stroke-width="1.5" />
+    <rect x="456" y="256" width="368" height="6" rx="3" fill="#B83B2A" />
+    
+  <g transform="translate(480, 278) scale(1.16667)" fill="none" stroke="#B83B2A" stroke-width="2">
+    <path d="M16 18a2 2 0 0 1 2 2a2 2 0 0 1 2 -2a2 2 0 0 1 -2 -2a2 2 0 0 1 -2 2m0 -12a2 2 0 0 1 2 2a2 2 0 0 1 2 -2a2 2 0 0 1 -2 -2a2 2 0 0 1 -2 2m-7 12a6 6 0 0 1 6 -6a6 6 0 0 1 -6 -6a6 6 0 0 1 -6 6a6 6 0 0 1 6 6" />
+  </g>
+    <text x="518" y="300" font-size="24" font-weight="bold" fill="#1E293B">风物人文双璧</text>
+    <text x="480" y="340" font-size="18" font-weight="bold" fill="#B83B2A">双峰并峙·切地切人</text>
+    <text fill="#1F242D" font-size="16" x="480" y="374"><tspan font-weight="bold" fill="#1E293B">龙光牛斗：</tspan>用晋张华与雷焕</text><text fill="#1F242D" font-size="16" x="480" y="400">于豫章丰城掘龙泉太阿神剑、</text><text fill="#1F242D" font-size="16" x="480" y="426">剑气冲霄牛斗之典，赞地宝神异。</text><text fill="#1F242D" font-size="16" x="480" y="474"><tspan font-weight="bold" fill="#1E293B">徐孺下榻：</tspan>用东汉南昌高士徐穉</text><text fill="#1F242D" font-size="16" x="480" y="500">陈蕃特设一榻、去则悬之典，</text><text fill="#1F242D" font-size="16" x="480" y="526">兼赞豫章先贤与阎公礼贤下士。</text><line x1="480" y1="562" x2="800" y2="562" stroke="#D8D0C3" stroke-width="1.5" />
+    <text fill="#596273" font-size="15" x="480" y="594">对偶精工、句句贴切南昌土地，</text><text fill="#596273" font-size="15" x="480" y="618">将抽象赞词化为传神典故图谱。</text></g>
+
+  <g id="p06-col-3" data-pptx-bounds="852 256 368 400">
+    <rect x="852" y="256" width="368" height="400" rx="4" fill="#FFFFFF" stroke="#D8D0C3" stroke-width="1" />
+    <rect x="852" y="256" width="368" height="6" rx="3" fill="#1E293B" />
+    
+  <g transform="translate(876, 278) scale(1.16667)" fill="none" stroke="#1E293B" stroke-width="2">
+    <path d="M6 9a6 6 0 1 0 12 0a6 6 0 1 0 -12 0" />
+    <path d="M12 15l3.4 5.89l1.598 -3.233l3.598 .232l-3.4 -5.889" />
+    <path d="M6.802 12l-3.4 5.89l3.598 -.233l1.598 3.232l3.4 -5.889" />
+  </g>
+    <text x="914" y="300" font-size="24" font-weight="bold" fill="#1E293B">满座文武高朋</text>
+    <text x="876" y="340" font-size="18" font-weight="bold" fill="#1E293B">文武俊彦与谦逊入席</text>
+    <text fill="#1F242D" font-size="16" x="876" y="374">盛赞主宾风采：</text><text fill="#1F242D" font-size="16" x="876" y="400">“都督阎公之雅望，棨戟遥临；</text><text fill="#1F242D" font-size="16" x="876" y="426">宇文新州之懿范，襜帷暂驻。”</text><text fill="#1F242D" font-size="16" x="876" y="474">烘托高朋满座：</text><text fill="#1F242D" font-size="16" x="876" y="500">“腾蛟起凤，孟学士之词宗；</text><text fill="#1F242D" font-size="16" x="876" y="526">紫电青霜，王将军之武库。”</text><line x1="876" y1="562" x2="1196" y2="562" stroke="#F0EBE1" stroke-width="1.5" />
+    <text fill="#596273" font-size="15" x="876" y="594">末以“童子何知，躬逢胜饯”入题，</text><text fill="#596273" font-size="15" x="876" y="618">既谦逊守礼，又顺理成章引出后文。</text></g>
+
+  <g id="p06-footer" data-pptx-bounds="60 672 1160 28" font-size="14" fill="#596273">
+    <text x="60" y="692">用典考释：《晋书·张华传》龙泉剑、《后汉书·徐穉传》徐孺榻 [F015, F023, F024, F025]</text>
+    <text x="1220" y="692" text-anchor="end">06 / 12</text>
+  </g>
+</svg>

@@ -1,0 +1,1018 @@
+{
+  "schema": "ppt-master.svg-quality-report.v1",
+  "stage": "final",
+  "target": "D:\\Projects\\newbie-ppt\\projects\\tengwangge_xu_20261118",
+  "source_fingerprint": {
+    "algorithm": "sha256",
+    "digest": "91da73e65ae58e164480ca929b042881bf6e5c62a947808a698ff083baa36532",
+    "file_count": 12,
+    "files": [
+      {
+        "file": "01_cover.svg",
+        "sha256": "72f1a92f8a479535c39cf1107d9c8723324024e1dc14835f76f3a7dec90ff7b1"
+      },
+      {
+        "file": "02_toc.svg",
+        "sha256": "115f24e959c63a9e0d8e704f4337299264275e28eb61075cb01a88cce1b2bba8"
+      },
+      {
+        "file": "03_author_chronology.svg",
+        "sha256": "c66f9c64009382b8719d6542bfd76480c7253cb10ed77d4ef0d1530f442f2cda"
+      },
+      {
+        "file": "04_banquet_title.svg",
+        "sha256": "0e0e09c4a844199d801c160c243ba7ee3151fd5ac2025d3e0a9c901f31f490b2"
+      },
+      {
+        "file": "05_chapter_structure.svg",
+        "sha256": "fd60dfb75a7138a39e7c7d579f74a395d3378dc46e335b50e56c5066db27e723"
+      },
+      {
+        "file": "06_first_layer_narration.svg",
+        "sha256": "df7e8d2e02e5f528dbd587f568b100fc94776d976a9035e6e49d36dba84d5e42"
+      },
+      {
+        "file": "07_second_layer_landscape.svg",
+        "sha256": "76a6d016ba926dca858e10e1bce851a1f2dfa2fdece91e356ef934abb3136ae1"
+      },
+      {
+        "file": "08_third_layer_emotion.svg",
+        "sha256": "b03e1a289df9253bfab509b4ff62e7796f0c6f1e51010e5123c90476543f812f"
+      },
+      {
+        "file": "09_fourth_layer_aspiration.svg",
+        "sha256": "ce3be204a7583d1a5ce9b37ab2893cb3dc3d974759c158129c20111c770ee91a"
+      },
+      {
+        "file": "10_allusion_matrix.svg",
+        "sha256": "5dd33aa1540a7dc9e7067bfe0d634c2e2898c8fdbc23682484132ef29008ae18"
+      },
+      {
+        "file": "11_pianwen_aesthetics.svg",
+        "sha256": "fb62d02e27ccb713120586f182da5c8ec05b4caf2f31898c19eb27ce4349874b"
+      },
+      {
+        "file": "12_literary_legacy.svg",
+        "sha256": "7c9142927a0d13e7d9a0e358e9fffb9adc717a0ece2e2bc1753425b3c4963d10"
+      }
+    ]
+  },
+  "summary": {
+    "total": 12,
+    "passed": 8,
+    "warnings": 4,
+    "errors": 0
+  },
+  "issue_types": {},
+  "categories": {
+    "blocking": {
+      "count": 0,
+      "issues": []
+    },
+    "introduced": {
+      "count": 4,
+      "issues": [
+        {
+          "file": "01_cover.svg",
+          "message": "Noncanonical compact authoring: Authoring SVG contains noncanonical or redundant inherited style declarations (1 change(s)); examples (group:attr None -> value hoists the shared value onto that group; child:attr value -> None drops the copy the child now inherits): text[32]:font-size '24' -> None (advisory; normalize with `python3 scripts/compact_svg_styles.py <svg_output> --inplace`, re-stamp pages that carry Chart/Table fallbacks, and rerun the final gate, or leave the explicit form; directory compaction unifies the root font per data-pptx Master group, so pages that reuse one Master keep identical shared atoms)"
+        },
+        {
+          "file": "03_author_chronology.svg",
+          "message": "Noncanonical compact authoring: Authoring SVG contains noncanonical or redundant inherited style declarations (1 change(s)); examples (group:attr None -> value hoists the shared value onto that group; child:attr value -> None drops the copy the child now inherits): text[56]:font-size '24' -> None (advisory; normalize with `python3 scripts/compact_svg_styles.py <svg_output> --inplace`, re-stamp pages that carry Chart/Table fallbacks, and rerun the final gate, or leave the explicit form; directory compaction unifies the root font per data-pptx Master group, so pages that reuse one Master keep identical shared atoms)"
+        },
+        {
+          "file": "04_banquet_title.svg",
+          "message": "Noncanonical compact authoring: Authoring SVG contains noncanonical or redundant inherited style declarations (1 change(s)); examples (group:attr None -> value hoists the shared value onto that group; child:attr value -> None drops the copy the child now inherits): text[15]:font-size '24' -> None (advisory; normalize with `python3 scripts/compact_svg_styles.py <svg_output> --inplace`, re-stamp pages that carry Chart/Table fallbacks, and rerun the final gate, or leave the explicit form; directory compaction unifies the root font per data-pptx Master group, so pages that reuse one Master keep identical shared atoms)"
+        },
+        {
+          "file": "06_first_layer_narration.svg",
+          "message": "Noncanonical compact authoring: Authoring SVG contains noncanonical or redundant inherited style declarations (3 change(s)); examples (group:attr None -> value hoists the shared value onto that group; child:attr value -> None drops the copy the child now inherits): text[17]:font-size '24' -> None; text[32]:font-size '24' -> None; text[49]:font-size '24' -> None (advisory; normalize with `python3 scripts/compact_svg_styles.py <svg_output> --inplace`, re-stamp pages that carry Chart/Table fallbacks, and rerun the final gate, or leave the explicit form; directory compaction unifies the root font per data-pptx Master group, so pages that reuse one Master keep identical shared atoms)"
+        }
+      ]
+    },
+    "inherited": {
+      "count": 0,
+      "issues": []
+    },
+    "source-import": {
+      "count": 0,
+      "summary": {
+        "warning_count": 0,
+        "by_code": {}
+      }
+    }
+  },
+  "drift": {
+    "colors": {
+      "#000000": [
+        "01_cover.svg"
+      ],
+      "#064E3B": [
+        "11_pianwen_aesthetics.svg"
+      ],
+      "#0F172A": [
+        "07_second_layer_landscape.svg",
+        "12_literary_legacy.svg"
+      ],
+      "#1E3A8A": [
+        "11_pianwen_aesthetics.svg"
+      ],
+      "#2A1B40": [
+        "11_pianwen_aesthetics.svg"
+      ],
+      "#374151": [
+        "07_second_layer_landscape.svg",
+        "08_third_layer_emotion.svg",
+        "09_fourth_layer_aspiration.svg"
+      ],
+      "#78350F": [
+        "11_pianwen_aesthetics.svg"
+      ],
+      "#881337": [
+        "11_pianwen_aesthetics.svg"
+      ],
+      "#9CA3AF": [
+        "07_second_layer_landscape.svg",
+        "08_third_layer_emotion.svg",
+        "09_fourth_layer_aspiration.svg"
+      ],
+      "#A7F3D0": [
+        "11_pianwen_aesthetics.svg"
+      ],
+      "#BFDBFE": [
+        "11_pianwen_aesthetics.svg"
+      ],
+      "#D1D5DB": [
+        "07_second_layer_landscape.svg"
+      ],
+      "#E5E7EB": [
+        "07_second_layer_landscape.svg"
+      ],
+      "#E9D5FF": [
+        "11_pianwen_aesthetics.svg"
+      ],
+      "#FDE68A": [
+        "11_pianwen_aesthetics.svg"
+      ],
+      "#FECDD3": [
+        "11_pianwen_aesthetics.svg"
+      ]
+    },
+    "fonts": {},
+    "sizes": {}
+  },
+  "carrier_receipt": {
+    "scope": "informational-not-a-quota",
+    "pages": 12,
+    "totals": {
+      "text_elements": 244,
+      "image_placements": 5,
+      "icons": 26,
+      "svg_geometry_elements": 139,
+      "preset_shapes": 18,
+      "page_frame_elements": 4,
+      "marker_uses": 0,
+      "inline_emphasis_runs": 49,
+      "gradient_uses": 6,
+      "filter_uses": 1,
+      "text_effects": 0
+    },
+    "pages_with": {
+      "images": 5,
+      "icons": 10,
+      "presets": 5,
+      "charts": 0,
+      "tables": 1,
+      "formulas": 0,
+      "inline_emphasis_runs": 10,
+      "gradient_uses": 5,
+      "filter_uses": 1,
+      "text_effects": 0
+    },
+    "relationship_pages": 12,
+    "geometry_elements": {
+      "circle": 7,
+      "ellipse": 0,
+      "line": 32,
+      "path": 0,
+      "polygon": 0,
+      "polyline": 0,
+      "rect": 100
+    },
+    "preset_names": {
+      "chevron": 5,
+      "downArrow": 3,
+      "foldedCorner": 1,
+      "homePlate": 6,
+      "leftBrace": 1,
+      "plaque": 1,
+      "snip2DiagRect": 1
+    },
+    "native_objects": {
+      "chart": 0,
+      "formula_block": 0,
+      "formula_inline": 0,
+      "other": 0,
+      "table": 1
+    },
+    "image_page_max_frame_share_range": [
+      0.2452,
+      1.0
+    ]
+  },
+  "project_issues": {
+    "template": [],
+    "animation": [],
+    "illustration": [],
+    "communication_trace": [],
+    "pptx_structure": []
+  },
+  "files": [
+    {
+      "file": "01_cover.svg",
+      "path": "projects\\tengwangge_xu_20261118\\svg_output\\01_cover.svg",
+      "exists": true,
+      "errors": [],
+      "warnings": [
+        "Noncanonical compact authoring: Authoring SVG contains noncanonical or redundant inherited style declarations (1 change(s)); examples (group:attr None -> value hoists the shared value onto that group; child:attr value -> None drops the copy the child now inherits): text[32]:font-size '24' -> None (advisory; normalize with `python3 scripts/compact_svg_styles.py <svg_output> --inplace`, re-stamp pages that carry Chart/Table fallbacks, and rerun the final gate, or leave the explicit form; directory compaction unifies the root font per data-pptx Master group, so pages that reuse one Master keep identical shared atoms)"
+      ],
+      "info": {
+        "viewbox": "0 0 1280 720",
+        "carrier_receipt": {
+          "text_elements": 14,
+          "images": {
+            "placements": 1,
+            "files": [
+              "tengwang_pavilion_cover.jpg"
+            ],
+            "max_frame_share": 1.0
+          },
+          "icons": 2,
+          "effects": {
+            "inline_emphasis_runs": 2,
+            "gradient_uses": 2,
+            "filter_uses": 1,
+            "text_effects": 0
+          },
+          "geometry": {
+            "svg_elements": {
+              "rect": 6,
+              "circle": 0,
+              "ellipse": 0,
+              "line": 1,
+              "polyline": 0,
+              "polygon": 0,
+              "path": 0
+            },
+            "preset_shapes": 4,
+            "preset_names": {
+              "chevron": 3,
+              "homePlate": 1
+            },
+            "page_frame_elements": 2,
+            "marker_uses": {
+              "start": 0,
+              "mid": 0,
+              "end": 0
+            }
+          },
+          "native_objects": {
+            "chart": 0,
+            "table": 0,
+            "formula_block": 0,
+            "formula_inline": 0,
+            "other": 0
+          }
+        },
+        "fonts": [
+          "Microsoft YaHei, Segoe UI, sans-serif",
+          "SimSun, Georgia, serif"
+        ],
+        "text_elements": 14,
+        "tspan_elements": 3,
+        "contextual_values": {
+          "colors": [
+            "#000000"
+          ]
+        }
+      },
+      "passed": true,
+      "source_sha256": "72f1a92f8a479535c39cf1107d9c8723324024e1dc14835f76f3a7dec90ff7b1"
+    },
+    {
+      "file": "02_toc.svg",
+      "path": "projects\\tengwangge_xu_20261118\\svg_output\\02_toc.svg",
+      "exists": true,
+      "errors": [],
+      "warnings": [],
+      "info": {
+        "viewbox": "0 0 1280 720",
+        "carrier_receipt": {
+          "text_elements": 19,
+          "images": {
+            "placements": 0,
+            "files": [],
+            "max_frame_share": 0.0
+          },
+          "icons": 5,
+          "effects": {
+            "inline_emphasis_runs": 0,
+            "gradient_uses": 0,
+            "filter_uses": 0,
+            "text_effects": 0
+          },
+          "geometry": {
+            "svg_elements": {
+              "rect": 6,
+              "circle": 0,
+              "ellipse": 0,
+              "line": 2,
+              "polyline": 0,
+              "polygon": 0,
+              "path": 0
+            },
+            "preset_shapes": 4,
+            "preset_names": {
+              "downArrow": 3,
+              "snip2DiagRect": 1
+            },
+            "page_frame_elements": 0,
+            "marker_uses": {
+              "start": 0,
+              "mid": 0,
+              "end": 0
+            }
+          },
+          "native_objects": {
+            "chart": 0,
+            "table": 0,
+            "formula_block": 0,
+            "formula_inline": 0,
+            "other": 0
+          }
+        },
+        "fonts": [
+          "Microsoft YaHei, Segoe UI, sans-serif",
+          "SimSun, Georgia, serif"
+        ],
+        "text_elements": 19,
+        "tspan_elements": 6
+      },
+      "passed": true,
+      "source_sha256": "115f24e959c63a9e0d8e704f4337299264275e28eb61075cb01a88cce1b2bba8"
+    },
+    {
+      "file": "03_author_chronology.svg",
+      "path": "projects\\tengwangge_xu_20261118\\svg_output\\03_author_chronology.svg",
+      "exists": true,
+      "errors": [],
+      "warnings": [
+        "Noncanonical compact authoring: Authoring SVG contains noncanonical or redundant inherited style declarations (1 change(s)); examples (group:attr None -> value hoists the shared value onto that group; child:attr value -> None drops the copy the child now inherits): text[56]:font-size '24' -> None (advisory; normalize with `python3 scripts/compact_svg_styles.py <svg_output> --inplace`, re-stamp pages that carry Chart/Table fallbacks, and rerun the final gate, or leave the explicit form; directory compaction unifies the root font per data-pptx Master group, so pages that reuse one Master keep identical shared atoms)"
+      ],
+      "info": {
+        "viewbox": "0 0 1280 720",
+        "carrier_receipt": {
+          "text_elements": 19,
+          "images": {
+            "placements": 0,
+            "files": [],
+            "max_frame_share": 0.0
+          },
+          "icons": 1,
+          "effects": {
+            "inline_emphasis_runs": 6,
+            "gradient_uses": 0,
+            "filter_uses": 0,
+            "text_effects": 0
+          },
+          "geometry": {
+            "svg_elements": {
+              "rect": 4,
+              "circle": 4,
+              "ellipse": 0,
+              "line": 5,
+              "polyline": 0,
+              "polygon": 0,
+              "path": 0
+            },
+            "preset_shapes": 2,
+            "preset_names": {
+              "foldedCorner": 1,
+              "plaque": 1
+            },
+            "page_frame_elements": 0,
+            "marker_uses": {
+              "start": 0,
+              "mid": 0,
+              "end": 0
+            }
+          },
+          "native_objects": {
+            "chart": 0,
+            "table": 0,
+            "formula_block": 0,
+            "formula_inline": 0,
+            "other": 0
+          }
+        },
+        "fonts": [
+          "Microsoft YaHei, Segoe UI, sans-serif",
+          "SimSun, Georgia, serif"
+        ],
+        "text_elements": 19,
+        "tspan_elements": 15
+      },
+      "passed": true,
+      "source_sha256": "c66f9c64009382b8719d6542bfd76480c7253cb10ed77d4ef0d1530f442f2cda"
+    },
+    {
+      "file": "04_banquet_title.svg",
+      "path": "projects\\tengwangge_xu_20261118\\svg_output\\04_banquet_title.svg",
+      "exists": true,
+      "errors": [],
+      "warnings": [
+        "Noncanonical compact authoring: Authoring SVG contains noncanonical or redundant inherited style declarations (1 change(s)); examples (group:attr None -> value hoists the shared value onto that group; child:attr value -> None drops the copy the child now inherits): text[15]:font-size '24' -> None (advisory; normalize with `python3 scripts/compact_svg_styles.py <svg_output> --inplace`, re-stamp pages that carry Chart/Table fallbacks, and rerun the final gate, or leave the explicit form; directory compaction unifies the root font per data-pptx Master group, so pages that reuse one Master keep identical shared atoms)"
+      ],
+      "info": {
+        "viewbox": "0 0 1280 720",
+        "carrier_receipt": {
+          "text_elements": 21,
+          "images": {
+            "placements": 1,
+            "files": [
+              "tengwang_pavilion_banquet.jpg"
+            ],
+            "max_frame_share": 0.2452
+          },
+          "icons": 2,
+          "effects": {
+            "inline_emphasis_runs": 6,
+            "gradient_uses": 1,
+            "filter_uses": 0,
+            "text_effects": 0
+          },
+          "geometry": {
+            "svg_elements": {
+              "rect": 6,
+              "circle": 0,
+              "ellipse": 0,
+              "line": 2,
+              "polyline": 0,
+              "polygon": 0,
+              "path": 0
+            },
+            "preset_shapes": 4,
+            "preset_names": {
+              "chevron": 2,
+              "homePlate": 1,
+              "leftBrace": 1
+            },
+            "page_frame_elements": 1,
+            "marker_uses": {
+              "start": 0,
+              "mid": 0,
+              "end": 0
+            }
+          },
+          "native_objects": {
+            "chart": 0,
+            "table": 0,
+            "formula_block": 0,
+            "formula_inline": 0,
+            "other": 0
+          }
+        },
+        "fonts": [
+          "Microsoft YaHei, Segoe UI, sans-serif",
+          "SimSun, Georgia, serif"
+        ],
+        "text_elements": 21,
+        "tspan_elements": 10
+      },
+      "passed": true,
+      "source_sha256": "0e0e09c4a844199d801c160c243ba7ee3151fd5ac2025d3e0a9c901f31f490b2"
+    },
+    {
+      "file": "05_chapter_structure.svg",
+      "path": "projects\\tengwangge_xu_20261118\\svg_output\\05_chapter_structure.svg",
+      "exists": true,
+      "errors": [],
+      "warnings": [],
+      "info": {
+        "viewbox": "0 0 1280 720",
+        "carrier_receipt": {
+          "text_elements": 22,
+          "images": {
+            "placements": 1,
+            "files": [
+              "autumn_hills_chapter.jpg"
+            ],
+            "max_frame_share": 0.3875
+          },
+          "icons": 0,
+          "effects": {
+            "inline_emphasis_runs": 0,
+            "gradient_uses": 1,
+            "filter_uses": 0,
+            "text_effects": 0
+          },
+          "geometry": {
+            "svg_elements": {
+              "rect": 7,
+              "circle": 0,
+              "ellipse": 0,
+              "line": 1,
+              "polyline": 0,
+              "polygon": 0,
+              "path": 0
+            },
+            "preset_shapes": 4,
+            "preset_names": {
+              "homePlate": 4
+            },
+            "page_frame_elements": 0,
+            "marker_uses": {
+              "start": 0,
+              "mid": 0,
+              "end": 0
+            }
+          },
+          "native_objects": {
+            "chart": 0,
+            "table": 0,
+            "formula_block": 0,
+            "formula_inline": 0,
+            "other": 0
+          }
+        },
+        "fonts": [
+          "Microsoft YaHei, Segoe UI, sans-serif",
+          "SimSun, Georgia, serif"
+        ],
+        "text_elements": 22,
+        "tspan_elements": 4
+      },
+      "passed": true,
+      "source_sha256": "fd60dfb75a7138a39e7c7d579f74a395d3378dc46e335b50e56c5066db27e723"
+    },
+    {
+      "file": "06_first_layer_narration.svg",
+      "path": "projects\\tengwangge_xu_20261118\\svg_output\\06_first_layer_narration.svg",
+      "exists": true,
+      "errors": [],
+      "warnings": [
+        "Noncanonical compact authoring: Authoring SVG contains noncanonical or redundant inherited style declarations (3 change(s)); examples (group:attr None -> value hoists the shared value onto that group; child:attr value -> None drops the copy the child now inherits): text[17]:font-size '24' -> None; text[32]:font-size '24' -> None; text[49]:font-size '24' -> None (advisory; normalize with `python3 scripts/compact_svg_styles.py <svg_output> --inplace`, re-stamp pages that carry Chart/Table fallbacks, and rerun the final gate, or leave the explicit form; directory compaction unifies the root font per data-pptx Master group, so pages that reuse one Master keep identical shared atoms)"
+      ],
+      "info": {
+        "viewbox": "0 0 1280 720",
+        "carrier_receipt": {
+          "text_elements": 20,
+          "images": {
+            "placements": 0,
+            "files": [],
+            "max_frame_share": 0.0
+          },
+          "icons": 4,
+          "effects": {
+            "inline_emphasis_runs": 2,
+            "gradient_uses": 0,
+            "filter_uses": 0,
+            "text_effects": 0
+          },
+          "geometry": {
+            "svg_elements": {
+              "rect": 9,
+              "circle": 0,
+              "ellipse": 0,
+              "line": 4,
+              "polyline": 0,
+              "polygon": 0,
+              "path": 0
+            },
+            "preset_shapes": 0,
+            "preset_names": {},
+            "page_frame_elements": 0,
+            "marker_uses": {
+              "start": 0,
+              "mid": 0,
+              "end": 0
+            }
+          },
+          "native_objects": {
+            "chart": 0,
+            "table": 0,
+            "formula_block": 0,
+            "formula_inline": 0,
+            "other": 0
+          }
+        },
+        "fonts": [
+          "Microsoft YaHei, Segoe UI, sans-serif",
+          "SimSun, Georgia, serif"
+        ],
+        "text_elements": 20,
+        "tspan_elements": 18
+      },
+      "passed": true,
+      "source_sha256": "df7e8d2e02e5f528dbd587f568b100fc94776d976a9035e6e49d36dba84d5e42"
+    },
+    {
+      "file": "07_second_layer_landscape.svg",
+      "path": "projects\\tengwangge_xu_20261118\\svg_output\\07_second_layer_landscape.svg",
+      "exists": true,
+      "errors": [],
+      "warnings": [],
+      "info": {
+        "viewbox": "0 0 1280 720",
+        "carrier_receipt": {
+          "text_elements": 17,
+          "images": {
+            "placements": 1,
+            "files": [
+              "sunset_lone_wild_duck_hero.jpg"
+            ],
+            "max_frame_share": 1.0
+          },
+          "icons": 3,
+          "effects": {
+            "inline_emphasis_runs": 1,
+            "gradient_uses": 1,
+            "filter_uses": 0,
+            "text_effects": 0
+          },
+          "geometry": {
+            "svg_elements": {
+              "rect": 9,
+              "circle": 0,
+              "ellipse": 0,
+              "line": 4,
+              "polyline": 0,
+              "polygon": 0,
+              "path": 0
+            },
+            "preset_shapes": 0,
+            "preset_names": {},
+            "page_frame_elements": 1,
+            "marker_uses": {
+              "start": 0,
+              "mid": 0,
+              "end": 0
+            }
+          },
+          "native_objects": {
+            "chart": 0,
+            "table": 0,
+            "formula_block": 0,
+            "formula_inline": 0,
+            "other": 0
+          }
+        },
+        "fonts": [
+          "Microsoft YaHei, Segoe UI, sans-serif",
+          "SimSun, Georgia, serif"
+        ],
+        "text_elements": 17,
+        "tspan_elements": 11,
+        "contextual_values": {
+          "colors": [
+            "#0F172A",
+            "#374151",
+            "#9CA3AF",
+            "#D1D5DB",
+            "#E5E7EB"
+          ]
+        }
+      },
+      "passed": true,
+      "source_sha256": "76a6d016ba926dca858e10e1bce851a1f2dfa2fdece91e356ef934abb3136ae1"
+    },
+    {
+      "file": "08_third_layer_emotion.svg",
+      "path": "projects\\tengwangge_xu_20261118\\svg_output\\08_third_layer_emotion.svg",
+      "exists": true,
+      "errors": [],
+      "warnings": [],
+      "info": {
+        "viewbox": "0 0 1280 720",
+        "carrier_receipt": {
+          "text_elements": 18,
+          "images": {
+            "placements": 0,
+            "files": [],
+            "max_frame_share": 0.0
+          },
+          "icons": 1,
+          "effects": {
+            "inline_emphasis_runs": 1,
+            "gradient_uses": 0,
+            "filter_uses": 0,
+            "text_effects": 0
+          },
+          "geometry": {
+            "svg_elements": {
+              "rect": 6,
+              "circle": 3,
+              "ellipse": 0,
+              "line": 4,
+              "polyline": 0,
+              "polygon": 0,
+              "path": 0
+            },
+            "preset_shapes": 0,
+            "preset_names": {},
+            "page_frame_elements": 0,
+            "marker_uses": {
+              "start": 0,
+              "mid": 0,
+              "end": 0
+            }
+          },
+          "native_objects": {
+            "chart": 0,
+            "table": 0,
+            "formula_block": 0,
+            "formula_inline": 0,
+            "other": 0
+          }
+        },
+        "fonts": [
+          "Microsoft YaHei, Segoe UI, sans-serif",
+          "SimSun, Georgia, serif"
+        ],
+        "text_elements": 18,
+        "tspan_elements": 13,
+        "contextual_values": {
+          "colors": [
+            "#374151",
+            "#9CA3AF"
+          ]
+        }
+      },
+      "passed": true,
+      "source_sha256": "b03e1a289df9253bfab509b4ff62e7796f0c6f1e51010e5123c90476543f812f"
+    },
+    {
+      "file": "09_fourth_layer_aspiration.svg",
+      "path": "projects\\tengwangge_xu_20261118\\svg_output\\09_fourth_layer_aspiration.svg",
+      "exists": true,
+      "errors": [],
+      "warnings": [],
+      "info": {
+        "viewbox": "0 0 1280 720",
+        "carrier_receipt": {
+          "text_elements": 16,
+          "images": {
+            "placements": 0,
+            "files": [],
+            "max_frame_share": 0.0
+          },
+          "icons": 2,
+          "effects": {
+            "inline_emphasis_runs": 9,
+            "gradient_uses": 0,
+            "filter_uses": 0,
+            "text_effects": 0
+          },
+          "geometry": {
+            "svg_elements": {
+              "rect": 7,
+              "circle": 0,
+              "ellipse": 0,
+              "line": 3,
+              "polyline": 0,
+              "polygon": 0,
+              "path": 0
+            },
+            "preset_shapes": 0,
+            "preset_names": {},
+            "page_frame_elements": 0,
+            "marker_uses": {
+              "start": 0,
+              "mid": 0,
+              "end": 0
+            }
+          },
+          "native_objects": {
+            "chart": 0,
+            "table": 0,
+            "formula_block": 0,
+            "formula_inline": 0,
+            "other": 0
+          }
+        },
+        "fonts": [
+          "Microsoft YaHei, Segoe UI, sans-serif",
+          "SimSun, Georgia, serif"
+        ],
+        "text_elements": 16,
+        "tspan_elements": 17,
+        "contextual_values": {
+          "colors": [
+            "#374151",
+            "#9CA3AF"
+          ]
+        }
+      },
+      "passed": true,
+      "source_sha256": "ce3be204a7583d1a5ce9b37ab2893cb3dc3d974759c158129c20111c770ee91a"
+    },
+    {
+      "file": "10_allusion_matrix.svg",
+      "path": "projects\\tengwangge_xu_20261118\\svg_output\\10_allusion_matrix.svg",
+      "exists": true,
+      "errors": [],
+      "warnings": [],
+      "info": {
+        "viewbox": "0 0 1280 720",
+        "carrier_receipt": {
+          "text_elements": 37,
+          "images": {
+            "placements": 0,
+            "files": [],
+            "max_frame_share": 0.0
+          },
+          "icons": 0,
+          "effects": {
+            "inline_emphasis_runs": 1,
+            "gradient_uses": 0,
+            "filter_uses": 0,
+            "text_effects": 0
+          },
+          "geometry": {
+            "svg_elements": {
+              "rect": 13,
+              "circle": 0,
+              "ellipse": 0,
+              "line": 1,
+              "polyline": 0,
+              "polygon": 0,
+              "path": 0
+            },
+            "preset_shapes": 0,
+            "preset_names": {},
+            "page_frame_elements": 0,
+            "marker_uses": {
+              "start": 0,
+              "mid": 0,
+              "end": 0
+            }
+          },
+          "native_objects": {
+            "chart": 0,
+            "table": 1,
+            "formula_block": 0,
+            "formula_inline": 0,
+            "other": 0
+          }
+        },
+        "fonts": [
+          "Microsoft YaHei, Segoe UI, sans-serif",
+          "SimSun, Georgia, serif"
+        ],
+        "text_elements": 37,
+        "tspan_elements": 9
+      },
+      "passed": true,
+      "source_sha256": "5dd33aa1540a7dc9e7067bfe0d634c2e2898c8fdbc23682484132ef29008ae18"
+    },
+    {
+      "file": "11_pianwen_aesthetics.svg",
+      "path": "projects\\tengwangge_xu_20261118\\svg_output\\11_pianwen_aesthetics.svg",
+      "exists": true,
+      "errors": [],
+      "warnings": [],
+      "info": {
+        "viewbox": "0 0 1280 720",
+        "carrier_receipt": {
+          "text_elements": 27,
+          "images": {
+            "placements": 0,
+            "files": [],
+            "max_frame_share": 0.0
+          },
+          "icons": 3,
+          "effects": {
+            "inline_emphasis_runs": 18,
+            "gradient_uses": 0,
+            "filter_uses": 0,
+            "text_effects": 0
+          },
+          "geometry": {
+            "svg_elements": {
+              "rect": 16,
+              "circle": 0,
+              "ellipse": 0,
+              "line": 3,
+              "polyline": 0,
+              "polygon": 0,
+              "path": 0
+            },
+            "preset_shapes": 0,
+            "preset_names": {},
+            "page_frame_elements": 0,
+            "marker_uses": {
+              "start": 0,
+              "mid": 0,
+              "end": 0
+            }
+          },
+          "native_objects": {
+            "chart": 0,
+            "table": 0,
+            "formula_block": 0,
+            "formula_inline": 0,
+            "other": 0
+          }
+        },
+        "fonts": [
+          "Microsoft YaHei, Segoe UI, sans-serif",
+          "SimSun, Georgia, serif"
+        ],
+        "text_elements": 27,
+        "tspan_elements": 35,
+        "contextual_values": {
+          "colors": [
+            "#064E3B",
+            "#1E3A8A",
+            "#2A1B40",
+            "#78350F",
+            "#881337",
+            "#A7F3D0",
+            "#BFDBFE",
+            "#E9D5FF",
+            "#FDE68A",
+            "#FECDD3"
+          ]
+        }
+      },
+      "passed": true,
+      "source_sha256": "fb62d02e27ccb713120586f182da5c8ec05b4caf2f31898c19eb27ce4349874b"
+    },
+    {
+      "file": "12_literary_legacy.svg",
+      "path": "projects\\tengwangge_xu_20261118\\svg_output\\12_literary_legacy.svg",
+      "exists": true,
+      "errors": [],
+      "warnings": [],
+      "info": {
+        "viewbox": "0 0 1280 720",
+        "carrier_receipt": {
+          "text_elements": 14,
+          "images": {
+            "placements": 1,
+            "files": [
+              "yangtze_eternal_flow.jpg"
+            ],
+            "max_frame_share": 0.2769
+          },
+          "icons": 3,
+          "effects": {
+            "inline_emphasis_runs": 3,
+            "gradient_uses": 1,
+            "filter_uses": 0,
+            "text_effects": 0
+          },
+          "geometry": {
+            "svg_elements": {
+              "rect": 11,
+              "circle": 0,
+              "ellipse": 0,
+              "line": 2,
+              "polyline": 0,
+              "polygon": 0,
+              "path": 0
+            },
+            "preset_shapes": 0,
+            "preset_names": {},
+            "page_frame_elements": 0,
+            "marker_uses": {
+              "start": 0,
+              "mid": 0,
+              "end": 0
+            }
+          },
+          "native_objects": {
+            "chart": 0,
+            "table": 0,
+            "formula_block": 0,
+            "formula_inline": 0,
+            "other": 0
+          }
+        },
+        "fonts": [
+          "Microsoft YaHei, Segoe UI, sans-serif",
+          "SimSun, Georgia, serif"
+        ],
+        "text_elements": 14,
+        "tspan_elements": 15,
+        "contextual_values": {
+          "colors": [
+            "#0F172A"
+          ]
+        }
+      },
+      "passed": true,
+      "source_sha256": "7c9142927a0d13e7d9a0e358e9fffb9adc717a0ece2e2bc1753425b3c4963d10"
+    }
+  ]
+}

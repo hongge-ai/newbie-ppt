@@ -1,0 +1,169 @@
+{
+  "stage": "stage2",
+  "selection_sha256": "6170beeaa65e6eeb1b6775bd1a25ad29c9f6aef2b837a739f17c6962456811f0",
+  "lang": "zh",
+  "recommend": {
+    "delivery_purpose": "balanced",
+    "mode": "custom",
+    "visual_style": "custom",
+    "image_strategy": "custom",
+    "image_usage": [
+      "web",
+      "ai"
+    ],
+    "image_ai_path": "auto",
+    "generation_mode": "continuous"
+  },
+  "page_count": {
+    "value": "12"
+  },
+  "image_notes": {
+    "value": "封面（P01）与重阳本事页（P04）优先采用南昌赣江畔滕王阁实景纪实摄影（web）；第二层绘景主视觉页（P07，hero_page）、章节总纲页（P05）与终章回响页（P12）采用“落霞与孤鹜齐飞、秋水共长天一色”及浩荡长江的高质感意境画面（ai/web）；其余章法脉络、典故异文对照与骈文声律页遵循摄影画刊无图时的编辑出版分栏版式，不堆砌无关配图。"
+  },
+  "proactive_speaker_notes": {
+    "value": true
+  },
+  "proactive_custom_animations": {
+    "value": false
+  },
+  "proactive_narration_audio": {
+    "value": false
+  },
+  "refine_spec": {
+    "value": false
+  },
+  "design_spec_depth": {
+    "value": "brief"
+  },
+  "design_directions": {
+    "selected": 0,
+    "candidates": [
+      {
+        "id": "sunset-photo-editorial",
+        "name": "落霞画刊 · 人文摄影特辑",
+        "note": "以大幅摄影画刊为主轴，融合杂志分栏与细线层级，暖象牙纸面配暮山黛青、飞阁流丹与秋水青蓝。",
+        "mode": "custom",
+        "mode_behavior": "由 narrative 负责从二十六岁除名省父到即席挥毫、从兴尽悲来到青云不坠的戏剧转折与情感张力，由 instructional 负责“述事—绘景—抒情—言志”四层文本拆解、典故溯源与四六声律的循序导读；章节与转折页用叙事推进标题，细读与对照页用清晰教学标题。",
+        "visual_style": "custom",
+        "visual_style_behavior": "以用户选定的 photo-editorial 为主导骨架，封面、章节与写景高潮页采用全出血或大画幅摄影区配留白旁注、跨图边界大标题与半透明遮罩；无实景图支撑的分析与校勘页按 photo-editorial 规范切换为 editorial 杂志分栏、细分割线、眉题编号与引文拔高结构，全程零装饰性阴影。",
+        "icons": "tabler-outline",
+        "color": {
+          "name": "落霞丹青 · 暖白画刊",
+          "palette": {
+            "background": "#FAF7F2",
+            "secondary_bg": "#F0EBE1",
+            "primary": "#1E293B",
+            "accent": "#B83B2A",
+            "secondary_accent": "#2E6B7E",
+            "body_text": "#1F242D"
+          }
+        },
+        "typography": {
+          "name": "宋体衬线标题 + 微软雅黑正文",
+          "heading": {
+            "primary": "SimSun",
+            "english": "Georgia",
+            "css": "serif"
+          },
+          "body": {
+            "primary": "Microsoft YaHei",
+            "english": "Segoe UI",
+            "css": "sans-serif"
+          },
+          "body_size": 24
+        },
+        "image_strategy": {
+          "name": "人文地理摄影与暮色光影",
+          "rendering": "custom",
+          "visual": "真实建筑江景纪实摄影质感，结合黄昏斜阳薄雾与深秋冷暖色调分级",
+          "mood": "苍茫隽永、气势恢宏，宛如《国家地理》或人文历史特刊的跨页专题影像",
+          "behavior": "由 corporate-photo 负责真实物理材质、自然景深、三分法构图与杂志级纪实影调，由 warm-scene 负责秋日黄昏低角度霞光、远山薄霭与前景中景远景的大气透视层次；色调锚定暮山黛青与落霞丹红，人物仅作远景剪影，画面内绝无文字水印。"
+        }
+      },
+      {
+        "id": "dusk-river-cinematic",
+        "name": "暮江长卷 · 暗调影院画报",
+        "note": "深色暮霭画布烘托全幅秋江楼阁影像，楷书标题配落霞金橙与寒潭碧青，极具大屏剧场沉浸感。",
+        "mode": "custom",
+        "mode_behavior": "由 showcase 负责封面、写景绝唱与篇末长江浩叹的大尺度视觉聚焦与情绪呼吸，由 instructional 负责本事考辨、四层章法与用典体系的结构化平行拆解；高潮页以经典名联领起视觉中心，解析页分层递进。",
+        "visual_style": "custom",
+        "visual_style_behavior": "以 photo-editorial 为主导，在深色暮霭底场上铺陈大画幅摄影与渐变暗角遮罩，文字以简洁引文栏、眉题与跨界大字呈现；纯文本与异文对照页采用 editorial 细规则分栏与大号章节数字锚点，保持平面克制与开阔呼吸感。",
+        "icons": "phosphor-duotone",
+        "color": {
+          "name": "寒潭暮紫 · 暗金剧场",
+          "palette": {
+            "background": "#141923",
+            "secondary_bg": "#1E2636",
+            "primary": "#F4EFE6",
+            "accent": "#E07A3F",
+            "secondary_accent": "#5DA3B8",
+            "body_text": "#E2E8F0"
+          }
+        },
+        "typography": {
+          "name": "楷体书风标题 + 微软雅黑正文",
+          "heading": {
+            "primary": "KaiTi",
+            "english": "Palatino Linotype",
+            "css": "serif"
+          },
+          "body": {
+            "primary": "Microsoft YaHei",
+            "english": "Calibri",
+            "css": "sans-serif"
+          },
+          "body_size": 24
+        },
+        "image_strategy": {
+          "name": "暮色电影级江天纪实",
+          "rendering": "custom",
+          "visual": "深秋江岸黄昏低照度纪实光影，金橙晚霞穿透云层映照澄澈江面与飞阁剪影",
+          "mood": "深沉壮阔、富于戏剧张力，如历史纪录片的高清宽银幕定格镜头",
+          "behavior": "由 corporate-photo 负责真实江水波光、古建木构飞檐与自然景深，由 warm-scene 负责暮色逆光金辉、柔和长影与微弱胶片颗粒质感；暗部呼应深黛底色，高光集中于落霞暖橙，不出现任何现代城市杂物或文字标签。"
+        }
+      },
+      {
+        "id": "xuan-collation-journal",
+        "name": "宣影校勘 · 书卷摄影讲义",
+        "note": "温润宣纸底色融合摄影画幅与留白印章点缀，全篇统一宋体书卷排印，兼顾课堂投影与课后精读。",
+        "mode": "custom",
+        "mode_behavior": "由 instructional 负责按五重题眼与四层结构逐段构建文学精读阶梯，由 briefing 负责三十余处典故归类、生卒作年考辨与传本异文的平行客观呈现；各页层级均衡、检索清晰。",
+        "visual_style": "custom",
+        "visual_style_behavior": "以 photo-editorial 奠定关键场景的大幅摄影叙事，融合 ink-wash 的宣纸大留白、不对称卷轴构图与单枚朱砂印章视觉重心，并在多维拆解页运用 editorial 的竖向细线、边注栏与引文框组织高密度文本，全程不用卡片阴影。",
+        "icons": "tabler-outline",
+        "color": {
+          "name": "素宣朱印 · 苍翠书卷",
+          "palette": {
+            "background": "#F7F3EB",
+            "secondary_bg": "#EDE6D8",
+            "primary": "#23272E",
+            "accent": "#9E2A2B",
+            "secondary_accent": "#3D6B5E",
+            "body_text": "#262B33"
+          }
+        },
+        "typography": {
+          "name": "通篇宋体书卷同源排印",
+          "heading": {
+            "primary": "SimSun",
+            "english": "Cambria",
+            "css": "serif"
+          },
+          "body": {
+            "primary": "SimSun",
+            "english": "Cambria",
+            "css": "serif"
+          },
+          "body_size": 24
+        },
+        "image_strategy": {
+          "name": "清雅纪实与淡彩水韵",
+          "rendering": "custom",
+          "visual": "真实古建山水摄影构图结合清透水彩晕染般的大气留白与纸本肌理",
+          "mood": "清朗隽秀、书卷气浓郁，如同人文古籍善本特展图录插页",
+          "behavior": "由 corporate-photo 负责楼阁轮廓与江洲构图的真实空间感，由 watercolor 负责远山云水边缘的柔和晕染、饱和度渐变与轻度冷压纸纹肌理，由 editorial 负责克制的留白比例与焦点对齐；色彩紧扣墨黑、青翠与一点朱砂，画面纯净无字。"
+        }
+      }
+    ]
+  }
+}

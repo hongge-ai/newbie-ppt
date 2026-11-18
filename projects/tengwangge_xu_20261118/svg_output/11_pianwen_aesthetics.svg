@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720" data-pptx-page-role="content" font-family="Microsoft YaHei, Segoe UI, sans-serif" font-size="24">
+  <rect id="p11-bg" x="0" y="0" width="1280" height="720" fill="#FAF7F2"/>
+
+  <g id="p11-header" data-pptx-bounds="60 38 1160 94">
+    <rect x="60" y="44" width="4" height="22" fill="#B83B2A"/>
+    <text x="74" y="62" font-size="18" font-weight="bold" fill="#B83B2A">叁 · 骈文艺术巅峰 · PROSODIC RHYTHM &amp; CHROMATIC SPECTRUM</text>
+    <text x="60" y="110" font-family="SimSun, Georgia, serif" font-size="40" font-weight="bold" fill="#1E293B">骈文艺术巅峰：四六节奏、当句对、声律与丹青色谱</text>
+    <line x1="60" y1="128" x2="1220" y2="128" stroke="#D8D0C3" stroke-width="1.5"/>
+  </g>
+
+  <g id="p11-col-1" data-pptx-bounds="60 150 368 504">
+    <rect x="60" y="150" width="368" height="504" rx="4" fill="#FFFFFF" stroke="#D8D0C3" stroke-width="1"/>
+    <rect x="60" y="150" width="368" height="6" rx="3" fill="#2E6B7E"/>
+    <use data-icon="tabler-outline/columns" x="84" y="174" width="28" height="28" fill="#2E6B7E" stroke-width="2"/>
+    <text x="122" y="196" font-size="22" font-weight="bold" fill="#1E293B">四六错综与当句对</text>
+
+    <text x="84" y="238" font-size="16" font-weight="bold" fill="#2E6B7E">【四六为主，错综多姿】</text>
+    <text x="84" y="268" font-size="15" fill="#1F242D">四字密而不促，六字格而非缓：<tspan x="84" dy="24">以四字句、六字句为基干，</tspan><tspan x="84" dy="24">穿插二四、四七、三四言等变体，</tspan><tspan x="84" dy="24">流走如行云流水，绝无板滞。</tspan></text>
+
+    <line x1="84" y1="362" x2="404" y2="362" stroke="#F0EBE1" stroke-width="1"/>
+
+    <text x="84" y="394" font-size="16" font-weight="bold" fill="#2E6B7E">【高频句内自对（当句对）】</text>
+    <g font-size="14" fill="#1F242D">
+      <text x="84" y="424"><tspan font-weight="bold" fill="#1E293B">物华</tspan> 对 <tspan font-weight="bold" fill="#1E293B">天宝</tspan>，<tspan font-weight="bold" fill="#1E293B">人杰</tspan> 对 <tspan font-weight="bold" fill="#1E293B">地灵</tspan></text>
+      <text x="84" y="452"><tspan font-weight="bold" fill="#1E293B">鹤汀</tspan> 对 <tspan font-weight="bold" fill="#1E293B">凫渚</tspan>，<tspan font-weight="bold" fill="#1E293B">桂殿</tspan> 对 <tspan font-weight="bold" fill="#1E293B">兰宫</tspan></text>
+      <text x="84" y="480"><tspan font-weight="bold" fill="#1E293B">青雀</tspan> 对 <tspan font-weight="bold" fill="#1E293B">黄龙</tspan>，<tspan font-weight="bold" fill="#1E293B">东隅</tspan> 对 <tspan font-weight="bold" fill="#1E293B">桑榆</tspan></text>
+    </g>
+
+    <rect x="84" y="516" width="320" height="114" rx="3" fill="#F0EBE1"/>
+    <text x="96" y="544" font-size="14" fill="#596273">上下大句两相对偶，<tspan x="96" dy="22">句内两节又自相对仗；</tspan><tspan x="96" dy="22">构成“双层精密对称”的极高密构，</tspan><tspan x="96" dy="22">词工调谐，珠圆玉润。</tspan></text>
+  </g>
+
+  <g id="p11-col-2" data-pptx-bounds="456 150 368 504">
+    <rect x="456" y="150" width="368" height="504" rx="4" fill="#FFFFFF" stroke="#D8D0C3" stroke-width="1"/>
+    <rect x="456" y="150" width="368" height="6" rx="3" fill="#B83B2A"/>
+    <use data-icon="tabler-outline/sparkles" x="480" y="174" width="28" height="28" fill="#B83B2A" stroke-width="2"/>
+    <text x="518" y="196" font-size="22" font-weight="bold" fill="#1E293B">节拍声律与句脚交错</text>
+
+    <text x="480" y="238" font-size="16" font-weight="bold" fill="#B83B2A">【近体平仄入骈文】</text>
+    <text x="480" y="268" font-size="15" fill="#1F242D">严守上下联节拍平仄相对：<tspan x="480" dy="24" font-family="SimSun, Georgia, serif" font-weight="bold">“上出重霄［平平仄平］”</tspan><tspan x="480" dy="24" font-family="SimSun, Georgia, serif" font-weight="bold">“下临无地［仄平平仄］”</tspan></text>
+
+    <line x1="480" y1="338" x2="800" y2="338" stroke="#F0EBE1" stroke-width="1"/>
+
+    <text x="480" y="370" font-size="16" font-weight="bold" fill="#B83B2A">【句脚平仄严密交替】</text>
+    <text x="480" y="400" font-size="14" fill="#1F242D">宁移白首之<tspan font-weight="bold" fill="#2E6B7E">心［平］</tspan>？<tspan x="480" dy="22">不坠青云之<tspan font-weight="bold" fill="#B83B2A">志［仄］</tspan>。</tspan><tspan x="480" dy="22">北海虽<tspan font-weight="bold" fill="#2E6B7E">赊［平］</tspan>，扶摇可<tspan font-weight="bold" fill="#B83B2A">接［仄］</tspan>；</tspan><tspan x="480" dy="22">东隅已<tspan font-weight="bold" fill="#B83B2A">逝［仄］</tspan>，桑榆非<tspan font-weight="bold" fill="#2E6B7E">晚［仄/平］</tspan>。</tspan></text>
+
+    <rect x="480" y="516" width="320" height="114" rx="3" fill="#F0EBE1"/>
+    <text x="492" y="544" font-size="14" fill="#596273">巧用虚词舒缓呼吸：<tspan x="492" dy="22">“而、之、于、也、矣、云尔”</tspan><tspan x="492" dy="22">调节气口与节奏，打破齐整死板，</tspan><tspan x="492" dy="22">既得骈俪声律之美，兼获散文之流动。</tspan></text>
+  </g>
+
+  <g id="p11-col-3" data-pptx-bounds="852 150 368 504">
+    <rect x="852" y="150" width="368" height="504" rx="4" fill="#1E293B"/>
+    <rect x="852" y="150" width="368" height="6" rx="3" fill="#B83B2A"/>
+    <use data-icon="tabler-outline/flame" x="876" y="174" width="28" height="28" fill="#B83B2A" stroke-width="2"/>
+    <text x="914" y="196" font-size="22" font-weight="bold" fill="#FAF7F2">词炳丹青与冷暖色谱</text>
+
+    <text x="876" y="238" font-size="16" font-weight="bold" fill="#FAF7F2">【显性色彩词多重对撞】</text>
+
+    <g id="p11-color-swatches" transform="translate(876 256)">
+      <!-- Swatch 1 -->
+      <rect x="0" y="0" width="320" height="32" rx="3" fill="#2A1B40"/>
+      <text x="12" y="22" font-size="13" fill="#E9D5FF">暮山紫 · 烟光凝而暮山紫</text>
+
+      <!-- Swatch 2 -->
+      <rect x="0" y="40" width="320" height="32" rx="3" fill="#064E3B"/>
+      <text x="12" y="62" font-size="13" fill="#A7F3D0">层峦翠 · 层峦耸翠，上出重霄</text>
+
+      <!-- Swatch 3 -->
+      <rect x="0" y="80" width="320" height="32" rx="3" fill="#881337"/>
+      <text x="12" y="102" font-size="13" fill="#FECDD3">飞阁丹 · 飞阁流丹，下临无地</text>
+
+      <!-- Swatch 4 -->
+      <rect x="0" y="120" width="320" height="32" rx="3" fill="#78350F"/>
+      <text x="12" y="142" font-size="13" fill="#FDE68A">青雀黄龙 · 舳舻千里，旌旗蔽空</text>
+
+      <!-- Swatch 5 -->
+      <rect x="0" y="160" width="320" height="32" rx="3" fill="#B83B2A"/>
+      <text x="12" y="182" font-size="13" fill="#FAF7F2">落霞绯红 · 落霞与孤鹜齐飞</text>
+
+      <!-- Swatch 6 -->
+      <rect x="0" y="200" width="320" height="32" rx="3" fill="#1E3A8A"/>
+      <text x="12" y="222" font-size="13" fill="#BFDBFE">秋水碧 · 秋水共长天一色</text>
+    </g>
+
+    <text x="876" y="528" font-size="14" fill="#D8D0C3">冷暖对照、动静映衬：<tspan x="876" dy="22">将盛唐彩绘建筑、暮色云霞、</tspan><tspan x="876" dy="22">澄澈秋水与长天浩渺化为锦绣，</tspan><tspan x="876" dy="22">字字如在画中，被誉为“文中有画”。</tspan></text>
+  </g>
+
+  <g id="p11-footer" data-pptx-bounds="60 672 1160 28" font-size="14" fill="#596273">
+    <text x="60" y="692">文论参考：刘勰《文心雕龙·丽辞》、清沈德潜《唐诗别裁集》 [F001, F015–F017, F036–F038]</text>
+    <text x="1220" y="692" text-anchor="end">11 / 12</text>
+  </g>
+</svg>
