@@ -1230,7 +1230,6 @@ def _validate_spec_lock_relations(
         accepted_formats = {
             expected_format,
             format_key,
-            *_LEGACY_CANVAS_NAMES.get(format_key, ()),
         }
         if (
             "format" in canvas_fields
