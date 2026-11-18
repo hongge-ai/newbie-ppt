@@ -57,6 +57,18 @@ if str(_SCRIPTS_DIR) not in sys.path:
 import agent_bridge  # noqa: E402
 from atomic_io import write_json_atomic  # noqa: E402
 from config import CANVAS_FORMATS  # noqa: E402
+from confirm_ui.outline_store import (  # noqa: E402
+    OutlineConflictError,
+    confirm_outline,
+    extract_outline_preview_sample,
+    get_workbench_stage1_prefs,
+    outline_summary,
+    read_outline_view,
+    save_user_outline,
+    set_workbench_stage1_prefs,
+    submit_outline_revision,
+    valid_visual_style_ids,
+)
 from console_encoding import configure_utf8_stdio  # noqa: E402
 from surface_mount import mount_surfaces  # noqa: E402
 from server_common import (  # noqa: E402
@@ -138,7 +150,7 @@ AGENT_HINT_TEMPLATE = """请接手 newbie-ppt 仓库中的一个工作台任务�
    - 没有：新建项目（project_manager.py init <名称>），然后运行
      agent_bridge.py run start --project <项目路径> --task {task_id}
      把本次运行绑定到该任务，网页会自动显示进度。
-3. 模板不由任务指定：Stage 1 由用户在任务页面选择模板工作区或自由设计；未确认前不要进入 Stage 2。
+3. 先写逐页内容大纲 <项目路径>/outline.md 并等待用户在任务页面「① 内容大纲」确认或提交批注（confirm_ui/wait.py <项目路径> --stage outline）；大纲确认后再准备候选模板并在「② 选择模板」等待确认（--stage stage1），未确认前不要越级进入后续阶段。
 4. 需要用户决定时用 agent_bridge.py ask 提问；每完成一批页面用 progress 汇报；导出到 projects/<项目名>/exports/ 后结束运行。"""
 
 # Slide file names inside a generated project's svg_output/: a numeric
@@ -193,6 +205,49 @@ def _visual_style_catalog() -> list:
                 'preview_url': _STYLE_PREVIEW_PREFIX + urllib.parse.quote(style_id) + '.svg',
             })
     return styles
+
+
+_TEMPLATE_INDEX_PATHS = {
+    'brand': _SKILL_DIR / 'templates' / 'brands' / 'brands_index.json',
+    'style': _SKILL_DIR / 'templates' / 'styles' / 'styles_index.json',
+    'layout': _SKILL_DIR / 'templates' / 'layouts' / 'layouts_index.json',
+    'deck': _SKILL_DIR / 'templates' / 'decks' / 'decks_index.json',
+}
+
+
+def _template_catalog_meta() -> dict[str, dict]:
+    """Build display metadata per registered candidate without touching options_sha256."""
+    try:
+        static_options = _read_json_object(_OPTIONS_PATH, retries=0)
+    except (OSError, json.JSONDecodeError, ValueError):
+        static_options = {}
+    localized_root = static_options.get('template_catalog') or {}
+    meta: dict[str, dict] = {}
+    for kind, index_path in _TEMPLATE_INDEX_PATHS.items():
+        try:
+            index_data = _read_json_object(index_path, retries=0)
+        except (OSError, json.JSONDecodeError, ValueError):
+            continue
+        localized_kind = localized_root.get(kind) if isinstance(localized_root, dict) else None
+        if not isinstance(localized_kind, dict):
+            localized_kind = {}
+        for template_id, entry in index_data.items():
+            if not isinstance(entry, dict):
+                continue
+            loc = localized_kind.get(template_id)
+            if not isinstance(loc, dict):
+                loc = {}
+            primary_color = entry.get('primary_color')
+            canvas_format = entry.get('canvas_format')
+            page_count = entry.get('page_count')
+            meta[f'library:{kind}:{template_id}'] = {
+                'title': str(loc.get('title') or template_id),
+                'desc': str(loc.get('desc') or entry.get('summary') or ''),
+                'primary_color': primary_color if isinstance(primary_color, str) else None,
+                'canvas_format': canvas_format if isinstance(canvas_format, str) else None,
+                'page_count': page_count if isinstance(page_count, int) and not isinstance(page_count, bool) else None,
+            }
+    return meta
 
 
 
@@ -757,12 +812,14 @@ def _task_progress_payload(task: dict, runtime: Optional[dict]) -> dict:
         'slide_count': 0,
         'quality': {'report_exists': False},
         'exports': [],
+        'outline': None,
         'confirm': None,
         'plan': None,
     }
     if not project_dir:
         return payload
     project_path = Path(project_dir)
+    payload['outline'] = outline_summary(project_path)
     payload['events'] = agent_bridge.recent_events(project_path)
     payload['requests'] = agent_bridge.list_requests(project_path)
     slides = _file_listing(project_path / 'svg_output', _SLIDE_NAME_RE)
@@ -814,15 +871,33 @@ _STAGE1_PROSE_FIELDS = (
 _PROSE_MAX_CHARS = 4000
 
 
-def _proposal_payload(task: dict, data: dict, status: int) -> dict:
+def _proposal_payload(
+    task: dict,
+    data: dict,
+    status: int,
+    outline: Optional[dict] = None,
+    outline_preview: Optional[dict] = None,
+    preferred_visual_style: Optional[str] = None,
+    stage1_confirmed: bool = False,
+    delegate_stage2: bool = False,
+) -> dict:
     """Shape one Stage-1 proposal for the task page, or explain its absence."""
     if status != 200:
         return {
             'available': False,
+            'stage1_confirmed': stage1_confirmed,
+            'delegate_stage2': delegate_stage2,
+            'preferred_visual_style': preferred_visual_style,
             'reason': str(data.get('error') or f'HTTP {status}'),
         }
     if data.get('stage') != 'stage1':
-        return {'available': False, 'reason': '当前没有待确认的建议。'}
+        return {
+            'available': False,
+            'stage1_confirmed': stage1_confirmed,
+            'delegate_stage2': delegate_stage2,
+            'preferred_visual_style': preferred_visual_style,
+            'reason': '当前没有待确认的建议。',
+        }
     contract = {}
     for field in _STAGE1_PROSE_FIELDS:
         entry = data.get(field)
@@ -832,18 +907,25 @@ def _proposal_payload(task: dict, data: dict, status: int) -> dict:
     params = task.get('params') or {}
     preview = data.get('preview')
     suggested_title = data.get('display_title')
+    resolved_title = suggested_title.strip() if isinstance(suggested_title, str) else ''
+    if not resolved_title and isinstance(outline, dict) and outline.get('title'):
+        resolved_title = str(outline['title']).strip()
     return {
         'available': True,
         'stage': 'stage1',
-        'title': suggested_title.strip() if isinstance(suggested_title, str) else '',
+        'title': resolved_title,
         'contract': contract,
         'constraints': {
             'canvas': params.get('canvas'),
             'page_count': params.get('page_count'),
             'primary_language': params.get('primary_language'),
         },
+        'outline': outline,
+        'outline_preview': outline_preview,
+        'preferred_visual_style': preferred_visual_style,
         'preview': preview if isinstance(preview, dict) else None,
         'template_options': data.get('template_options') or {},
+        'template_meta': _template_catalog_meta(),
     }
 
 
@@ -893,20 +975,29 @@ def _stage1_confirm_payload(task: dict, data: dict) -> tuple[Optional[dict], Opt
         if len(text) > _PROSE_MAX_CHARS:
             return None, f'contract.{field} is too long'
         payload[field] = text
-    # Free design is not offered: every workbench task starts from a template
-    # workspace, so the visual system cannot drift from what the user chose.
-    if (data.get('template_mode') or 'templates') != 'templates':
-        return None, 'free design is disabled: choose a template workspace'
-    keys = data.get('selection_keys') or []
-    if not isinstance(keys, list) or not keys:
-        return None, 'choose at least one template workspace'
+    raw_keys = data.get('selection_keys')
+    if raw_keys is None:
+        keys: list = []
+    elif isinstance(raw_keys, list):
+        keys = raw_keys
+    else:
+        return None, 'selection_keys must be a list of non-empty strings'
     if any(not isinstance(key, str) or not key for key in keys):
         return None, 'selection_keys must be a list of non-empty strings'
+    mode = data.get('template_mode')
+    if mode is None:
+        mode = 'templates' if keys else 'free_design'
+    if mode not in {'free_design', 'templates'}:
+        return None, 'template_mode must be free_design or templates'
+    if mode == 'free_design' and keys:
+        return None, 'free_design cannot carry selection_keys'
+    if mode == 'templates' and not keys:
+        return None, 'choose at least one template workspace'
     options_sha = data.get('options_sha256')
     if not isinstance(options_sha, str) or not options_sha:
         return None, 'options_sha256 is required'
     payload['template_selection'] = {
-        'mode': 'templates',
+        'mode': mode,
         'selection_keys': list(keys),
     }
     payload['options_sha256'] = options_sha
@@ -1414,6 +1505,118 @@ def create_app(
             return error
         return _answer(project_path, req_id)
 
+    @app.route('/api/tasks/<task_id>/outline', methods=['GET'])
+    def get_task_outline(task_id: str):
+        """Read the slide-by-slide outline and its review/revision state."""
+        task, _task_dir, error = _load_task_or_abort(task_id)
+        if error:
+            return error
+        runtime = _runtime_for(task_id)
+        if not runtime or not runtime.get('project_dir'):
+            resp = jsonify({
+                'available': False,
+                'status': 'missing',
+                'round': 0,
+                'title': task.get('display_title') or '',
+                'summary': '',
+                'slide_count': 0,
+                'markdown': '',
+                'outline_sha256': None,
+                'pending_revision': None,
+                'confirmed_at': None,
+                'updated_at': None,
+            })
+            resp.headers['Cache-Control'] = 'no-store'
+            return resp
+        resp = jsonify(read_outline_view(Path(runtime['project_dir'])))
+        resp.headers['Cache-Control'] = 'no-store'
+        return resp
+
+    @app.route('/api/tasks/<task_id>/outline', methods=['PUT'])
+    def put_task_outline(task_id: str):
+        """Save direct user edits (text changes, add/delete/reorder slides) to outline.md."""
+        task, task_dir, error = _load_task_or_abort(task_id)
+        if error:
+            return error
+        project_path, _runtime, proj_error = _project_or_abort(task_id)
+        if proj_error:
+            return proj_error
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            return jsonify({'error': 'payload must be a JSON object'}), 400
+        title = data.get('display_title')
+        if title is not None and not isinstance(title, str):
+            return jsonify({'error': 'display_title must be a string'}), 400
+        if isinstance(title, str) and len(title.strip()) > 200:
+            return jsonify({'error': 'display_title must be at most 200 characters'}), 400
+        try:
+            view = save_user_outline(project_path, data.get('markdown'))
+        except OutlineConflictError as exc:
+            return jsonify({'error': str(exc)}), 409
+        except ValueError as exc:
+            return jsonify({'error': str(exc)}), 400
+        sync_title = title if title is not None else (view.get('title') or None)
+        title_error = _rename_task(task, task_dir, sync_title)
+        if title_error:
+            return jsonify({'error': title_error}), 400
+        return jsonify(view)
+
+    @app.route('/api/tasks/<task_id>/outline/revise', methods=['POST'])
+    def revise_task_outline(task_id: str):
+        """Submit a batch of inline highlight comments / global notes for AI revision."""
+        _task, _task_dir, error = _load_task_or_abort(task_id)
+        if error:
+            return error
+        project_path, _runtime, proj_error = _project_or_abort(task_id)
+        if proj_error:
+            return proj_error
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            return jsonify({'error': 'payload must be a JSON object'}), 400
+        try:
+            view = submit_outline_revision(
+                project_path,
+                data.get('comments'),
+                data.get('global_note', ''),
+                markdown=data.get('markdown'),
+            )
+        except OutlineConflictError as exc:
+            return jsonify({'error': str(exc)}), 409
+        except ValueError as exc:
+            return jsonify({'error': str(exc)}), 400
+        return jsonify(view)
+
+    @app.route('/api/tasks/<task_id>/outline/confirm', methods=['POST'])
+    def confirm_task_outline(task_id: str):
+        """Freeze outline.md as the confirmed content baseline and unlock Step 2."""
+        task, task_dir, error = _load_task_or_abort(task_id)
+        if error:
+            return error
+        project_path, _runtime, proj_error = _project_or_abort(task_id)
+        if proj_error:
+            return proj_error
+        data = request.get_json(silent=True)
+        if data is None:
+            data = {}
+        if not isinstance(data, dict):
+            return jsonify({'error': 'payload must be a JSON object'}), 400
+        title = data.get('display_title')
+        if title is not None and not isinstance(title, str):
+            return jsonify({'error': 'display_title must be a string'}), 400
+        if isinstance(title, str) and len(title.strip()) > 200:
+            return jsonify({'error': 'display_title must be at most 200 characters'}), 400
+        try:
+            view = confirm_outline(project_path, markdown=data.get('markdown'))
+        except OutlineConflictError as exc:
+            return jsonify({'error': str(exc)}), 409
+        except ValueError as exc:
+            return jsonify({'error': str(exc)}), 400
+        sync_title = title if title is not None else (view.get('title') or None)
+        title_error = _rename_task(task, task_dir, sync_title)
+        if title_error:
+            return jsonify({'error': title_error}), 400
+        return jsonify(view)
+
     def _confirm_surface(task_id: str):
         """Return the mounted confirmation app for one task's project."""
         runtime = _runtime_for(task_id) or {}
@@ -1437,6 +1640,7 @@ def create_app(
         task, _task_dir, error = _load_task_or_abort(task_id)
         if error:
             return error
+        runtime = _runtime_for(task_id)
         surface = _confirm_surface(task_id)
         if surface is None:
             resp = jsonify({
@@ -1445,14 +1649,57 @@ def create_app(
             })
             resp.headers['Cache-Control'] = 'no-store'
             return resp
+        project_dir_path = (
+            Path(runtime['project_dir'])
+            if runtime and runtime.get('project_dir')
+            else None
+        )
+        outline_meta = outline_summary(project_dir_path) if project_dir_path is not None else None
+        outline_sample = extract_outline_preview_sample(project_dir_path) if project_dir_path is not None else None
+        saved_prefs = get_workbench_stage1_prefs(project_dir_path) if project_dir_path is not None else {}
+        stage1_done = False
+        if project_dir_path is not None:
+            try:
+                res_obj = _read_json_object(project_dir_path / 'confirm_ui' / 'result.json', retries=0)
+                stage1_done = res_obj.get('stage') in {'stage1', 'final'}
+            except (OSError, json.JSONDecodeError, ValueError):
+                stage1_done = False
         with surface.test_client() as client:
             response = client.get('/api/recommendations')
             data = response.get_json(silent=True) or {}
         resp = jsonify(
-            _proposal_payload(task, data, response.status_code)
+            _proposal_payload(
+                task,
+                data,
+                response.status_code,
+                outline=outline_meta,
+                outline_preview=outline_sample,
+                preferred_visual_style=saved_prefs.get('preferred_visual_style'),
+                stage1_confirmed=stage1_done,
+                delegate_stage2=bool(saved_prefs.get('skip_stage2_review')),
+            )
         )
         resp.headers['Cache-Control'] = 'no-store'
         return resp
+
+    @app.route('/api/tasks/<task_id>/proposal/reopen', methods=['POST'])
+    def reopen_task_proposal(task_id: str):
+        """Re-open Stage-1 style/template selection before slide generation starts."""
+        _task, _task_dir, error = _load_task_or_abort(task_id)
+        if error:
+            return error
+        project_path, _runtime, proj_error = _project_or_abort(task_id)
+        if proj_error:
+            return proj_error
+        if _file_listing(project_path / 'svg_output', _SLIDE_NAME_RE):
+            return jsonify({'error': '幻灯片已开始生成，无法重置模板选择'}), 409
+        confirm_dir = project_path / 'confirm_ui'
+        for fname in ('result.json', 'template_selection.json', 'recommendations.stage2.json', 'session.json'):
+            try:
+                (confirm_dir / fname).unlink(missing_ok=True)
+            except OSError:
+                pass
+        return jsonify({'status': 'ok'})
 
     @app.route('/api/tasks/<task_id>/confirm', methods=['POST'])
     def confirm_task(task_id: str):
@@ -1465,15 +1712,43 @@ def create_app(
         task, task_dir, error = _load_task_or_abort(task_id)
         if error:
             return error
+        runtime = _runtime_for(task_id)
         surface = _confirm_surface(task_id)
         if surface is None:
             return jsonify({'error': 'task has no project yet'}), 409
         request_body = request.get_json(silent=True)
         if not isinstance(request_body, dict):
             return jsonify({'error': 'payload must be a JSON object'}), 400
+        skip_stage2 = request_body.get('skip_stage2_review', False)
+        if skip_stage2 is not None and not isinstance(skip_stage2, bool):
+            return jsonify({'error': 'skip_stage2_review must be a boolean'}), 400
+        raw_style = request_body.get('preferred_visual_style')
+        if raw_style is not None and not isinstance(raw_style, str):
+            return jsonify({'error': 'preferred_visual_style must be a string or null'}), 400
+        cleaned_style = raw_style.strip() if isinstance(raw_style, str) and raw_style.strip() else None
+        if cleaned_style is not None:
+            allowed_styles = valid_visual_style_ids()
+            if allowed_styles and cleaned_style not in allowed_styles:
+                return jsonify({'error': f'unknown preferred_visual_style: {cleaned_style}'}), 400
         payload, payload_error = _stage1_confirm_payload(task, request_body)
         if payload_error:
             return jsonify({'error': payload_error}), 400
+        has_structural_template = any(
+            k.startswith(('library:deck:', 'library:layout:', 'explicit:'))
+            for k in payload['template_selection']['selection_keys']
+        )
+        resolved_style = None if has_structural_template else cleaned_style
+        project_path = (
+            Path(runtime['project_dir'])
+            if runtime and runtime.get('project_dir')
+            else None
+        )
+        outline_view = read_outline_view(project_path) if project_path is not None else None
+        if outline_view and outline_view.get('available'):
+            if not payload.get('core_message') and outline_view.get('title'):
+                payload['core_message'] = str(outline_view['title'])[:_PROSE_MAX_CHARS]
+            if not payload.get('audience') and outline_view.get('summary'):
+                payload['audience'] = str(outline_view['summary'])[:_PROSE_MAX_CHARS]
         title = request_body.get('display_title')
         if title is not None and not isinstance(title, str):
             return jsonify({'error': 'display_title must be a string'}), 400
@@ -1483,7 +1758,18 @@ def create_app(
             response = client.post('/api/confirm', json=payload)
             body = response.get_json(silent=True) or {}
         if response.status_code == 200:
-            title_error = _rename_task(task, task_dir, title)
+            if project_path is not None:
+                set_workbench_stage1_prefs(
+                    project_path,
+                    skip_stage2_review=bool(skip_stage2),
+                    preferred_visual_style=resolved_style,
+                )
+            body['delegate_stage2'] = bool(skip_stage2)
+            body['preferred_visual_style'] = resolved_style
+            effective_title = title
+            if not (isinstance(effective_title, str) and effective_title.strip()) and outline_view:
+                effective_title = outline_view.get('title') or None
+            title_error = _rename_task(task, task_dir, effective_title)
             if title_error:
                 return jsonify({'error': title_error}), 400
         return jsonify(body), response.status_code

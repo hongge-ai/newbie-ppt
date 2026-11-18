@@ -63,14 +63,15 @@ down: the workbench already owns the process. The agent's CLI is the wait, which
 reads the receipt the page writes:
 
 ```bash
-python3 scripts/confirm_ui/wait.py <project_path> --stage stage1   # contract + template
-python3 scripts/confirm_ui/wait.py <project_path> --stage final    # the plan review
+python3 scripts/confirm_ui/wait.py <project_path> --stage outline                   # workbench Step 1 outline review / revision batch
+python3 scripts/confirm_ui/wait.py <project_path> --stage outline --publish-revision # publish revised outline.md then wait again
+python3 scripts/confirm_ui/wait.py <project_path> --stage stage1                    # contract + template (includes delegate_stage2)
+python3 scripts/confirm_ui/wait.py <project_path> --stage final                     # the plan review
 ```
 
-- `wait.py` returns `0` when the target stage is persisted, `1` when the stage is
+- `wait.py` returns `0` when the target stage is persisted (or, for `--stage outline`, when `confirm_ui/outline_state.json` reaches `revising` or `confirmed`), `1` when the stage is
   not ready or its receipt is invalid, and `124` on timeout (default 900 s,
-  `--timeout 0` waits forever). A timeout leaves the page open; re-check both
-  receipts before falling back to chat.
+  `--timeout 0` waits forever). On `--stage stage1`, stdout includes `"delegate_stage2"` and `"preferred_visual_style"` from `confirm_ui/workbench_prefs.json`. A timeout leaves the page open; re-check receipts before falling back to chat.
 - While it waits, `wait.py` heartbeats the bound run every 20 s. The writer lease
   expires after 60 s, so without that beat the workbench would report the task as
   interrupted while its human is still deciding. The beat is best-effort: an

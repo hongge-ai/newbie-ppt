@@ -106,6 +106,7 @@ STAGE_TABLES: dict[str, tuple[str, ...]] = {
     "generate": (
         "init",
         "source",
+        "outline",
         "template_prep",
         "confirm_stage1",
         "template_install",

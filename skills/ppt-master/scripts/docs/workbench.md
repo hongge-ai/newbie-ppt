@@ -84,9 +84,14 @@ Task surface (server writes `task.json`; frozen once submitted):
 | POST `/api/tasks/<id>/uploads` | Multipart files → `201 {uploads: [{name, size}]}` (draft only; raw staging, never converts) |
 | DELETE `/api/tasks/<id>/uploads/<name>` | Remove one staged file (draft only) |
 | POST `/api/tasks/<id>/submit` | Freeze the user domain → `{status: "submitted", agent_hint}` |
-| GET `/api/tasks/<id>/progress` | Derived read-only view: `status`, `runtime`, `events`, `requests`, `slides`, `quality`, `exports`, `confirm`, `plan` (`{review_due, confirmed}`) |
-| GET `/api/tasks/<id>/proposal` | The AI's Stage-1 proposal, proxied from the mounted confirmation surface: `{available, contract, constraints, preview, template_options}` or `{available: false, reason}` |
-| POST `/api/tasks/<id>/confirm` | The Stage-1 confirmation: `{display_title, contract, selection_keys, options_sha256}` → the title lands in `task.json`, the rest goes to the surface that owns `result.json`. `template_mode` is always `templates`: free design is rejected (`400`), and at least one workspace key is required. Stage 2 submits through the embedded surface, not this route |
+| GET `/api/tasks/<id>/progress` | Derived read-only view: `status`, `runtime`, `events`, `requests`, `slides`, `quality`, `exports`, `outline` (`{exists, status, round, title, slide_count}`), `confirm`, `plan` (`{review_due, confirmed}`) |
+| GET `/api/tasks/<id>/outline` | Slide-by-slide outline (`<project>/outline.md`) and review state (`confirm_ui/outline_state.json`): `{available, status: "missing"\|"ready"\|"revising"\|"confirmed", round, title, summary, slide_count, markdown, outline_sha256, pending_revision}` |
+| PUT `/api/tasks/<id>/outline` | `{markdown, display_title?}` → direct user edits (single-slide edit, add/delete/reorder) persisted to `outline.md` (`409` while `status == "revising"`) |
+| POST `/api/tasks/<id>/outline/revise` | `{comments: [{id, slide, slide_title, quote, comment}], global_note?, markdown?}` → sets `status: "revising"` in `outline_state.json` to wake `confirm_ui/wait.py --stage outline` |
+| POST `/api/tasks/<id>/outline/confirm` | `{markdown?, display_title?}` → freezes `outline.md` as `status: "confirmed"` and syncs `display_title` in `task.json` |
+| GET `/api/tasks/<id>/proposal` | The AI's Stage-1 proposal, proxied from the mounted confirmation surface plus localized display metadata, `outline` summary, and `outline_preview` copy snippets: `{available, contract, constraints, outline, outline_preview, preferred_visual_style, preview, template_options, template_meta}` or `{available: false, reason, stage1_confirmed, delegate_stage2, preferred_visual_style}` |
+| POST `/api/tasks/<id>/proposal/reopen` | Clear Stage-1 confirmation receipts before slides exist (`409` once `svg_output/` has pages) so the user can re-pick a visual style or template |
+| POST `/api/tasks/<id>/confirm` | The Stage-1 confirmation: `{display_title, contract, template_mode, selection_keys, options_sha256, skip_stage2_review?, preferred_visual_style?}` → the title lands in `task.json`, `skip_stage2_review` and `preferred_visual_style` land in `confirm_ui/workbench_prefs.json` (read as `delegate_stage2` and `preferred_visual_style` by `wait.py --stage stage1`), and the rest goes to the surface that owns `result.json`. Supports both `free_design` (`selection_keys: []` with any of the 18 catalog `visual_styles`) and `templates` (≥1 workspace key). Stage 2 submits through the embedded surface when not delegated |
 | GET `/api/tasks/<id>/slides/<name>` | One page SVG (numeric-prefix name whitelist) |
 | GET `/api/tasks/<id>/exports/<name>` | One exported PPTX download (`.pptx` whitelist, attachment) |
 | GET `/api/tasks/<id>/images/<path>` | One project image asset so inline page previews resolve |
@@ -131,7 +136,7 @@ state), a left rail holding the task list, and the workspace on the right.
 | Route | Workspace |
 |---|---|
 | `#/new` (fallback) | compose form: topic, "what it should feel like", canvas, page count, language, image policy, materials — no title field |
-| `#/task/<id>` | the task itself in four states — draft form; **proposal** (the AI's contract, style preview, a mandatory template workspace picker with real thumbnails, one **确认并生成**); **plan review** (the same page embeds the confirmation surface for Stage 2 — colour, typography, icons, template application, page count, image strategy); running (state line, progress bar, pending question, deliverables, collapsible parameters and activity, feedback) |
+| `#/task/<id>` | the task itself across a 3-step journey (`① 确认内容大纲 → ② 选择模板与风格 → ③ 生成幻灯片`) — draft form; takeover dispatch; **Step 1 outline workspace** (slide-by-slide cards from `outline.md` supporting both inline text-selection batch AI comments and direct single-slide text edit / add / delete / reorder); **Step 2 template & style picker** (visual gallery of AI free-design + slide-roster templates with cover/chapter/content SVG previews, full-roster modal, collapsed advanced palette/method customizer, and dual submit for direct generation vs Stage-2 fine-tuning); **Step 3 slide execution** (state line, progress bar, live slide thumbnails, deliverables, collapsible parameters/activity, feedback) |
 | `#/task/<id>/preview` | page preview in focus mode |
 | `#/task/<id>/confirm` | the full confirmation surface in focus mode — a fallback for the embedded review, not the normal path |
 | `#/task/<id>/spec` | spec review in focus mode |
@@ -142,14 +147,19 @@ inline, above the status card, so nothing jumps to another page; confirming call
 `POST /api/tasks/<id>/confirm`, which the mounted surface turns into
 `result.json` + `template_selection.json`. The card opens with the title the AI
 suggested for this task — the compose form never asks for one — then lists the
-contract fields, the AI's style preview, and the template choice; canvas, page
+contract fields and the visual template gallery; canvas, page
 count, and language render read-only because they are the user's own constraints
 from the compose form.
 
-**Template choice is mandatory.** The card offers no free-design option: the user
-picks at least one registered workspace (one per kind) and the confirmation is
-rejected without it. The agent therefore initializes Stage 1 with
-`default_mode: "templates"` for a workbench task.
+**Visual-first template choice, advanced assembly collapsed.** The primary gallery
+shows only choices the user can judge visually — an AI free-design card carrying
+the recommended `preview` sample, plus visual templates (`deck` and canvas-matched
+`layout` workspaces) rendered with inline cover/chapter/content SVG previews and
+a full-roster preview modal. Clicking an active template card deselects it back
+to free design. Roster-free `brand` (palette/identity) and `style` (method)
+workspaces sit in a collapsed advanced customizer so users who want to mix pieces
+can do so without exposing four abstract kind buckets by default. Both inline and
+full confirmation surfaces honor the same `free_design` / `templates` rules.
 
 When the agent has authored `recommendations.stage2.json` and the result is still
 `stage1`, the progress payload reports `plan.review_due` and the same page embeds
@@ -196,11 +206,14 @@ Page SVGs reference images as `../images/x.png`; from `/p/<slug>/preview/` that
 resolves to `/p/<slug>/images/x.png`, so the mount also routes that path into
 the preview app's `/images/` handler.
 
-The agent needs two small CLIs, never a server:
+The agent needs small file-bus CLIs, never a per-project server:
 
 ```bash
-python3 scripts/confirm_ui/wait.py <project> --stage stage1    # 0 confirmed, 1 not ready, 124 timeout
-python3 scripts/spec_review/hold.py <project> on|off           # review-write hold
+python3 scripts/confirm_ui/outline_store.py <project> --publish            # publish outline.md as ready
+python3 scripts/confirm_ui/wait.py <project> --stage outline               # 0 revising|confirmed, 1 not ready, 124 timeout
+python3 scripts/confirm_ui/wait.py <project> --stage outline --publish-revision
+python3 scripts/confirm_ui/wait.py <project> --stage stage1                # prints {stage, status, delegate_stage2}
+python3 scripts/spec_review/hold.py <project> on|off                       # review-write hold
 ```
 
 ## Template choice lives in Stage 1

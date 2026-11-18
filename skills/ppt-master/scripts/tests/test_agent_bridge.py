@@ -114,12 +114,14 @@ class AgentBridgeTests(unittest.TestCase):
 
     def test_stage_order_is_forward_only(self) -> None:
         self.start()
+        agent_bridge.enter_stage(self.project, "outline", label="大纲")
+        self.assertEqual(agent_bridge.effective_state(self.paths)["stage_index"], 2)
         agent_bridge.enter_stage(self.project, "execute", label="pages")
         with self.assertRaises(agent_bridge.BridgeError):
             agent_bridge.enter_stage(self.project, "lock")
         view = agent_bridge.effective_state(self.paths)
         self.assertEqual(view["stage"], "execute")
-        self.assertEqual(view["stage_index"], 9)
+        self.assertEqual(view["stage_index"], 10)
 
     def test_unknown_stage_is_rejected(self) -> None:
         self.start()

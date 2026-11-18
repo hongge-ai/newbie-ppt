@@ -61,7 +61,7 @@ it exists.
   "route": "generate",
   "profile": "default",
   "stage": "execute",
-  "stage_index": 9,
+  "stage_index": 10,
   "stage_label": "绘制页面 7/12",
   "state": "running",
   "surface": "web",
@@ -247,7 +247,7 @@ difference, and a stage may never be re-entered earlier.
 
 | Route | Stages |
 |---|---|
-| `generate` | `init → source → template_prep → confirm_stage1 → template_install → spec → spec_review → lock → images → execute → finalize → export → done` |
+| `generate` | `init → source → outline → template_prep → confirm_stage1 → template_install → spec → spec_review → lock → images → execute → finalize → export → done` |
 | `create-template` | `init → intake → brief → confirm → child_run → assets → review_pptx → register → done` |
 | `edit-native` | `import → plan → confirm → edit → notes_motion → export → done` |
 
@@ -268,6 +268,7 @@ Generate route:
 | Processing a submitted workbench task | `run start --route generate --task <task_id>` (the only task binding; inherited by `--resume` and `--takeover`) |
 | `project_manager.py init` succeeded | `run start --route generate --profile <p>` |
 | Step 1 conversion complete | `stage source` |
+| Workbench Step 1 outline drafted | `stage outline` (skipped on non-workbench runs) |
 | Step 2 validation passes | `stage template_prep` |
 | Step 3 candidates ready, Stage 1 launch | `stage confirm_stage1` + `ask --kind confirm` |
 | Stage 1 receipt read | `answer` is written by the surface; agent calls `stage template_install` then `stage spec` |

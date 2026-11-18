@@ -38,7 +38,7 @@ Conditional extension for applying an installed Brand/Style/Layout/Deck workspac
 
 **Plan wording**: for Layout/Deck, state prototype use/order, what stays literal, and what may change, naming exact SVG basenames for prototype-specific exceptions rather than roles such as "cover". For Brand/Style, state identity or Direction / method constraints and free composition unless structure comes from another workspace.
 
-**Two-stage boundary**: an installed template changes the content of final Stage 2, never the confirmation sequence. Run Stage 1 → Stage 2 in order in both the UI and chat fallback; the user confirms each, and template inspection is not itself a confirmation.
+**Two-stage boundary**: an installed template changes final Stage 2's content, never the confirmation sequence. Run Stage 1 → Stage 2 in order in both UI and chat fallback; template inspection is not user confirmation.
 
 ---
 

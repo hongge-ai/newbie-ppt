@@ -216,34 +216,91 @@ class TaskLifecycleTests(unittest.TestCase):
             409,
         )
 
-    def test_confirm_requires_a_template_workspace(self) -> None:
+    def test_stage1_confirm_supports_free_design_and_templates(self) -> None:
         task = server._default_task('t20260101-000000-abcd', '主题', None)
         payload, error = server._stage1_confirm_payload(task, {
             'contract': {},
             'template_mode': 'free_design',
-            'options_sha256': 'a' * 8,
+            'selection_keys': [],
+            'options_sha256': 'a' * 64,
+        })
+        self.assertIsNone(error)
+        self.assertEqual(payload['template_selection'], {
+            'mode': 'free_design',
+            'selection_keys': [],
+        })
+        # Free design cannot carry workspace keys.
+        payload, error = server._stage1_confirm_payload(task, {
+            'contract': {},
+            'template_mode': 'free_design',
+            'selection_keys': ['library:brand:accenture'],
+            'options_sha256': 'a' * 64,
         })
         self.assertIsNone(payload)
-        self.assertIn('free design is disabled', error)
+        self.assertIn('free_design cannot carry', error)
+        # Templates mode requires at least one key.
         payload, error = server._stage1_confirm_payload(task, {
             'contract': {},
             'template_mode': 'templates',
             'selection_keys': [],
-            'options_sha256': 'a' * 8,
+            'options_sha256': 'a' * 64,
         })
         self.assertIsNone(payload)
         self.assertIn('at least one', error)
+        # Valid template selection passes through unchanged.
         payload, error = server._stage1_confirm_payload(task, {
             'contract': {},
             'template_mode': 'templates',
-            'selection_keys': ['library:brand:accenture'],
-            'options_sha256': 'a' * 8,
+            'selection_keys': ['library:layout:presentation_core', 'library:brand:mckinsey'],
+            'options_sha256': 'a' * 64,
         })
         self.assertIsNone(error)
         self.assertEqual(payload['template_selection'], {
             'mode': 'templates',
-            'selection_keys': ['library:brand:accenture'],
+            'selection_keys': ['library:layout:presentation_core', 'library:brand:mckinsey'],
         })
+
+    def test_confirm_route_persists_free_design_receipt(self) -> None:
+        task_id = self._create('黑土地科普课')
+        self.client.post(f'/api/tasks/{task_id}/submit')
+        project = self.projects_root / 'heitudi_demo_20261105'
+        (project / 'confirm_ui').mkdir(parents=True)
+        agent_bridge.start_run(project, task=task_id)
+        agent_bridge.enter_stage(project, 'confirm_stage1', label='等待确认')
+        (project / 'confirm_ui' / 'recommendations.stage1.json').write_text(
+            json.dumps({
+                'stage': 'stage1',
+                'lang': 'zh',
+                'primary_language': 'zh-CN',
+                'display_title': '黑土地：一厘米四百年',
+                'template_options': {
+                    'schema_version': 1,
+                    'phase': 'template',
+                    'lang': 'zh',
+                    'default_mode': 'free_design',
+                    'explicit_workspace_roots': [],
+                },
+                'recommend': {'canvas': 'ppt169'},
+                'audience': {'value': '中学生'},
+            }),
+            encoding='utf-8',
+        )
+        proposal = self.client.get(f'/api/tasks/{task_id}/proposal').get_json()
+        self.assertTrue(proposal['available'])
+        sha = proposal['template_options']['options_sha256']
+        resp = self.client.post(f'/api/tasks/{task_id}/confirm', json={
+            'display_title': '黑土地：一厘米四百年',
+            'contract': {'audience': '中学生与公众'},
+            'template_mode': 'free_design',
+            'selection_keys': [],
+            'options_sha256': sha,
+        })
+        self.assertEqual(resp.status_code, 200, resp.get_json())
+        selection = json.loads(
+            (project / 'confirm_ui' / 'template_selection.json').read_text(encoding='utf-8')
+        )
+        self.assertEqual(selection['mode'], 'free_design')
+        self.assertEqual(selection['selections'], [])
 
     def test_plan_review_is_due_only_with_a_stage2_plan(self) -> None:
         project = self.projects_root / 'plan_demo'
@@ -284,6 +341,11 @@ class TaskLifecycleTests(unittest.TestCase):
         self.assertTrue(payload['available'])
         self.assertEqual(payload['title'], 'Q3 经营分析汇报')
         self.assertEqual(payload['contract']['audience'], '班子')
+        meta = payload['template_meta']
+        self.assertIn('library:layout:presentation_core', meta)
+        self.assertEqual(meta['library:layout:presentation_core']['title'], '通用商务演示')
+        self.assertEqual(meta['library:layout:presentation_core']['canvas_format'], 'ppt169')
+        self.assertEqual(meta['library:brand:mckinsey']['primary_color'], '#051C2C')
         empty = server._proposal_payload(task, {'stage': 'stage1'}, 200)
         self.assertEqual(empty['title'], '')
 
@@ -586,6 +648,195 @@ class AgentSurfaceTests(unittest.TestCase):
         request = agent_bridge.open_request(self.project, kind='confirm', title='T')
         bad = f'/api/projects/demo_ppt169_20261102/requests/..%2F..%2Ftask'
         self.assertEqual(self.client.post(bad, json={}).status_code, 404)
+
+
+class OutlineAndDelegationTests(unittest.TestCase):
+    """Step-1 outline review lifecycle, wait CLI, and Stage-2 direct-generation delegation."""
+
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
+        self.addCleanup(self.temporary.cleanup)
+        self.projects_root = Path(self.temporary.name) / 'projects'
+        self.projects_root.mkdir(parents=True)
+        with patch.object(server.threading.Thread, 'start'):
+            self.app = server.create_app(str(self.projects_root), idle_timeout=0)
+        self.app.config['TESTING'] = True
+        self.client = self.app.test_client()
+        self.task_id = self.client.post(
+            '/api/tasks', json={'topic': '黑土地科普课'},
+        ).get_json()['task_id']
+        self.client.post(f'/api/tasks/{self.task_id}/submit')
+        self.project = self.projects_root / 'heitudi_20261118'
+        (self.project / 'confirm_ui').mkdir(parents=True)
+        agent_bridge.start_run(self.project, task=self.task_id)
+        agent_bridge.enter_stage(self.project, 'outline', label='撰写大纲')
+
+    def test_outline_edit_revise_wait_and_confirm_lifecycle(self) -> None:
+        from confirm_ui import outline_store
+        from confirm_ui import wait as confirm_wait
+
+        # Missing outline before agent publishes round 1
+        initial = self.client.get(f'/api/tasks/{self.task_id}/outline').get_json()
+        self.assertFalse(initial['available'])
+        self.assertEqual(initial['status'], 'missing')
+
+        # Agent writes and publishes round 1
+        sample_md = (
+            '# 黑土地：一厘米四百年的大地密码\n\n'
+            '> 面向中学生与公众的地球科学科普课\n\n'
+            '## 第 1 页 [封面] 黑土地：一厘米四百年的大地密码\n'
+            '- **开场悬念**：为什么捏一把黑土能攥出油花？\n\n'
+            '## 第 2 页 [正文] 世界四大黑土区分布\n'
+            '- 中国东北平原、乌克兰平原、美国密西西比河流域、潘帕斯草原\n'
+        )
+        published = outline_store.publish_outline(self.project, sample_md)
+        self.assertEqual(published['status'], 'ready')
+        self.assertEqual(published['round'], 1)
+        self.assertEqual(published['slide_count'], 2)
+
+        progress = self.client.get(f'/api/tasks/{self.task_id}/progress').get_json()
+        self.assertEqual(progress['outline']['status'], 'ready')
+        self.assertEqual(progress['outline']['slide_count'], 2)
+
+        # User edits directly (adds a 3rd page and renames title)
+        edited_md = sample_md + '\n## 第 3 页 [总结] 梨树模式守护耕地大熊猫\n- 秸秆覆盖免耕少耕\n'
+        put_resp = self.client.put(
+            f'/api/tasks/{self.task_id}/outline',
+            json={'markdown': edited_md, 'display_title': '黑土地保护科普课'},
+        )
+        self.assertEqual(put_resp.status_code, 200, put_resp.get_json())
+        self.assertEqual(put_resp.get_json()['slide_count'], 3)
+        self.assertEqual(
+            self.client.get(f'/api/tasks/{self.task_id}').get_json()['display_title'],
+            '黑土地保护科普课',
+        )
+
+        # User highlights formatted text ("开场悬念：为什么捏一把黑土") + adds global note
+        rev_resp = self.client.post(
+            f'/api/tasks/{self.task_id}/outline/revise',
+            json={
+                'comments': [{
+                    'id': 'c_1',
+                    'slide': 1,
+                    'slide_title': '封面',
+                    'quote': '开场悬念：为什么捏一把黑土',
+                    'comment': '加上形成 1 厘米需要 200-400 年的对比',
+                }],
+                'global_note': '整体语气更生动一些',
+            },
+        )
+        self.assertEqual(rev_resp.status_code, 200, rev_resp.get_json())
+        self.assertEqual(rev_resp.get_json()['status'], 'revising')
+
+        # Direct edits and duplicate revisions are blocked (409) while AI is revising
+        self.assertEqual(
+            self.client.put(
+                f'/api/tasks/{self.task_id}/outline', json={'markdown': edited_md},
+            ).status_code,
+            409,
+        )
+
+        # wait.py --stage outline wakes immediately on status == revising
+        buf = io.StringIO()
+        with patch('sys.stdout', buf):
+            code = confirm_wait.wait_for_stage(self.project, stage='outline', timeout=2)
+        self.assertEqual(code, 0)
+        woke = json.loads(buf.getvalue())
+        self.assertEqual(woke['status'], 'revising')
+        self.assertEqual(len(woke['pending_revision']['comments']), 1)
+
+        # Agent revises outline.md and republishes (round 2)
+        revised_md = edited_md.replace('攥出油花？', '攥出油花，形成 1 厘米却要 400 年？')
+        (self.project / 'outline.md').write_text(revised_md, encoding='utf-8')
+        republished = outline_store.publish_outline(self.project)
+        self.assertEqual(republished['status'], 'ready')
+        self.assertEqual(republished['round'], 2)
+
+        # User confirms outline
+        conf_resp = self.client.post(f'/api/tasks/{self.task_id}/outline/confirm', json={})
+        self.assertEqual(conf_resp.status_code, 200, conf_resp.get_json())
+        self.assertEqual(conf_resp.get_json()['status'], 'confirmed')
+
+        buf2 = io.StringIO()
+        with patch('sys.stdout', buf2):
+            code2 = confirm_wait.wait_for_stage(self.project, stage='outline', timeout=2)
+        self.assertEqual(code2, 0)
+        self.assertEqual(json.loads(buf2.getvalue())['status'], 'confirmed')
+
+    def test_stage1_confirm_records_stage2_delegation_flag(self) -> None:
+        from confirm_ui import outline_store
+        from confirm_ui import wait as confirm_wait
+
+        outline_store.publish_outline(
+            self.project,
+            '# 黑土地科普\n\n> 面向初中生的科普课件\n\n## 第 1 页 [封面] 黑土地科普\n- 核心导入\n',
+        )
+        self.client.post(f'/api/tasks/{self.task_id}/outline/confirm', json={})
+        agent_bridge.enter_stage(self.project, 'confirm_stage1')
+        (self.project / 'confirm_ui' / 'recommendations.stage1.json').write_text(
+            json.dumps({
+                'stage': 'stage1',
+                'lang': 'zh',
+                'primary_language': 'zh-CN',
+                'display_title': '黑土地科普',
+                'template_options': {
+                    'schema_version': 1,
+                    'phase': 'template',
+                    'lang': 'zh',
+                    'default_mode': 'free_design',
+                    'explicit_workspace_roots': [],
+                },
+                'recommend': {'canvas': 'ppt169'},
+            }),
+            encoding='utf-8',
+        )
+        proposal = self.client.get(f'/api/tasks/{self.task_id}/proposal').get_json()
+        self.assertEqual(proposal['outline']['status'], 'confirmed')
+        self.assertEqual(proposal['outline_preview']['cover_title'], '黑土地科普')
+        sha = proposal['template_options']['options_sha256']
+
+        # Unknown visual_style is rejected cleanly
+        bad_style = self.client.post(f'/api/tasks/{self.task_id}/confirm', json={
+            'contract': {},
+            'template_mode': 'free_design',
+            'selection_keys': [],
+            'options_sha256': sha,
+            'preferred_visual_style': 'nonexistent-style',
+        })
+        self.assertEqual(bad_style.status_code, 400)
+
+        resp = self.client.post(f'/api/tasks/{self.task_id}/confirm', json={
+            'contract': {},
+            'template_mode': 'free_design',
+            'selection_keys': [],
+            'options_sha256': sha,
+            'skip_stage2_review': True,
+            'preferred_visual_style': 'chalkboard',
+        })
+        self.assertEqual(resp.status_code, 200, resp.get_json())
+        self.assertTrue(resp.get_json()['delegate_stage2'])
+        self.assertEqual(resp.get_json()['preferred_visual_style'], 'chalkboard')
+
+        buf = io.StringIO()
+        with patch('sys.stdout', buf):
+            code = confirm_wait.wait_for_stage(self.project, stage='stage1', timeout=2)
+        self.assertEqual(code, 0)
+        waited = json.loads(buf.getvalue())
+        self.assertEqual(waited['stage'], 'stage1')
+        self.assertTrue(waited['delegate_stage2'])
+        self.assertEqual(waited['preferred_visual_style'], 'chalkboard')
+
+        after_confirm = self.client.get(f'/api/tasks/{self.task_id}/proposal').get_json()
+        self.assertFalse(after_confirm['available'])
+        self.assertTrue(after_confirm['stage1_confirmed'])
+        self.assertTrue(after_confirm['delegate_stage2'])
+        self.assertEqual(after_confirm['preferred_visual_style'], 'chalkboard')
+
+        reopened = self.client.post(f'/api/tasks/{self.task_id}/proposal/reopen', json={})
+        self.assertEqual(reopened.status_code, 200, reopened.get_json())
+        restored = self.client.get(f'/api/tasks/{self.task_id}/proposal').get_json()
+        self.assertTrue(restored['available'])
+        self.assertEqual(restored['preferred_visual_style'], 'chalkboard')
 
 
 if __name__ == '__main__':
