@@ -99,7 +99,7 @@ The terms in that flow are not extra folders you must create. **Stage 1** confir
 
 ## Live preview & visual edits
 
-A browser preview opens at the URL reported by the launcher while the deck is being generated. It prefers `http://localhost:5050` and uses the next free port when `5050` is occupied.
+Live preview is a tab of the local workbench (`http://127.0.0.1:7070`), under the project's 页面预览 view — same page, same port as the task list and the confirmation form. Start the workbench once if it is not running; nothing else needs a port.
 
 - **Watch pages render live** as the AI produces them.
 - **Edit directly, no AI** — select an element to change its text, color, font, or size in the side panel; drag it to reposition, or nudge with the arrow keys (`Shift` = 10px). `Ctrl+Z` undoes. Edits preview instantly and write to `svg_output/` when you click **Apply changes**.

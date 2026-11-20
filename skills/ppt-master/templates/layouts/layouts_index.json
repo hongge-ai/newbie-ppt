@@ -16,21 +16,6 @@
       "closing_full"
     ]
   },
-  "moments_square": {
-    "summary": "A structure-only 1:1 system with 8 authored PowerPoint Layouts that use both horizontal and vertical division on a square canvas.",
-    "canvas_format": "moments",
-    "page_count": 8,
-    "page_types": [
-      "cover",
-      "statement",
-      "title_content",
-      "two_column",
-      "three_row",
-      "image_center",
-      "image_full",
-      "ending"
-    ]
-  },
   "presentation_core": {
     "summary": "A structure-only 16:9 system with 20 authored PowerPoint Layouts for general, editorial, image, process, and data presentations.",
     "canvas_format": "ppt169",
@@ -99,39 +84,6 @@
       "matrix_2x2",
       "appendix",
       "closing"
-    ]
-  },
-  "story_vertical": {
-    "summary": "A structure-only 9:16 system with 9 authored PowerPoint Layouts whose text geometry respects the top and bottom story safe zones.",
-    "canvas_format": "story",
-    "page_count": 9,
-    "page_types": [
-      "cover",
-      "statement",
-      "title_content",
-      "numbered_list",
-      "image_full",
-      "image_top_text",
-      "two_block",
-      "step_flow",
-      "ending"
-    ]
-  },
-  "xiaohongshu_post": {
-    "summary": "A structure-only 3:4 vertical system with 10 authored PowerPoint Layouts for single-column image-text posts on tall social canvases.",
-    "canvas_format": "xiaohongshu",
-    "page_count": 10,
-    "page_types": [
-      "cover",
-      "statement",
-      "title_content",
-      "numbered_list",
-      "two_card_stack",
-      "image_top_text",
-      "image_full_caption",
-      "quote",
-      "step_flow",
-      "ending"
     ]
   }
 }

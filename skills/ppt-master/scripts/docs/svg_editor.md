@@ -1,24 +1,14 @@
 # `svg_editor/server.py`
 
-Browser SVG editor behind the [`live-preview`](../../workflows/stages/live-preview.md) stage and Generate Step 6's `--live` auto-startup. This page documents editor behavior, lifecycle, and remote access; the stage owns when to launch and how to apply annotations.
+Browser SVG editor behind the [`live-preview`](../../workflows/stages/live-preview.md) stage and Generate Step 6. It is a surface of the resident workbench, served at `http://127.0.0.1:<workbench port>/p/<project slug>/preview/`; this page documents editor behavior, and the stage owns when to open it and how to apply annotations.
 
-## Commands
+## Where it runs
 
-```bash
-python3 skills/ppt-master/scripts/svg_editor/server.py <project_path> --daemon              # plain mode (stage Step 1)
-python3 skills/ppt-master/scripts/svg_editor/server.py <project_path> --live --daemon       # Generate Step 6 auto-startup
-python3 skills/ppt-master/scripts/svg_editor/server.py <project_path> --daemon --no-browser # remote host
-python3 skills/ppt-master/scripts/svg_editor/server.py <project_path> --shutdown
-```
+Nothing is launched and nothing is shut down: the workbench already owns the process. Open the URL above (the workbench task page has a 页面预览 tab for it) and keep the tab open through Step 7. Mounted mode disables the idle watchdog and turns `/api/shutdown` into a no-op, so closing the view never ends the shared process.
 
-The launcher starts the server in the background, waits for `GET /api/health`, records pid + port in `<project_path>/live_preview/lock.json`, opens the browser when possible, and edits `<project_path>/svg_output/` in place.
+## Behavior
 
-## Lifecycle
-
-- **Port**: without `--port`, the first free port from `6060`; `--port N` binds strictly and fails if unavailable. Read the actual URL from launch output or `live_preview/lock.json`; never assume `6060`.
-- **Idle timeout**: plain mode `900s`, `--live` `7200s`; `--timeout <seconds>` overrides (`0` disables).
-- **Single instance per project**: `live_preview/lock.json` is the discovery source for project-local consumers (including `visual_review.py`). A second launch reuses the live instance unless a different explicit `--port N` was requested — that mismatch fails and needs `--shutdown` first. Stale locks (dead pid) are overwritten; legacy `<project_path>/.live_preview.lock` root locks are still detected when live.
-- **Stop conditions**: **Exit preview** in the browser (the only UI action that stops Flask), a chat request to stop, the idle timeout, or an external kill.
+- **Edits land in place**: the editor stages direct edits and annotations in memory, and **Apply changes** writes `<project_path>/svg_output/` only.
 - **Transient ids**: each element gets a temporary `_edit_N` id while running; on save only annotated elements keep their id.
 - **Browser preview**: the server inlines `<use data-icon>` placeholders and serves `images/*`; the on-disk SVG is unchanged by preview.
 - **Re-export is chat-driven**: applying changes updates `svg_output/` only; refreshing the PPTX (`finalize_svg.py` + `svg_to_pptx.py`) is a chat step — the editor never runs the export pipeline.
@@ -36,4 +26,4 @@ The launcher starts the server in the background, waits for `GET /api/health`, r
 
 ## Remote access
 
-On a remote Linux host run with `--no-browser`, then with `<P>` from launch output or `live_preview/lock.json`: VS Code / Cursor Remote-SSH — forward `<P>` in the **PORTS** panel; Termius — a Local rule with Binding and Destination both `127.0.0.1:<P>`; plain SSH — `ssh -L <P>:127.0.0.1:<P> <user>@<host>`. Then open `http://localhost:<P>`.
+On a remote Linux host, forward the workbench port from `projects/.workbench/workbench.lock`: VS Code / Cursor Remote-SSH — forward `<P>` in the **PORTS** panel; Termius — a Local rule with Binding and Destination both `127.0.0.1:<P>`; plain SSH — `ssh -L <P>:127.0.0.1:<P> <user>@<host>`. Then open `http://localhost:<P>/p/<slug>/preview/`.

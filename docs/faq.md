@@ -30,23 +30,16 @@ Yes. Tell the AI your topic or scenario (e.g. "make a PPT about Hayao Miyazaki",
 
 Quality depends on what's on the open web. If you already have specialized material (papers, internal docs), giving those files to the AI directly produces better results than web research alone.
 
-## Q: Can PPT Master produce formats other than PowerPoint?
+## Q: Which canvas formats are supported?
 
-Yes. Besides the standard **16:9** and **4:3** presentation formats, PPT Master supports social media and marketing formats out of the box:
+Two, both PowerPoint slide sizes: **16:9** (`ppt169`, 1280×720, the default) and
+**4:3** (`ppt43`, 1024×768). They are the only entries in
+`config.CANVAS_FORMATS`; everything that reads a canvas — project
+initialization, the confirmation page, template indexes, the checker and the
+exporter — reads that one registry, so no other size is offered.
 
-| Format | Use Case |
-|--------|----------|
-| Xiaohongshu (RED) 3:4 | Image-text sharing, knowledge posts |
-| WeChat Moments / IG 1:1 | Square posters, brand showcases |
-| Story / TikTok 9:16 | Vertical stories, short video covers |
-| WeChat Article Header | WeChat article cover images |
-| A4 Print | Print posters, flyers |
-
-When the canvas exactly matches a registered format, pass that key during
-initialization (for example, `--format xhs`). For any other canvas, omit
-`--format`; Default Generate records the confirmed viewBox in `spec_lock.md`,
-and the canvas comes from `spec_lock.md`. The output is
-still a `.pptx` file containing native shapes.
+A deck imported through Edit Native PPTX keeps its own slide size as compatible
+input; that is a round-trip of an existing file, not a generation target.
 
 ## Q: What AI tools work with PPT Master?
 

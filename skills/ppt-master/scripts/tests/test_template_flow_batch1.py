@@ -329,53 +329,27 @@ class TemplatePreviewTests(unittest.TestCase):
 class TemplateBrowserTests(unittest.TestCase):
     @unittest.skipUnless(shutil.which('node'), 'Node.js is needed for the frontend behavior check')
     def test_n5_explicit_checkboxes_expand_roots_and_reject_kind_conflicts(self) -> None:
-        source = (SCRIPTS_DIR / 'confirm_ui' / 'static' / 'app.js').read_text(encoding='utf-8')
-        selection_code = source[source.index('    function normalizeTemplateCandidates('):
-                                source.index('    function normalizeRecId(')]
-        validation_code = source[source.index('    function templateSelectionValid('):
-                                 source.index('    function submitStage1(')]
-        script = '''
+        stage2_path = (SCRIPTS_DIR / 'workbench' / 'static' / 'stage2_confirm.js').resolve()
+        script = f'''
 const assert = require('node:assert/strict');
-var TEMPLATE_KINDS = ['brand', 'style', 'layout', 'deck'];
-var TEMPLATE_SELECTIONS, TEMPLATE_OPTIONS, TEMPLATE_CANDIDATES, TEMPLATE_SELECTED_KEYS, TEMPLATE_MODE;
-var status = {}, inputs = [];
-var document = {
-    getElementById: id => id === 'confirm-status' ? status : null,
-    querySelectorAll: () => inputs
-};
-function t(key) { return key; }
-function localized(item, field) { return item[field]; }
-function el(tag, cls, text) {
-    var element = {children: [], appendChild(child) { this.children.push(child); },
-                   addEventListener(event, handler) { this[event] = handler; }};
-    if (tag === 'input') inputs.push(element);
-    return element;
-}
-''' + selection_code + validation_code + '''
+global.window = {{}};
+require({json.dumps(str(stage2_path))});
+const helpers = global.window.WorkbenchConfirmView._stage1Helpers;
 const explicit = [
-    {key: 'b', kind: 'brand', workspace_root: '/one'},
-    {key: 's', kind: 'style', workspace_root: '/one'},
-    {key: 'l', kind: 'layout', workspace_root: '/two'},
-    {key: 'x', kind: 'layout', workspace_root: '/conflict'}
+    {{key: 'b', kind: 'brand', workspace_root: '/one'}},
+    {{key: 's', kind: 'style', workspace_root: '/one'}},
+    {{key: 'l', kind: 'layout', workspace_root: '/two'}},
+    {{key: 'x', kind: 'layout', workspace_root: '/conflict'}}
 ];
-initTemplateOptions({default_mode: 'templates', explicit, preselected_keys: ['b', 's']});
-renderExplicitTemplateChoices();
-assert.equal(inputs.length, 3);
-assert.deepEqual(TEMPLATE_SELECTED_KEYS, ['b', 's']);
-inputs[1].checked = true;
-inputs[1].change();
-assert.deepEqual(TEMPLATE_SELECTED_KEYS, ['b', 's', 'l']);
-assert.equal(templateSelectionValid(), true);
-inputs[2].checked = true;
-inputs[2].change();
-assert.equal(templateSelectionValid(), false);
-assert.deepEqual(TEMPLATE_SELECTED_KEYS, ['b', 's', 'l', 'x']);
-inputs[2].checked = false;
-inputs[2].change();
-assert.equal(templateSelectionValid(), true);
-chooseFreeDesign();
-assert.deepEqual(TEMPLATE_SELECTED_KEYS, []);
-assert.equal(inputs.some(input => input.checked), false);
+const groups = helpers.groupExplicitByWorkspace(explicit);
+assert.equal(groups.length, 3);
+assert.deepEqual(groups[0].keys, ['b', 's']);
+assert.deepEqual(groups[1].keys, ['l']);
+assert.deepEqual(groups[2].keys, ['x']);
+assert.equal(helpers.validateTemplateSelection('templates', ['b', 's'], explicit).valid, true);
+assert.equal(helpers.validateTemplateSelection('templates', ['b', 's', 'l'], explicit).valid, true);
+assert.equal(helpers.validateTemplateSelection('templates', ['b', 's', 'l', 'x'], explicit).valid, false);
+assert.equal(helpers.validateTemplateSelection('free_design', ['b', 's', 'l', 'x'], explicit).valid, true);
 '''
         result = subprocess.run(['node', '-e', script], capture_output=True, text=True, check=False)
         self.assertEqual(result.returncode, 0, result.stderr)

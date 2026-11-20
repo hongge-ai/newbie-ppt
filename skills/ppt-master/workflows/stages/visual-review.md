@@ -18,10 +18,9 @@ Only when the user explicitly requests visual review — never auto-invoked from
 
 ```bash
 pip install playwright && python3 -m playwright install chromium          # PNG renderer
-python3 skills/ppt-master/scripts/svg_editor/server.py <project_path> --no-browser   # live-preview server (skip if already running)
 ```
 
-The renderer does not auto-start the server; it discovers the port from `live_preview/lock.json` (or an explicit `--server-url`) and validates `/api/health` against the target project. Playwright, not cairosvg, because cairo has no font-fallback chain and renders CJK as tofu; chromium output matches the live-preview browser.
+The preview is the workbench's 页面预览 tab (`/p/<slug>/preview/`); start the workbench if it is not running. The renderer does not auto-start anything: pass `--server-url http://127.0.0.1:<workbench port>/p/<slug>/preview` (port from `projects/.workbench/workbench.lock`), and it validates `/api/health` against the target project. Playwright, not cairosvg, because cairo has no font-fallback chain and renders CJK as tofu; chromium output matches the live-preview browser.
 
 ---
 

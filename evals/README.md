@@ -11,7 +11,6 @@ are the part that can.
 
 ```
 evals/
-  baselines/            recorded scores, one JSON per task and model
   tasks/
     <task-id>/
       task.md           the request handed to the generation run
@@ -55,13 +54,3 @@ not equal; the third is not automatable and is never claimed as such.
 `tasks/control-broken-page/` ships a page that must fail. Run it after any
 change to the scorer or the checker: a green control means the grader has
 stopped grading, and every passing task is meaningless.
-
-## Baselines
-
-`baselines/<task-id>.<model>.json` records the model id, the date, and the
-per-run scores. The model id is there for **attribution**: when a score moves,
-the baseline says whether the prompt or the provider changed. Sampling
-parameters are not recorded because the repository does not set them.
-
-A baseline is a snapshot, not a target. Re-record it when a run legitimately
-changes the achievable score, and say why in the commit message.

@@ -3,26 +3,39 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>牛鼻 PPT 工作台</title>
+  <title>牛鼻 PPT</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-  <header class="topbar">
-    <div class="topbar-inner">
-      <span class="brand">牛鼻 PPT 工作台</span>
-      <nav class="topnav">
-        <a href="#/tasks">任务</a>
-      </nav>
-      <span class="conn-state" id="conn-state" hidden>连接中断,重试中…</span>
-    </div>
+  <header class="app-bar">
+    <a class="brand" href="#/new">
+      <span class="brand-mark">PM</span>
+      <span class="brand-name">牛鼻 PPT</span>
+    </a>
+    <span class="conn" id="conn" hidden>连接中断，正在重试</span>
+    <button class="btn btn-primary" id="new-task" type="button">新建任务</button>
   </header>
-  <main id="view" class="view">
-    <section class="placeholder">
-      <h1>工作台已启动</h1>
-      <p>加载中…</p>
-    </section>
-  </main>
-  <div id="notify" class="notify" hidden></div>
+
+  <div class="app-body">
+    <aside class="rail">
+      <div class="rail-head">
+        <span>任务</span>
+        <span class="rail-count" id="rail-count"></span>
+      </div>
+      <nav class="rail-list" id="rail-list">
+        <div class="rail-empty">加载中…</div>
+      </nav>
+    </aside>
+    <main class="workspace" id="workspace">
+      <div class="loading">加载中…</div>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" hidden></div>
+  <script src="/static/style_slides.js"></script>
+  <script src="/static/slide_preview.js"></script>
+  <script src="/static/stage2_confirm.js"></script>
   <script src="/static/app.js"></script>
 </body>
 </html>

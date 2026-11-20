@@ -1935,7 +1935,7 @@
             {
               "path": "skills/ppt-master/workflows/profiles/beautify-pptx.md",
               "role": "producer",
-              "fingerprint": "e1bd978fcc83",
+              "fingerprint": "c9bea841a094",
               "reason": "This producer projects the owner field into the planning contract."
             }
           ]
@@ -2176,6 +2176,10 @@
       {
         "glob": "skills/ppt-master/scripts/docs/workbench.md",
         "reason": "Workbench server, task file-bus, and template market reference; the routing row loads it on demand when a submitted workbench task is processed."
+      },
+      {
+        "glob": "skills/ppt-master/scripts/docs/agent_bridge.md",
+        "reason": "Agent-agnostic runtime protocol (status view, event log, request inbox); route steps carry the write points and the web surface reads the files, so it is not loaded as runtime prompt context."
       },
       {
         "glob": "skills/ppt-master/scripts/docs/setup-env.md",

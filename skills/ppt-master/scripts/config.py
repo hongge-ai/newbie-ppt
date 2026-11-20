@@ -181,60 +181,6 @@ CANVAS_FORMATS = {
         'height': 768,
         'aspect_ratio': '4:3',
         'use_case': 'Traditional projectors'
-    },
-    'wechat': {
-        'name': 'WeChat Article Header',
-        'dimensions': '900×383',
-        'viewbox': '0 0 900 383',
-        'width': 900,
-        'height': 383,
-        'aspect_ratio': '2.35:1',
-        'use_case': 'WeChat article cover images'
-    },
-    'xiaohongshu': {
-        'name': 'Xiaohongshu (RED)',
-        'dimensions': '1242×1660',
-        'viewbox': '0 0 1242 1660',
-        'width': 1242,
-        'height': 1660,
-        'aspect_ratio': '3:4',
-        'use_case': 'Knowledge sharing, product reviews'
-    },
-    'moments': {
-        'name': 'WeChat Moments / IG',
-        'dimensions': '1080×1080',
-        'viewbox': '0 0 1080 1080',
-        'width': 1080,
-        'height': 1080,
-        'aspect_ratio': '1:1',
-        'use_case': 'Social media square images'
-    },
-    'story': {
-        'name': 'Story / TikTok',
-        'dimensions': '1080×1920',
-        'viewbox': '0 0 1080 1920',
-        'width': 1080,
-        'height': 1920,
-        'aspect_ratio': '9:16',
-        'use_case': 'Short video covers, stories'
-    },
-    'banner': {
-        'name': 'Landscape Banner',
-        'dimensions': '1920×1080',
-        'viewbox': '0 0 1920 1080',
-        'width': 1920,
-        'height': 1080,
-        'aspect_ratio': '16:9',
-        'use_case': 'Web banners, large screen displays'
-    },
-    'a4': {
-        'name': 'A4 Print',
-        'dimensions': '1240×1754',
-        'viewbox': '0 0 1240 1754',
-        'width': 1240,
-        'height': 1754,
-        'aspect_ratio': '√2:1',
-        'use_case': 'Print documents, PDF export'
     }
 }
 
@@ -448,39 +394,7 @@ LAYOUT_MARGINS = {
         'left': 50,
         'content_width': 924,
         'content_height': 608
-    },
-    'xiaohongshu': {
-        'top': 80,
-        'right': 60,
-        'bottom': 80,
-        'left': 60,
-        'content_width': 1122,
-        'content_height': 1500
-    },
-    'moments': {
-        'top': 60,
-        'right': 60,
-        'bottom': 60,
-        'left': 60,
-        'content_width': 960,
-        'content_height': 960
-    },
-    'story': {
-        'top': 120,
-        'right': 60,
-        'bottom': 180,
-        'left': 60,
-        'content_width': 960,
-        'content_height': 1620
-    },
-    'wechat': {
-        'top': 40,
-        'right': 40,
-        'bottom': 40,
-        'left': 40,
-        'content_width': 820,
-        'content_height': 303
-    },
+    }
 }
 
 

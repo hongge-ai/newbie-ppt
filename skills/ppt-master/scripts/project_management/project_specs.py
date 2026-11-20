@@ -87,15 +87,6 @@ _CUSTOM_REFERENCE_CATALOGS = (
     ),
 )
 
-# Display names the registry carried before it was aligned with
-# references/canvas-formats.md; locks written against them still validate.
-_LEGACY_CANVAS_NAMES = {
-    "xiaohongshu": ("小红书",),
-    "moments": ("Moments/Instagram",),
-    "story": ("Story/Vertical",),
-    "banner": ("Horizontal Banner",),
-}
-
 _MARKDOWN_H2_RE = re.compile(r"^##[ \t]+(.+?)[ \t]*$", re.MULTILINE)
 _MARKDOWN_SUBHEADING_RE = re.compile(r"^#{3,6}[ \t]+(.+?)[ \t]*$", re.MULTILINE)
 _MARKDOWN_DATA_LINE_RE = re.compile(
@@ -1239,7 +1230,6 @@ def _validate_spec_lock_relations(
         accepted_formats = {
             expected_format,
             format_key,
-            *_LEGACY_CANVAS_NAMES.get(format_key, ()),
         }
         if (
             "format" in canvas_fields
@@ -1555,3 +1545,31 @@ def scaffold_project_artifact(project_path: Path, artifact: str) -> str:
     with target_path.open("x", encoding="utf-8") as stream:
         stream.write(rendered)
     return str(target_path)
+
+def validate_runtime_state(project_path: Path) -> list[str]:
+    """Check the optional agent-bridge runtime view when the project has one.
+
+    ``.runtime/`` is runtime state rather than an artifact, so its absence is
+    not a defect: a project authored without the bridge, or one whose runtime
+    directory was cleared, still validates. A present ``status.json`` must
+    parse and carry the schema version this repository writes.
+    """
+    status_path = project_path / ".runtime" / "status.json"
+    if not status_path.is_file():
+        return []
+    try:
+        payload = json.loads(status_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        return [f"status.json could not be read: {exc}"]
+    if not isinstance(payload, dict):
+        return ["status.json must contain a JSON object"]
+    version = payload.get("schema_version")
+    if version != 1:
+        return [
+            "status.json schema_version must be 1 "
+            f"(found {version!r}); run `agent_bridge.py rebuild`"
+        ]
+    task_id = payload.get("task_id")
+    if task_id is not None and not isinstance(task_id, str):
+        return ["status.json task_id must be a string or null"]
+    return []

@@ -54,6 +54,9 @@ _SCRIPTS_DIR = Path(__file__).resolve().parent.parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
+from confirm_ui.outline_store import (  # noqa: E402
+    extract_outline_preview_sample,
+)
 from console_encoding import configure_utf8_stdio  # noqa: E402
 from language_tags import (  # noqa: E402
     LanguageTagError,
@@ -110,7 +113,7 @@ _HEX_COLOR_RE = re.compile(r'#?(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})\Z')
 # Static option universe served at /api/catalogs (canvas synced live from config).
 _SKILL_DIR = Path(__file__).resolve().parents[2]
 _TEMPLATES_DIR = _SKILL_DIR / 'templates'
-_CATALOGS_PATH = Path(__file__).resolve().parent / 'static' / 'catalogs.json'
+_CATALOGS_PATH = Path(__file__).resolve().parent / 'catalogs.json'
 _ICON_LIBRARY_DIR = _TEMPLATES_DIR / 'icons'
 _AI_IMAGE_COMPARISON_DIR = _SKILL_DIR / 'references' / 'ai-image-comparison'
 _TEMPLATE_LIBRARY_CONFIG = {
@@ -376,6 +379,45 @@ def _read_template_options_input(
         seen.add(canonical)
         roots.append(root)
     return data, roots
+
+
+
+def _library_workspace(kind: str, template_id: str) -> Optional[Path]:
+    """Resolve one registered library workspace from its index entry only."""
+    config = _TEMPLATE_LIBRARY_CONFIG.get(kind)
+    if config is None or not isinstance(template_id, str) or not _safe_template_id(template_id):
+        return None
+    directory_name, index_name = config
+    kind_dir = (_TEMPLATES_DIR / directory_name).resolve()
+    try:
+        index = _read_json_object(kind_dir / index_name)
+    except (OSError, json.JSONDecodeError, ValueError):
+        return None
+    if template_id not in index:
+        return None
+    root = (kind_dir / template_id).resolve()
+    if root.parent != kind_dir or not root.is_dir():
+        return None
+    return root
+
+
+def _template_frontmatter(root: Path) -> dict:
+    """Return the simple key/value frontmatter of one workspace design spec."""
+    spec = root / 'templates' / 'design_spec.md'
+    try:
+        lines = spec.read_text(encoding='utf-8').splitlines()
+    except OSError:
+        return {}
+    if not lines or lines[0].strip() != '---':
+        return {}
+    data = {}
+    for line in lines[1:]:
+        if line.strip() == '---':
+            break
+        key, sep, value = line.partition(':')
+        if sep and key.strip():
+            data[key.strip()] = value.strip().strip('"')
+    return data
 
 
 def _build_template_library() -> tuple[dict, dict[str, dict], dict[str, dict], dict]:
@@ -969,26 +1011,6 @@ def _launch_background_server(
     return proc, port, log_path
 
 
-def _live_lock(lock_file: Path) -> Optional[dict]:
-    """Return a live lock; stale entries are overwritten by the recovered child."""
-    existing = _read_lock(lock_file)
-    if not existing:
-        return None
-    if _process_alive(_lock_pid(existing)):
-        return existing
-    return None
-
-
-def _preferred_recovery_port(lock_file: Path, fallback: int) -> int:
-    """Prefer a stale lock's port so an already-open browser can reconnect."""
-    existing = _read_lock(lock_file)
-    try:
-        port = int((existing or {}).get('port', 0) or 0)
-        return _validate_port(port) if port else fallback
-    except (TypeError, ValueError):
-        return fallback
-
-
 def _open_browser_async(url: str, delay: float = 0.4) -> None:
     """Open the browser after Flask has had a moment to bind its socket."""
     def _open() -> None:
@@ -996,35 +1018,6 @@ def _open_browser_async(url: str, delay: float = 0.4) -> None:
         open_preview_browser(url, logger=logger)
 
     threading.Thread(target=_open, daemon=True).start()
-
-
-def _wait_for_result(
-    result_file: Path,
-    proc: subprocess.Popen,
-    timeout: int,
-    expected_stage: str,
-) -> int:
-    """Wait until this launch writes a fresh result file or the server exits."""
-    logger.info('waiting for browser confirmation...')
-    deadline = None if timeout <= 0 else time.time() + timeout
-    while True:
-        status = _wait_result_status(result_file, expected_stage)
-        if status is not None:
-            return status
-
-        returncode = proc.poll()
-        if returncode is not None:
-            logger.error('confirm UI exited before a fresh result was written')
-            return returncode or 1
-
-        if deadline is not None and time.time() >= deadline:
-            logger.error(
-                'timed out waiting for browser confirmation — the page is still '
-                'open; re-check %s before falling back to chat', result_file,
-            )
-            return 124
-
-        time.sleep(0.5)
 
 
 def _result_stage(result_file: Path) -> Optional[str]:
@@ -1773,18 +1766,6 @@ def _normalize_custom_selections(result: dict) -> None:
     image_strategy.pop('behavior', None)
 
 
-def _expected_result_stage(confirm_dir: Path) -> str:
-    """Return the result stage expected from the current recommendations."""
-    try:
-        _, recommendations = _read_active_recommendations(confirm_dir)
-    except (OSError, json.JSONDecodeError, ValueError):
-        return 'final'
-    return {
-        1: 'stage1',
-        2: 'final',
-    }.get(_recommendation_stage(recommendations), 'final')
-
-
 def _file_version(path: Path) -> Optional[str]:
     """Return a cheap file version for polling state, or None when absent."""
     try:
@@ -2076,60 +2057,6 @@ def _apply_locked_recommendations(
     return locked_values
 
 
-def _wait_only_for_result(
-    result_file: Path,
-    lock_file: Path,
-    timeout: int,
-    target_stage: str = 'final',
-) -> int:
-    """Attach to an already-running confirm server and wait for a target stage.
-
-    No child is launched here: the page is open from the preceding ``--daemon``
-    launch, so liveness is tracked via the recorded pid, not a ``proc`` handle.
-    Only the stage guard is used (no mtime gate), because intermediate submits
-    may happen before this wait command is issued.
-    """
-    logger.info('waiting for browser confirmation stage=%s...', target_stage)
-    deadline = None if timeout <= 0 else time.time() + timeout
-    while True:
-        result_status = _wait_result_status(result_file, target_stage)
-        if result_status is not None:
-            return result_status
-
-        confirm_dir = result_file.parent
-        if target_stage == 'stage1':
-            readiness_error = _stage1_ready_error(confirm_dir)
-        else:
-            recommendations_file = _active_recommendations_path(confirm_dir)
-            readiness_error = _stage2_ready_error(
-                confirm_dir.parent,
-                confirm_dir,
-                recommendations_file,
-            )
-        if readiness_error:
-            logger.error(
-                'confirmation stage=%s is not ready: %s',
-                target_stage,
-                readiness_error,
-            )
-            return 1
-
-        lock = _read_lock(lock_file)
-        pid = _lock_pid(lock)
-        if not pid or not _process_alive(pid):
-            logger.error('confirm server is no longer running before stage=%s was confirmed', target_stage)
-            return 1
-
-        if deadline is not None and time.time() >= deadline:
-            logger.error(
-                'timed out waiting for confirmation stage=%s — the page may still '
-                'be open; re-check %s before falling back to chat', target_stage, result_file,
-            )
-            return 124
-
-        time.sleep(0.5)
-
-
 def _wait_result_status(
     result_file: Path,
     target_stage: str,
@@ -2305,6 +2232,58 @@ def _build_ai_image_comparison() -> dict:
     }
 
 
+_SLUG_SUFFIX_RE = re.compile(r'(?:_ppt(?:169|43))?_\d{8}$', re.IGNORECASE)
+
+
+def _rec_text_field(data: dict, key: str) -> str:
+    """Extract a trimmed string value from a recommendation payload field."""
+    raw = data.get(key)
+    if isinstance(raw, dict):
+        raw = raw.get('value')
+    if isinstance(raw, str):
+        return re.sub(r'\s+', ' ', raw).strip()
+    return ''
+
+
+def _clean_project_slug_title(project_path: Path) -> str:
+    """Convert a project folder slug into a readable fallback title."""
+    stem = _SLUG_SUFFIX_RE.sub('', project_path.name)
+    cleaned = re.sub(r'[_-]+', ' ', stem).strip()
+    return cleaned or project_path.name
+
+
+def _build_preview_sample(project_path: Path, data: dict) -> dict:
+    """Build project-grounded preview copy for live 18-style SVG thumbnails.
+
+    Prefers parsed ``outline.md`` headings and bullets when available, and falls
+    back to recommendation communication fields so style thumbnails always
+    reflect the active project instead of static placeholder copy.
+    """
+    sample = extract_outline_preview_sample(project_path) or {}
+    result = dict(sample)
+    display_title = _rec_text_field(data, 'display_title')
+    core_msg = _rec_text_field(data, 'core_message')
+    intent = _rec_text_field(data, 'communication_intent')
+    outcome = _rec_text_field(data, 'audience_outcome')
+    audience = _rec_text_field(data, 'audience')
+    if not result.get('cover_title'):
+        result['cover_title'] = (
+            display_title
+            or (
+                _clean_project_slug_title(project_path)
+                if not core_msg or len(core_msg) > 28
+                else core_msg
+            )
+        )
+    if not result.get('cover_sub'):
+        result['cover_sub'] = core_msg or intent or outcome
+    if not result.get('content_bullets'):
+        bullets = [text for text in (core_msg, intent, outcome, audience) if text]
+        if bullets:
+            result['content_bullets'] = bullets[:3]
+    return result
+
+
 # --- app --------------------------------------------------------------------
 
 def create_app(
@@ -2312,12 +2291,13 @@ def create_app(
     idle_timeout: int = 900,
     lock_file: Optional[Path] = None,
     server_port: Optional[int] = None,
+    embedded: bool = False,
 ) -> Flask:
     """Create and configure the Flask app for a given project directory."""
     project_path = Path(project_dir).resolve()
     confirm_dir = project_path / CONFIRM_DIR_NAME
 
-    app = Flask(__name__, static_folder='static', static_url_path='/static')
+    app = Flask(__name__, static_folder=None)
     app.config['PROJECT_PATH'] = project_path
     app.config['CONFIRM_DIR'] = confirm_dir
     app.config['LOCK_FILE'] = lock_file
@@ -2359,10 +2339,15 @@ def create_app(
                 _exit_with_lock_release(0)
 
     watchdog = threading.Thread(target=_idle_watchdog, daemon=True)
-    watchdog.start()
+    if not embedded:
+        watchdog.start()
 
     @app.route('/api/shutdown', methods=['POST'])
     def shutdown():
+        if embedded:
+            # Mounted inside the resident workbench: closing this view must
+            # never take the shared process (and every other project) down.
+            return jsonify({'status': 'embedded'})
         data = request.get_json(silent=True) or {}
         reason = data.get('reason') or 'shutdown'
 
@@ -2375,7 +2360,10 @@ def create_app(
 
     @app.route('/')
     def index():
-        return send_from_directory(app.static_folder, 'index.html')
+        return jsonify({
+            'service': 'confirm_ui',
+            'message': 'Confirmation UI is served by workbench',
+        })
 
     @app.route('/api/health')
     def health():
@@ -2430,6 +2418,37 @@ def create_app(
             return resp
         except (OSError, json.JSONDecodeError) as exc:
             return jsonify({'error': f'invalid catalogs.json: {exc}'}), 500
+
+
+    @app.route('/api/template-roster/<kind>/<template_id>')
+    def get_template_roster(kind: str, template_id: str):
+        """Serve one registered workspace's prototype roster and identity card."""
+        root = _library_workspace(kind, template_id)
+        if root is None:
+            return jsonify({'error': 'unknown template'}), 404
+        pages = sorted((root / 'templates').glob('*.svg'))
+        base = f'/api/template-file/{kind}/{template_id}'
+        payload = {
+            'kind': kind,
+            'id': template_id,
+            'roster': [
+                {'name': page.name, 'url': f'{base}/templates/{page.name}'}
+                for page in pages
+            ],
+            'images_prefix': f'{base}/images',
+            'frontmatter': _template_frontmatter(root),
+        }
+        resp = jsonify(payload)
+        resp.headers['Cache-Control'] = 'no-store'
+        return resp
+
+    @app.route('/api/template-file/<kind>/<template_id>/<path:filename>')
+    def get_template_file(kind: str, template_id: str, filename: str):
+        """Serve one file from a registered workspace (index-derived root only)."""
+        root = _library_workspace(kind, template_id)
+        if root is None:
+            return jsonify({'error': 'unknown template'}), 404
+        return send_from_directory(root, filename)
 
     @app.route('/api/icon-previews')
     def get_icon_previews():
@@ -2554,6 +2573,7 @@ def create_app(
             recommend.pop('template_adherence', None)
         data.pop('template_reuse_scope', None)
         data.pop('template_adherence', None)
+        data['outline_preview'] = _build_preview_sample(project_path, data)
         # The page polls this endpoint after each confirmation until the AI
         # creates the next stage file, so it must never be cached.
         resp = jsonify(data)
@@ -2752,235 +2772,3 @@ def create_app(
     return app
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description='PPT Master template and Strategist confirmation UI',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    parser.add_argument('project_dir', help='Path to project directory')
-    parser.add_argument(
-        '--port', type=int, default=None,
-        help=f'Exact port to listen on (default: first free port from {DEFAULT_PORT})',
-    )
-    parser.add_argument('--no-browser', action='store_true', help='Do not auto-open browser')
-    parser.add_argument(
-        '--daemon', action='store_true',
-        help='Start the server in the background; combine with --wait to block until confirmation',
-    )
-    parser.add_argument(
-        '--wait', action='store_true',
-        help='With --daemon, wait until the active result.json stage is written',
-    )
-    parser.add_argument(
-        '--wait-only', action='store_true',
-        help='Attach to the confirm server for this project and wait for an '
-             'already-open page to write the requested receipt. If it is '
-             'already persisted, return without recovery; otherwise recover a '
-             'dead server on the recorded/default port so browser polling can resume.',
-    )
-    parser.add_argument(
-        '--wait-stage', default='final', metavar='{stage1,final}',
-        help='Wait for this result.json stage (default: final). Use stage1 '
-             'after opening the combined template/communication page.',
-    )
-    parser.add_argument(
-        '--wait-timeout', type=int, default=WAIT_TIMEOUT_DEFAULT,
-        help=f'Seconds the wait caller blocks before returning (default: {WAIT_TIMEOUT_DEFAULT}; '
-             '0 = no limit). Kept under the caller\'s tool timeout; the detached server lives on.',
-    )
-    parser.add_argument(
-        '--timeout', type=int, default=900,
-        help='Server idle timeout in seconds (default: 900; 0 = disabled)',
-    )
-    parser.add_argument(
-        '--shutdown', action='store_true',
-        help='Stop a confirm server left running for this project, then exit '
-             '(idempotent). Run at the end of Step 4 so the page never lingers '
-             'on its selected port before live preview starts.',
-    )
-    return parser
-
-
-def main(argv: Optional[list[str]] = None) -> int:
-    parser = build_parser()
-    args = parser.parse_args(argv)
-
-    logging.basicConfig(
-        level=logging.INFO,
-        format='[%(asctime)s] [%(levelname)s] confirm_ui: %(message)s',
-        datefmt='%H:%M:%S',
-    )
-    plain_request_log()
-
-    if args.port is not None:
-        try:
-            args.port = _validate_port(args.port)
-        except ValueError as exc:
-            logger.error('%s', exc)
-            return 2
-
-    project_path = Path(args.project_dir).resolve()
-    if not project_path.is_dir():
-        logger.error('%s is not a directory', project_path)
-        return 1
-    wait_stage = _stage_key(str(args.wait_stage).strip().lower())
-    if wait_stage not in {'stage1', 'final'}:
-        logger.error('--wait-stage must be stage1 or final')
-        return 2
-
-    # Step 4 cleanup: stop any lingering confirm server and exit. Independent of
-    # recommendation files (the page may never have been confirmed).
-    if args.shutdown:
-        return _shutdown_existing(project_path / LOCK_FILE_NAME)
-
-    # Staged wait: attach to the server launched by --daemon and block until
-    # the page writes the requested Strategist receipt.
-    if args.wait_only:
-        lock_file = project_path / LOCK_FILE_NAME
-        confirm_dir = project_path / CONFIRM_DIR_NAME
-        result_file = confirm_dir / RESULT_NAME
-        wait_status = _wait_result_status(result_file, wait_stage)
-        if wait_status is not None:
-            return wait_status
-        if wait_stage == 'stage1':
-            readiness_error = _stage1_ready_error(confirm_dir)
-        else:
-            recommendations_file = _active_recommendations_path(confirm_dir)
-            readiness_error = _stage2_ready_error(
-                project_path,
-                confirm_dir,
-                recommendations_file,
-            )
-        if readiness_error:
-            logger.error(
-                'confirmation stage=%s is not ready: %s',
-                wait_stage,
-                readiness_error,
-            )
-            return 1
-        if not _live_lock(lock_file):
-            launch_error = _confirmation_launch_error(confirm_dir)
-            if launch_error:
-                logger.error('%s', launch_error)
-                return 1
-            exact_port = args.port is not None
-            recovery_port = (
-                args.port
-                if exact_port
-                else _preferred_recovery_port(lock_file, DEFAULT_PORT)
-            )
-            try:
-                _, actual_port, _ = _launch_background_server(
-                    project_path,
-                    preferred_port=recovery_port,
-                    exact_port=exact_port,
-                    idle_timeout=args.timeout,
-                    open_browser=False,
-                )
-            except RuntimeError as exc:
-                logger.error('%s', exc)
-                return 1
-            if actual_port != recovery_port and not args.no_browser:
-                open_preview_browser(_server_url(actual_port), logger=logger)
-            logger.info(
-                'recovered confirm UI for wait-only at %s; the browser polling should resume',
-                _server_url(actual_port),
-            )
-        return _wait_only_for_result(
-            result_file,
-            lock_file,
-            args.wait_timeout,
-            wait_stage,
-        )
-
-    confirm_dir = project_path / CONFIRM_DIR_NAME
-    launch_error = _confirmation_launch_error(confirm_dir)
-    if launch_error:
-        logger.error('%s', launch_error)
-        return 1
-
-    if args.daemon:
-        lock_file = project_path / LOCK_FILE_NAME
-        existing = _read_lock(lock_file)
-        if existing and _process_alive(_lock_pid(existing)):
-            existing_pid = existing.get('pid', '?')
-            existing_port = existing.get('port', '?')
-            logger.error(
-                'confirm UI is already running for this project '
-                '(pid=%s, port=%s). Open http://%s:%s',
-                existing_pid, existing_port, PUBLIC_HOST, existing_port,
-            )
-            return 1
-
-        confirm_dir = project_path / CONFIRM_DIR_NAME
-        result_file = confirm_dir / RESULT_NAME
-        expected_stage = _expected_result_stage(confirm_dir)
-        try:
-            proc, port, _ = _launch_background_server(
-                project_path,
-                preferred_port=args.port if args.port is not None else DEFAULT_PORT,
-                exact_port=args.port is not None,
-                idle_timeout=args.timeout,
-                open_browser=not args.no_browser,
-            )
-        except RuntimeError as exc:
-            logger.error('%s', exc)
-            return 1
-        if args.wait:
-            return _wait_for_result(
-                result_file,
-                proc,
-                args.wait_timeout,
-                expected_stage,
-            )
-        return 0
-
-    try:
-        port = args.port if args.port is not None else _find_free_port(DEFAULT_PORT)
-    except RuntimeError as exc:
-        logger.error('%s', exc)
-        return 1
-
-    # Per-project mutual exclusion: refuse duplicate launches. Stale locks
-    # (dead pid) are overwritten by _claim_lock.
-    lock_file = project_path / LOCK_FILE_NAME
-    existing = _claim_lock(lock_file, port)
-    if existing:
-        existing_pid = existing.get('pid', '?')
-        existing_port = existing.get('port', '?')
-        logger.error(
-            'confirm UI is already running for this project '
-            '(pid=%s, port=%s). Open http://%s:%s, or run: kill %s',
-            existing_pid, existing_port, PUBLIC_HOST, existing_port, existing_pid,
-        )
-        return 1
-    atexit.register(_release_lock, lock_file)
-
-    def _on_sigterm(signum: int, _frame) -> None:
-        logger.info('received signal %s, exiting', signum)
-        sys.exit(0)
-    try:
-        signal.signal(signal.SIGTERM, _on_sigterm)
-    except (ValueError, OSError):
-        pass
-
-    app = create_app(
-        str(project_path),
-        idle_timeout=args.timeout,
-        lock_file=lock_file,
-        server_port=port,
-    )
-
-    url = _server_url(port)
-    if not args.no_browser:
-        _open_browser_async(url)
-
-    logger.info('running at %s', url)
-    logger.info('project: %s', project_path)
-    logger.info('idle timeout: %ds (0 = disabled)', args.timeout)
-    app.run(host=PUBLIC_HOST, port=port, debug=False)
-    return 0
-
-
-if __name__ == '__main__':
-    raise SystemExit(main())

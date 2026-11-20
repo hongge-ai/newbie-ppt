@@ -255,24 +255,21 @@ def discover_pages(project_path: Path, requested: list[str] | None) -> list[str]
 
 
 def discover_server_url(project_path: Path) -> str:
-    """Return the live-preview URL recorded for one project."""
-    lock_paths = (
-        project_path / 'live_preview' / 'lock.json',
-        project_path / '.live_preview.lock',
-    )
-    for lock_path in lock_paths:
-        lock = read_lock(lock_path)
-        if not lock or not process_alive(lock_pid(lock)):
-            continue
-        try:
-            port = int(lock.get('port', 0) or 0)
-        except (TypeError, ValueError):
-            port = 0
-        if 1 <= port <= 65535:
-            return f'http://127.0.0.1:{port}'
-    raise RuntimeError(
-        f'no running live-preview server recorded for project: {project_path}'
-    )
+    """Return this project's mounted preview URL from the workbench lock."""
+    lock_path = project_path.parent / '.workbench' / 'workbench.lock'
+    lock = read_lock(lock_path)
+    if not lock or not process_alive(lock_pid(lock)):
+        raise RuntimeError(
+            'no running workbench found; start workbench/server.py first '
+            f'(expected lock at {lock_path})'
+        )
+    try:
+        port = int(lock.get('port', 0) or 0)
+    except (TypeError, ValueError):
+        port = 0
+    if not 1 <= port <= 65535:
+        raise RuntimeError(f'workbench lock has no usable port: {lock_path}')
+    return f'http://127.0.0.1:{port}/p/{project_path.name}/preview'
 
 
 def check_server(server_url: str, project_path: Path) -> None:

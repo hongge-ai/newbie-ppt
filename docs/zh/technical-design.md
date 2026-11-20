@@ -311,7 +311,7 @@ CLI 支持 `--move`、`--copy` 和自动默认，但共享同一条固定的所�
 
 ## Canvas 格式系统
 
-PPT Master 不只服务 PPT——同一套 SVG → DrawingML 流水线还能产出方形海报、9:16 故事、A4 印刷品。各格式特定的约定（比例、安全区、品牌区等）住在 [`references/canvas-formats.md`](../../skills/ppt-master/references/canvas-formats.md)。
+注册的画幅只有两种：16:9（`ppt169`，1280×720）与 4:3（`ppt43`，1024×768）。`config.CANVAS_FORMATS` 是所有入口读取的唯一来源，比例、安全区与字号锚点住在 [`references/canvas-formats.md`](../../skills/ppt-master/references/canvas-formats.md)。
 
 值得标注的架构选择：**viewBox 是像素，不是绝对单位。** 像素空间让 AI Executor 思考布局没有歧义（`x="100"` 就是左缘 +100px），人类在浏览器里检查也直接。到 EMU 的换算只在导出时发生一次——选像素意味着流水线的其余环节（Strategist、Executor、质量检查、后处理）永远不需要在 EMU 思维下工作，那对 AI 生成和人类调试都是敌对的。
 

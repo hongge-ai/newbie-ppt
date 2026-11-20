@@ -49,7 +49,11 @@ from .paths import (
     SCRIPTS_DIR,
     SOURCE_TO_MD_DIR,
 )
-from .project_specs import scaffold_project_artifact, validate_project_artifacts
+from .project_specs import (
+    scaffold_project_artifact,
+    validate_project_artifacts,
+    validate_runtime_state,
+)
 
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
@@ -1198,6 +1202,9 @@ class ProjectManager:
                 if expected_format == "unknown":
                     expected_format = None
                 warnings.extend(validate_svg_viewbox(svg_files, expected_format))
+
+        if project_path_obj.exists() and project_path_obj.is_dir():
+            errors.extend(validate_runtime_state(project_path_obj))
 
         return not errors, list(dict.fromkeys(errors)), warnings
 

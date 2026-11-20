@@ -2,13 +2,14 @@
 
 > The interactive surface for [`generate-pptx`](../../workflows/generate-pptx.md)
 > Step 4. Stage 1 shows the communication recommendation
-> and the template/free-design choice on one page and confirms both with one
+> and the template/free-design choice in the task page and confirms both with one
 > submission. That submission writes the Strategist contract to `result.json`
 > and the selection sidecar to `template_selection.json`. The agent then installs
-> any selected workspace; the server verifies its `template_install.json` before
-> exposing final Stage 2, which reads installed template state and confirms the coordinated deck
-> solution plus production mechanics. The chat path mirrors these boundaries
-> without fabricating UI receipts.
+> any selected workspace; the server verifies its `template_install.json`, the
+> agent authors `recommendations.stage2.json`, and this surface renders it for the
+> second confirmation — colour, typography, icons, template application, page
+> count, image strategy — embedded in the same task page. The chat path mirrors
+> these boundaries without fabricating UI receipts.
 
 ## Authority and Scope
 
@@ -19,7 +20,7 @@
 | Step 4 gate and pipeline order | [`generate-pptx.md`](../../workflows/generate-pptx.md) |
 | Confirm UI schema | This document |
 | Stage 1 / final Stage 2 field membership | This document |
-| Server launch / wait / shutdown behavior | This document |
+| Server launch / wait / finalize / shutdown behavior | This document |
 | Port and lock behavior | This document |
 | Chat fallback equivalence | This document |
 | Confirmed-value precedence | [`generate-pptx.md`](../../workflows/generate-pptx.md) plus this document's `result.json` contract |
@@ -28,30 +29,62 @@
 
 **Model-facing procedure lives elsewhere**: the surface decision, chat/delegated listing, always-on Stage-1 chat handoff, in-run UI → chat switch, and the authoring shapes of `recommendations.stage1.json`, `recommendations.stage2.json`, and `result.json` are owned by [`confirm-surface.md`](../../references/confirm-surface.md), which the Strategist reads. This document keeps the server lifecycle, the template-selection sidecar, catalogs, the progression guard, and the complete field semantics that the server validates.
 
-## `confirm_ui/server.py`
+## Template preview
 
-The following launch and wait commands belong to the **UI branch only**:
+The Stage-1 template picker renders the candidate itself, not just its summary:
 
-```bash
-python3 scripts/confirm_ui/server.py <project_path> --daemon         # launch combined Stage 1
-python3 scripts/confirm_ui/server.py <project_path> --wait-only --wait-stage stage1  # communication + template selection
-python3 scripts/confirm_ui/server.py <project_path> --wait-only       # current final Stage 2
-python3 scripts/confirm_ui/server.py <project_path> --daemon --port 5051
-python3 scripts/confirm_ui/server.py <project_path> --no-browser
-python3 scripts/confirm_ui/server.py <project_path> --timeout 0   # disable idle auto-shutdown
-python3 scripts/confirm_ui/server.py <project_path> --shutdown    # Step 4 cleanup (idempotent)
+| Route | Result |
+|---|---|
+| `GET /api/template-roster/<kind>/<id>` | `{kind, id, roster: [{name, url}], images_prefix, frontmatter}` for one registered workspace |
+| `GET /api/template-file/<kind>/<id>/<path>` | One file from that workspace |
+
+Both routes resolve the workspace from its index entry only (`kind` must name a
+registered kind and `id` must be a key in that kind's `*_index.json`), so an
+unregistered path is unreachable and `send_from_directory` still refuses
+traversal. Layout and deck return their prototype `templates/*.svg` roster;
+brand and style return an empty roster plus the parsed frontmatter, which the
+page renders as an identity card.
+
+The browser substitutes `{{TOKEN}}` placeholders with sample copy and rewrites
+`../images/` onto `images_prefix`, so a prototype reads as a page instead of
+braces and broken images. Icons referenced through `<use data-icon>` stay
+placeholders in this preview; they are embedded only at export.
+
+## Where it runs
+
+The page is a surface of the resident workbench, served on the workbench port:
+
+```
+http://127.0.0.1:<workbench port>/p/<project slug>/confirm/
 ```
 
-- Without `--port`, binds the first free port from `127.0.0.1:5050`; the launch log prints the actual URL. `--port N` is exact and fails when unavailable. Auto-open is suppressed by `--no-browser`.
-- In `--daemon` mode the launcher starts the child with browser opening suppressed, then accepts readiness only when `GET /api/health` identifies this confirm service, project, and child process. It opens the printed `http://127.0.0.1:<port>` URL only after that check.
-- Confirm UI and live preview use different defaults (`5050` / `6060`) and separate project-local locks (`.confirm_ui.lock` / `live_preview/lock.json`). Step 4 shuts down the confirm service before ending; concurrent projects may use different ports.
-- `--daemon` starts the Flask process in the background and returns after the health check. Every Default UI run launches directly into combined Stage 1 and keeps the same process live through final Stage 2. The wait budget defaults to **590 s** (`--wait-timeout`); on timeout the detached server remains live, and the caller re-checks both Stage-1 receipts before chat fallback.
-- `--wait-only` attaches to the page opened by `--daemon` and blocks until the requested receipt. If it is already persisted, the command returns before recovery, so a fast submit between launch, chat handoff, and wait is not lost. Otherwise, if the recorded server died, it restarts on the recorded/default port. Use `stage1` for the combined communication/template submission and the default/final wait for Stage 2.
-- Stage 2 checks the selected roots and the installer's receipt directly. There is no manual completion command or handoff sidecar.
-- `--shutdown` stops a confirm server left running for this project and exits — **idempotent** (a no-op when nothing is running). Tries a graceful `/api/shutdown`, falls back to killing the recorded pid, then clears the lock. Generate Step 4 runs this on every path so the selected port is released before live preview starts.
+There is no per-project server to launch, no port to pick, and nothing to shut
+down: the workbench already owns the process. The agent's CLI is the wait, which
+reads the receipt the page writes:
+
+```bash
+python3 scripts/confirm_ui/wait.py <project_path> --stage outline                   # workbench Step 1 outline review / revision batch
+python3 scripts/confirm_ui/wait.py <project_path> --stage outline --publish-revision # publish revised outline.md then wait again
+python3 scripts/confirm_ui/wait.py <project_path> --stage stage1                    # contract + template (includes delegate_stage2)
+python3 scripts/confirm_ui/wait.py <project_path> --stage final                     # the plan review
+```
+
+- `wait.py` returns `0` when the target stage is persisted (or, for `--stage outline`, when `confirm_ui/outline_state.json` reaches `revising` or `confirmed`), `1` when the stage is
+  not ready or its receipt is invalid, and `124` on timeout (default 900 s,
+  `--timeout 0` waits forever). On `--stage stage1`, stdout includes `"delegate_stage2"` and `"preferred_visual_style"` from `confirm_ui/workbench_prefs.json`. A timeout leaves the page open; re-check receipts before falling back to chat.
+- While it waits, `wait.py` heartbeats the bound run every 20 s. The writer lease
+  expires after 60 s, so without that beat the workbench would report the task as
+  interrupted while its human is still deciding. The beat is best-effort: an
+  unbound project or an expired lease is ignored and the wait continues.
+- The page is served from `create_app` in this module; the workbench mounts it
+  with `embedded=True`, which disables the idle watchdog and turns
+  `/api/shutdown` into a no-op so a browser view can never end the shared
+  process.
+- The Stage-2 gate checks the selected roots and the installer's receipt before
+  the page renders the plan. There is no manual completion command or handoff
+  sidecar.
 - A run starts with `recommendations.stage1.json` containing `template_options`. The complete recommendation's canonical JSON SHA-256 participates in the option digest. Changing its content starts a new round and invalidates old selections, results, installation receipts and Stage-2 recommendations. To deliberately repeat identical choices in a new round, change a top-level `revision` value; touching timestamps or reformatting JSON does not start a round. Legacy standalone options/handoff files are ignored. Old results without the content binding require Stage 1 again.
-- Per-project lock at `<project_path>/.confirm_ui.lock` — duplicate launches are refused; stale locks (dead pid) are overwritten.
-- Idle auto-shutdown after 900 s by default; `/api/shutdown` exits gracefully and releases the lock.
+- No per-project lock and no idle timeout: the workbench owns the lifecycle, and the page is one more view inside it.
 - Stage-1 `GET /api/recommendations` embeds the server-built candidate catalog
   as top-level `template_options`. Its `/api/confirm` submission validates
   the rendered options digest and current candidate keys, then writes `template_selection.json` beside the pure
@@ -228,8 +261,8 @@ changes still require confirmation again. Old selections without snapshots must
 be confirmed again; the server does not reconstruct historical authorization.
 
 The Stage-1 submission writes this receipt and the Stage-1 `result.json`
-together. Generate reads both exactly once after `--wait-only --wait-stage
-stage1` returns. Free design skips installation. Template mode runs
+together. Generate reads both exactly once after `wait.py --stage stage1`
+returns. Free design skips installation. Template mode runs
 `apply-template-workspace` against all selected roots and waits for complete
 project-local installation, which the server checks directly. Installation validates and maps each distinct root once while
 preserving its separate specs; Stage 2 resolves segment ownership and
@@ -264,7 +297,7 @@ The following fields belong to the Strategist stages, not to the
 template-selection receipt.
 
 - **Enumerable + custom** — canvas / base icons retain blank manual inputs. The base icon field stays single-select: one generic SVG style, Emoji, custom, or none. `simple-icons` is not listed; Strategist prepares actual brand marks from content as needed. Mode and visual style first show three project-specific `custom` values projected from the complete directions, then the full fixed base catalog as conservative single-select alternatives. Selecting a projected card expands its behavior editor in place; edits change only the current value, while the adjusted active whole-direction card exposes an explicit restore action for the authored text.
-- **Visual examples for hard-to-name choices** — the full-screen confirmation page loads real SVG page samples from `static/style_previews/` for fixed `visual_style` catalog choices, and renders real sample SVGs from `templates/icons` for the base `icons` field. Project-specific `custom` direction cards show their authored summary instead of requesting a nonexistent preset asset. These thumbnails and summaries make style and icon-library choices visually comparable before the user locks them. Preview copy is fixed role text (big title / section title / body / points), not project content from recommendation files, so users compare visual treatment rather than copywriting. These previews are a confirmation aid only: they do not add fields to recommendation stage files or `result.json`, and they do not replace the later Step 6 live preview.
+- **Visual examples for hard-to-name choices** — the native confirmation view (`workbench/static/stage2_confirm.js`) renders live project-grounded SVG previews via the shared `workbench/static/style_slides.js` renderer for all 18 fixed `visual_style` catalog choices (populated from `outline.md` or Stage-1 communication fields via the read-only `outline_preview` payload, with an on-demand 4-slide zoom modal), and renders real sample SVGs from `templates/icons` for the base `icons` field. Project-specific `custom` direction cards show their authored summary instead of requesting a nonexistent preset asset. These thumbnails and summaries make style and icon-library choices visually comparable before the user locks them. These previews are a confirmation aid only: they do not add fields to recommendation stage files or `result.json`, and they do not replace the later Step 6 live preview.
 - **Image usage multi-select** — image sources are selected as one or more catalog ids: `ai` = AI-generated, `web` = Web-sourced, `provided` = User-provided, `placeholder` = Placeholder, `none` = No images. `none` is exclusive. A confirmed non-`none` set is the allowed acquisition-source boundary, not a requirement to use every selected source; only explicit `image_notes` wording can require a source, asset, or page role. Recommendation and result values may be a legacy single string, but new files should use an array. When several sources are recommended, write the source ids to `recommend.image_usage` and write the actual usage strategy to `image_notes`, not a custom prose value.
 - **Closed enumerable** — PPT reading mode (`delivery_purpose` compatibility key), generation mode / refine spec, plus AI source only when image usage includes `ai`. These have no Custom box; out-of-catalog values snap back to the recommended option.
 - **Proactive execution booleans** — Final Stage 2 carries top-level `proactive_speaker_notes`, `proactive_custom_animations`, and `proactive_narration_audio` values. Defaults are `true`, `false`, and `false`, respectively. They control what the Agent does proactively only when the user has not explicitly instructed otherwise; the latest explicit user instruction always wins. These three values are raw confirmation evidence: the UI and server neither couple nor rewrite them, and every boolean combination is valid. When narration audio is enabled, Strategist later resolves the effective Speaker Notes outcome to enabled and records `Narration Audio dependency` as its Design Spec provenance. Disabling proactive custom animation does not suppress the Strategist's advisory motion recommendations.
@@ -279,61 +312,70 @@ Direction-local custom projections apply to mode, visual style, and generated-im
 
 `image_ai_path` is conditional: the page shows it and writes it to `result.json` only when `image_usage` includes `ai`. Web-sourced / User-provided / Placeholder / No images paths do not carry an AI backend choice.
 
-## Catalogs — `static/catalogs.json` (the finite option universe)
+## Catalogs — `confirm_ui/catalogs.json` (the finite option universe)
 
-The front-end loads `/api/catalogs` (served by the confirm server) and falls back to the static `/static/catalogs.json` if that route is unavailable. `/api/catalogs` returns the static file **with the `canvas` list synced live from `config.py CANVAS_FORMATS`** — the set of formats and their `dim` come from config (single source of truth, zero drift), while four-language labels / use text stay in catalogs.json (a plain fallback label is synthesized for any new id config adds). Keys: `canvas`, `modes`, `visual_styles` (grouped), `icons`, `image_usage`, `image_ai_path`, `generation_mode`, `design_spec_depth`, `delivery_purpose`. `simple-icons` is content-driven and has no option. Each catalog entry is `{ "id", "label", "label_zh", "label_zh_tw", "label_en", "label_ja", ... }`; descriptions use `desc_zh` / `desc_zh_tw` / `desc_en` / `desc_ja`, and `visual_styles` groups use `group_zh` / `group_zh_tw` / `group_en` / `group_ja`. The front-end falls back to legacy `label` / `desc` / `group`, so old catalogs still load, but new user-facing catalog text must cover all four languages (zh / zh-TW / en / ja). English labels should mirror canonical reference names (`pyramid`, `swiss-minimal`, `Path A`, `continuous`, etc.); Simplified Chinese, Traditional Chinese, and Japanese labels should be translated for users. Descriptions render inline after the option title, not as a separate selected-option line. `visual_styles` is `[{ "group", "group_zh", "group_zh_tw", "group_en", "group_ja", "items": [...] }]`. For `canvas` you only need to maintain the four-language labels in catalogs.json; the format set and dimensions are authoritative in `config.py CANVAS_FORMATS`.
+The Workbench front-end loads catalogs from `/api/catalogs` (served by the confirm API backend and by Workbench `/api/options`). `/api/catalogs` returns `confirm_ui/catalogs.json` **with the `canvas` list synced live from `config.py CANVAS_FORMATS`** — the set of formats and their `dim` come from config (single source of truth, zero drift), while four-language labels / use text stay in catalogs.json (a plain fallback label is synthesized for any new id config adds). Keys: `canvas`, `modes`, `visual_styles` (grouped), `icons`, `image_usage`, `image_ai_path`, `generation_mode`, `design_spec_depth`, `delivery_purpose`. `simple-icons` is content-driven and has no option. Each catalog entry is `{ "id", "label", "label_zh", "label_zh_tw", "label_en", "label_ja", ... }`; descriptions use `desc_zh` / `desc_zh_tw` / `desc_en` / `desc_ja`, and `visual_styles` groups use `group_zh` / `group_zh_tw` / `group_en` / `group_ja`. The front-end falls back to legacy `label` / `desc` / `group`, so old catalogs still load, but new user-facing catalog text must cover all four languages (zh / zh-TW / en / ja). English labels should mirror canonical reference names (`pyramid`, `swiss-minimal`, `Path A`, `continuous`, etc.); Simplified Chinese, Traditional Chinese, and Japanese labels should be translated for users. Descriptions render inline after the option title, not as a separate selected-option line. `visual_styles` is `[{ "group", "group_zh", "group_zh_tw", "group_en", "group_ja", "items": [...] }]`. For `canvas` you only need to maintain the four-language labels in catalogs.json; the format set and dimensions are authoritative in `config.py CANVAS_FORMATS`.
 
 ## Round-trip data contract
 
 UI recommendations, selection and result files live under
 `<project_path>/confirm_ui/`. Stage 1 embeds `template_options` and submits
-`result.json` with `template_selection.json`. Stage 2 requires matching selection
-and installation content (or free design); see the protocol above. Chat uses the
-same logical order without fabricating UI receipts.
+`result.json` with `template_selection.json`. The Stage-2 plan requires matching
+selection and installation content (or free design) and is confirmed on the same
+page. Chat uses the same logical order without fabricating UI receipts.
 
-### Current two-stage flow
+### Two confirmations, one page
 
-The page runs a **two-stage Strategist wizard in one browser session**. Stage 1
-contains the communication contract and template/free-design controls. Each stage
-has its own Strategist-authored file and top-level `"stage"` selector. The active,
-unconfirmed stage may be overwritten any number of times when the user asks for
-a better recommendation; refresh the page to load the replacement. Once the
-user confirms it, normal progression writes the next stage file rather than
-repurposing the previous one. The server derives the active Strategist filename
-from `result.json` and its Stage-1 content binding; verified installation is the prerequisite for Stage 2.
+Both gates live in the workbench task page. Stage 1 is an inline card carrying
+the communication contract, the template/free-design choice (with each
+candidate's real prototype thumbnails), and an optional display-only preview of
+the visual direction. Stage 2 mounts the native confirmation component
+(`workbench/static/stage2_confirm.js`) directly under that card once
+`recommendations.stage2.json` exists: colour, typography, icons, template
+application, page count, image strategy, generation mode. The user still owns
+every one of those values — the Strategist's plan is a proposal until the user
+submits it.
+
+Each stage has its own Strategist-authored file and top-level `"stage"` selector:
+the active, unconfirmed stage may be overwritten any number of times when the
+user asks for a better recommendation. The server derives the active Strategist
+filename from `result.json` and its Stage-1 content binding; verified
+installation is the prerequisite for rendering Stage 2.
 
 A changed Stage-1 recommendation starts a new round; unchanged content resumes
 the current round. A new `revision` value can request another round with the same
 choices. Stale selection/results and Stage-2 files cannot satisfy the new content
 binding. Completed results stay closed until a new round starts.
 
-| Recommendation file | Declared stage | Page renders | Button | On submit |
+| Recommendation file | Declared stage | Rendered by | Confirmed by | On submit |
 |---|---|---|---|---|
-| `recommendations.stage1.json` (embedded `template_options`) | `"stage1"` | communication contract — content language; audience; open `communication_intent`; audience outcome; core message / primary delivery context + optional secondary use / artifact afterlife / `content_divergence` (all prose fields may be blank); canvas; free-design/template mode and conditional candidate selectors | **Confirm contract & template choice** | writes Stage-1 `result.json` plus `template_selection.json` in one submission; the page stays open and polls while the agent installs and the server verifies the selected roots |
-| `recommendations.stage2.json` | `"stage2"` | complete deck solution and production — conditional natural-language template application, reading mode, mode, page count, visual direction, color, icons, typography, image usage/rendering, conditional AI acquisition path, proactive notes/custom-animation/narration-audio toggles, generation mode, Design Spec review toggle, and Design Spec depth | **Confirm final plan** | writes `result.json` `{ stage: "final", status: "confirmed", <all fields> }`, then shuts the page down |
+| `recommendations.stage1.json` (embedded `template_options`) | `"stage1"` | the task page's proposal card: communication contract — content language; audience; open `communication_intent`; audience outcome; core message / primary delivery context + optional secondary use / artifact afterlife / `content_divergence` (all prose fields may be blank); canvas; free-design/template mode with candidate thumbnails; optional `preview` and `display_title` | **the user**, once (`POST /api/confirm`) | writes Stage-1 `result.json` plus `template_selection.json` in one submission |
+| `recommendations.stage2.json` | `"stage2"` | this surface, embedded under the card: complete deck solution and production — template application, reading mode, mode, page count, visual direction, colour, icons, typography, image usage/rendering, conditional AI acquisition path, proactive notes/custom-animation/narration-audio toggles, generation mode, Design Spec review toggle, and Design Spec depth | **the user**, once (`POST /api/confirm`, `stage: "final"`) | writes `result.json` `{ stage: "final", status: "confirmed", <all fields> }` |
+
+The workbench knows the review is due from two facts on disk — a `stage1` result
+and an authored `recommendations.stage2.json` — and exposes them as
+`plan.review_due` in the task progress payload. Nothing is applied without the
+user's submission.
 
 In the UI branch, the AI authors Stage 1 without reading candidate indexes or
 workspaces — template facts already in context inform only the canvas and page
 range ([`generate-pptx.md`](../../workflows/generate-pptx.md) Step 4) — then
-launches the combined page. In chat/delegated confirmation it authors the
-same communication recommendation before listing template candidates. After
-the one Stage-1 confirmation, the AI installs any selection, completes the
-handoff/equivalent state, then inspects only the project-local template and
-authors the complete final Stage-2 solution plus production mechanics once from
-the user's actual communication contract. An edit inside
-the current stage never requests another recommendation. The page preserves
-earlier answers across transitions. `GET /api/session` reports `phase:
-"strategist"` with current Stage 1 from launch; after Stage-1 submission it
-reports `waiting_agent` until the bound handoff and fresh Stage-2 file exist.
-`GET /api/recommendations`
+posts the handoff summary. In chat/delegated confirmation it authors the same
+communication recommendation before listing template candidates. After
+the Stage-1 confirmation, the AI installs any selection, then inspects only
+the project-local template and authors the complete Stage-2 plan plus production
+mechanics once from the user's actual communication contract. An edit inside
+the current stage never requests another recommendation. `GET /api/session`
+reports `phase: "strategist"` with current Stage 1 from launch; after Stage-1
+submission it reports `waiting_agent` until the bound handoff and fresh Stage-2
+file exist. `GET /api/recommendations`
 is `no-store`, and the server folds confirmed earlier-stage choices back into
-the final Stage-2 payload so an in-run refresh preserves the confirmed Stage-1
-communication contract. Unsubmitted Stage-2 edits are browser-local and a
-completed final result is never reopened.
+the served Stage-2 payload so an in-run refresh preserves the confirmed Stage-1
+communication contract. A completed final result is never reopened.
 
 **Progression guard.** Stage 1 requires valid recommendations with embedded
 template options. Its submit binds the result and selection to that content.
-Stage 2 requires the current confirmed result, the selected roots' verified
+The final stage requires the current confirmed result, the selected roots' verified
 installation (or free design), and a recommendation with matching
 `selection_sha256`. File timestamps do not authorize progression.
 `/api/confirm` accepts only the submit stage matching the
@@ -353,6 +395,7 @@ state and does not confirm a choice.
   "stage": "stage1",
   "lang": "zh",
   "primary_language": "zh-CN",
+  "display_title": "三季度经营分析汇报",
   "template_options": {
     "schema_version": 1,
     "phase": "template",
@@ -379,9 +422,26 @@ state and does not confirm a choice.
   "artifact_afterlife": {
     "value": "作为审批记录、项目交接依据和季度审计材料"
   },
-  "content_divergence": { "value": "" }
+  "content_divergence": { "value": "" },
+  "preview": {
+    "visual_style": "swiss-minimal",
+    "note": "以瑞士极简打底：严格栅格、大留白，数据页用单色柱状图，标题写成判断句。"
+  }
 }
 ```
+
+`preview` is optional and display-only: the workbench renders `visual_style` as
+that catalog style's preview image (ids come from `catalogs.json`
+`visual_styles`) plus `note` as one paragraph, so the user sees the intended
+look before confirming. It is never submitted, never overrides a confirmed
+value, and an unknown id simply shows the note text. Omit it and the card says
+the direction will be decided during generation.
+
+`display_title` is optional and display-only too: it is the name the card
+proposes for the task (the compose form asks for none). The page shows it as an
+editable field, and the user's confirmed value is written to `task.json` by the
+workbench — it never enters `result.json`, and `result.json` never carries a
+title.
 
 All seven Stage-1 prose values may be blank. `primary_language` is required canonical BCP-47. The server normalizes legacy English / Chinese / Japanese / Korean aliases, rejects `und` and Chinese without script/region, and carries it forward; `lang` is UI-only. Prose submits verbatim, including `""`. A profile's `{ "locked": true }` value is read-only, persisted, and stripped of that marker in final `result.json`.
 
@@ -486,7 +546,7 @@ Template-mode-only Stage-2 fragment:
 - **Color candidates carry the user-facing core `palette`**: `background`, `secondary_bg`, `primary`, `accent`, `secondary_accent`, and `body_text`. The page renders every role as a labelled swatch with its HEX value visible, and offers per-role override inputs for precise single-role edits, plus a **Custom color card with a free-text box** — the user can describe the palette in words or paste HEX values instead of filling each role; this writes `color: { "name": "custom", "custom": "<text>" }` to `result.json` for the AI to interpret. Legacy `text` is accepted as an alias for `body_text`, but new files should write `body_text`. Strategist derives secondary text, borders, state colors, and visual-style neutral tiers while writing `design_spec.md`, then projects the machine values to `spec_lock.md`; those are not user-facing confirmation choices.
 - **Candidate display text is written once, in the confirmed UI language**: use the plain keys (`name`, `note`, `mode_behavior`, `visual_style_behavior`, `visual`, `mood`, `behavior`). The server accepts the plain key or, as legacy fallbacks, any one of the `_zh` / `_zh_tw` / `_en` / `_ja` suffixed variants, and the page falls back across them, so authoring the same text in several languages only adds output.
 - **Typography candidates** use concrete heading/body `primary`; non-English decks also use `english`, while English-primary decks omit it. `cjk` / `latin` remain legacy aliases. Localized `name` labels the pair and `css` only previews. Bundles differ overall; font pairs may repeat without blocking. Fixed pairs require `fixed: true`. Catalog `fonts` supplies language-filtered dropdowns plus Other without limiting recommendations; edits mark Custom and refresh the preview. Include topic samples. [`canvas-formats.md`](../../references/canvas-formats.md) § "Typography Scale Start" is the single owner of initial body anchors and sanity bands; the browser mirrors that rule, and submitted values remain px.
-- **Per-role size override** (parallel to color's per-role HEX override): besides `body_size`, the page exposes editable inputs for `title` / `subtitle` / `annotation`. The browser applies one documented deterministic dependency chain: PPT uses `reading mode → body baseline`, non-PPT uses `canvas → body baseline`, then every canvas uses `body baseline → unpinned role sizes` (role ramp: `body ×` the §g ratios). Changing reading mode updates a PPT body and all unpinned roles locally; changing body updates unpinned roles locally. Editing body or a role pins that value, so later reading-mode changes do not overwrite it. A font-only selection preserves current sizes; applying a different complete direction, or using the active card's explicit restore action, restores that direction's typography baseline and derived unpinned sizes. This is a browser-only state update: it performs no fetch and asks the backend to author no new recommendations. Each role input is labelled as px and shows an approximate pt equivalent (`1px = 0.75pt`) for orientation. The final values are written to `result.json` as `typography.sizes: { "title", "subtitle", "annotation" }` in **px** — every canvas, no pt and no `sizes_pt` provenance. These confirmed values are Strategist input anchors: the completed page plan may add recurring roles, and downstream execution owns bounded per-occurrence treatment. Candidate `sizes` remain accepted for compatibility; fresh Stage 2 preserves a candidate `body_size` as its baseline and derives only missing or unpinned role sizes from the same local ramp before first render.
+- **Per-role size override** (parallel to color's per-role HEX override): besides `body_size`, the page exposes editable inputs for `title` / `subtitle` / `annotation`. The browser applies one documented deterministic dependency chain: every registered canvas uses `reading mode → body baseline`, then it uses `body baseline → unpinned role sizes` (role ramp: `body ×` the §g ratios). Changing reading mode updates a PPT body and all unpinned roles locally; changing body updates unpinned roles locally. Editing body or a role pins that value, so later reading-mode changes do not overwrite it. A font-only selection preserves current sizes; applying a different complete direction, or using the active card's explicit restore action, restores that direction's typography baseline and derived unpinned sizes. This is a browser-only state update: it performs no fetch and asks the backend to author no new recommendations. Each role input is labelled as px and shows an approximate pt equivalent (`1px = 0.75pt`) for orientation. The final values are written to `result.json` as `typography.sizes: { "title", "subtitle", "annotation" }` in **px** — every canvas, no pt and no `sizes_pt` provenance. These confirmed values are Strategist input anchors: the completed page plan may add recurring roles, and downstream execution owns bounded per-occurrence treatment. Candidate `sizes` remain accepted for compatibility; fresh Stage 2 preserves a candidate `body_size` as its baseline and derives only missing or unpinned role sizes from the same local ramp before first render.
 - **`delivery_purpose` compatibility key / Reading mode** (enumerable, PPT only) decides where meaning is carried, not merely how large type is: `text` makes pages self-contained with complete sentences, short prose, captions, tables, and necessary detail; `balanced` shares explanation between page and presenter; `presentation` uses one idea, concise claims, and visual evidence while speech / notes carry the detail. It therefore governs page grammar, granularity, density / rhythm, and note burden. Reading-mode cards intentionally show **no px value**; the typography section owns the separately visible body / role sizes and applies any local default. It is surfaced in Stage 2 beside the visual system, separate from communication intent. `recommend.delivery_purpose` pre-selects one; `result.json` retains the key, while `spec_lock.md` uses canonical `consumption_mode`. Non-PPT canvases omit it.
 - **Combined style preview** — a compact live "overall impression" strip sits just above the color section and is **sticky**: it pins under the topbar so it stays visible while the user scrolls through the color / icon / typography sections, keeping the picking controls and their combined effect on screen together. It applies the currently selected color palette **and** typography (heading sample in `primary` over `background`, body sample in `body_text`, an `accent` bar, a `secondary_bg` chip) and repaints on every color / HEX-override / font / `body_size` change. It does not replace the per-candidate swatches or font samples (those stay for picking); it is deliberately an abstract style chip, **not** a slide-layout preview — page layout preview remains the live-preview server's job (Step 6). No schema field; it derives entirely from the existing color + typography selections.
 - **Generated-image direction** appears only for current `image_usage: ai`, but all three custom project candidates already exist in `design_directions` before that toggle. Turning AI on reveals those candidates immediately without a backend rerun, followed by the 20 fixed system styles. Selecting a project candidate expands its behavior editor in that card; a fixed preset submits its id, while a project candidate submits `rendering: "custom"` + edited non-empty `behavior`. Turning AI off omits `image_strategy` from the final result without deleting the authored recommendation candidates. Catalog-based custom behavior names exact ids for optional `image_rendering_references`; a novel behavior has none. The left preview follows selection. No image palette is written; deck colors remain authoritative, and legacy `image_strategy.palette` is ignored. Illustrated icons and decorative lettering are downstream AI carrier decisions; neither adds a Confirm UI field or `result.json` key.
@@ -556,9 +616,10 @@ by the server.
 
 - Bespoke mode / style prose lives only in the required behavior sibling; image custom prose lives in `image_strategy.behavior`. Canvas / icons retain free-text edge cases, color / typography retain `name: "custom"`, and image usage remains a source-id array plus `image_notes`.
 - `image_ai_path` and `image_strategy` appear only with `image_usage: ai` and remain confirmed downstream. The page is default; explicit/failure chat fallback keeps identical fields. `image_ai_path` selects the Step 5 path, and [`strategist-image.md`](../../references/strategist-image.md) §2 retains the selected rendering or custom behavior as the deck-level image identity anchor; individual prompts still adapt subject, composition, and atmosphere within it.
-- Stage-1 **Confirm contract & template choice** writes the Stage-1 `result.json` and `template_selection.json` together, then keeps the page open while the agent installs the selection. A successful Stage-1 wait is explicitly intermediate and cannot end the task. In the same active run, the agent writes Stage 2 bound to the selection after installation and enters the final wait while the page keeps polling. Stage-2 **Confirm final plan** saves the final `result.json` and shuts the server down (auto-close). The AI reads each receipt at its owning boundary; chat fallback mirrors the same decisions without UI artifacts. Either way, Step 4 ends with `--shutdown` so a never-confirmed page does not outlive Step 4.
+- Stage-1 **确认并生成** writes the Stage-1 `result.json` and `template_selection.json` together. A successful Stage-1 wait is explicitly intermediate and cannot end the task. In the same active run, the agent installs the selection, writes the Stage-2 plan bound to it, and the task page embeds this surface for the second confirmation; the user submits the final `result.json` and sees the confirmed overlay. The AI reads each receipt at its owning boundary; chat fallback mirrors the same decisions without UI artifacts. The page never outlives the workbench process, so Step 4 has nothing to release.
 
 ## Scope
 
 - Confirmation surface only — Strategist authors every recommendation; the page never generates deck content.
 - No SVG / layout preview here — that is the live preview server's job (`workflows/stages/live-preview.md`, Step 6).
+

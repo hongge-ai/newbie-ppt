@@ -95,6 +95,10 @@ temp_files/
 # Visual-review renderer writes per-project preview PNGs and the render lock
 projects/*/.preview/
 projects/*/.review/
+# Agent bridge runtime state (status.json, events.jsonl, lease, inbox).
+# Deleting it loses run history only; project artifacts are unaffected.
+projects/*/.runtime/
+*/.runtime/
 # Stray top-level screenshots created when MCP filename was a bare relative path
 # (the agreed convention is to always pass an absolute /tmp/... path)
 /probe-*.png
