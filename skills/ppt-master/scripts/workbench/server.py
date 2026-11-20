@@ -55,8 +55,11 @@ if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
 import agent_bridge  # noqa: E402
-from atomic_io import write_json_atomic  # noqa: E402
-from config import CANVAS_FORMATS  # noqa: E402
+from atomic_io import write_bytes_atomic, write_json_atomic  # noqa: E402
+from config import CANVAS_FORMATS, resolve_env_path, strip_env_quotes, strip_inline_env_comment  # noqa: E402
+from image_backends import backend_zzai
+from workbench.image_prices import daily_prices, RESOLUTIONS
+from image_gen import BACKEND_ALIASES, BACKEND_REGISTRY  # noqa: E402
 from confirm_ui.outline_store import (  # noqa: E402
     OutlineConflictError,
     confirm_outline,
@@ -116,7 +119,6 @@ USER_DOMAIN_FIELDS = (
     'submitted_at',
     'display_title',
     'topic',
-    'requirements',
     'params',
     'uploads',
 )
@@ -140,7 +142,7 @@ PAGE_COUNT_MAX = 60
 AGENT_HINT_TEMPLATE = """请接手 newbie-ppt 仓库中的一个工作台任务（任务号 {task_id}）。
 
 仓库根目录：{repo_root}
-任务文件：projects/.workbench/tasks/{task_id}/task.json（只读，含主题、想要的感觉、画幅、页数、语言、配图、讲者备注；附件在同目录 uploads/）
+任务文件：projects/.workbench/tasks/{task_id}/task.json（只读，含主题、画幅、页数、语言、配图、讲者备注；附件在同目录 uploads/）
 任务页面：{base_url}/#/task/{task_id}（用户在这里确认阶段、查看预览与交付物）
 
 执行要求：
@@ -418,7 +420,6 @@ def _default_task(task_id: str, topic: str, display_title: Optional[str]) -> dic
         'updated_at': now,
         'display_title': display_title,
         'topic': topic,
-        'requirements': {'feel': ''},
         'params': {
             'canvas': 'ppt169',
             'page_count': None,
@@ -499,16 +500,6 @@ def _apply_user_patch(task: dict, payload: object) -> Optional[str]:
         if not isinstance(topic, str) or not topic.strip():
             return 'topic must be a non-empty string'
         task['topic'] = topic.strip()
-    if 'requirements' in payload:
-        requirements = payload['requirements']
-        if not isinstance(requirements, dict):
-            return 'requirements must be a JSON object'
-        for key in ('feel',):
-            if key in requirements:
-                value = requirements[key]
-                if value is not None and not isinstance(value, str):
-                    return f'requirements.{key} must be a string'
-                task['requirements'][key] = (value or '').strip()
     if 'params' in payload:
         error = _apply_params_patch(task['params'], payload['params'])
         if error:
@@ -1245,6 +1236,119 @@ def create_app(
         })
         resp.headers['Cache-Control'] = 'no-store'
         return resp
+
+    image_settings_lock = threading.Lock()
+
+    @app.route('/api/settings/image', methods=['GET', 'PUT', 'POST'])
+    def image_settings():
+        if request.method in ('POST', 'PUT'):
+            if not request.is_json or request.headers.get('Origin', request.host_url.rstrip('/')) != request.host_url.rstrip('/'):
+                return jsonify(error='请在本地工作台操作'), 403
+        path = resolve_env_path()
+        with image_settings_lock:
+            try:
+                content = path.read_bytes().decode('utf-8') if path.exists() else ''
+                settings = {}
+                # Follow the generator's first-assignment and environment precedence.
+                pattern = re.compile(r'^(?P<prefix>[^\S\r\n]*(?:export +)?(?P<key>[A-Z_]+)[ \t]*=[ \t]*)(?P<raw>[^\r\n]*)', re.M)
+                for entry in pattern.finditer(content):
+                    key = entry['key']
+                    settings.setdefault(key, strip_env_quotes(strip_inline_env_comment(entry['raw']).strip()))
+                def configured(key, default=''):
+                    return os.environ.get(key, settings.get(key)) or default
+
+                active = BACKEND_ALIASES.get(configured('IMAGE_BACKEND').lower())
+                selected = request.args.get('channel') or ('openai' if active == 'openai' else 'zzai')
+                if selected not in ('openai', 'zzai'):
+                    return jsonify(error='未知渠道'), 400
+                custom = selected == 'openai'
+                current_base = configured('OPENAI_BASE_URL', 'https://api.openai.com/v1').rstrip('/') if custom else backend_zzai.BASE_URL
+                prefix = 'OPENAI' if custom else 'ZZAI'
+                current_key = configured(prefix + '_API_KEY')
+                if request.method == 'GET':
+                    edge = min(4, len(current_key) // 3)
+                    mask = current_key[:edge] + '********' + (current_key[-edge:] if edge else '')
+                    return jsonify(
+                        active=active,
+                        base_url=current_base,
+                        model=configured(prefix + '_MODEL', BACKEND_REGISTRY['openai']['default_model'] if custom else backend_zzai.DEFAULT_MODEL),
+                        key_mask=mask if current_key else '',
+                        default_url=backend_zzai.BASE_URL, default_model=backend_zzai.DEFAULT_MODEL,
+                        resolution=configured('ZZAI_RESOLUTION', '1k'),
+                    ), 200, {'Cache-Control': 'no-store'}
+
+                data = request.get_json(silent=True)
+                if not isinstance(data, dict):
+                    return jsonify(error='请填写生图设置'), 400
+                if request.method == 'POST':
+                    if data.get('action') == 'prices':
+                        snapshot = daily_prices(runtime_dir, configured('ZZAI_API_KEY'),
+                                                refresh_on_open=data.get('on_open') is True)
+                        return jsonify(snapshot), 200, {'Cache-Control': 'no-store'}
+                    if data.get('action') != 'reveal' or data.get('base_url') != current_base:
+                        return jsonify(error='请重新打开设置'), 400
+                    return jsonify(api_key=current_key), 200, {'Cache-Control': 'no-store'}
+                base = data.get('base_url')
+                if not isinstance(base, str) or not re.fullmatch(r"""https?://[^\s?#'"]+""", base):
+                    return jsonify(error='请输入完整的 HTTP 或 HTTPS 接口地址'), 400
+                base = base.rstrip('/')
+                try:
+                    parts = urllib.parse.urlsplit(base)
+                    if not parts.hostname or parts.username is not None or parts.password is not None:
+                        raise ValueError
+                    _ = parts.port
+                except ValueError:
+                    return jsonify(error='接口地址格式有误'), 400
+                name = 'zzai' if base == backend_zzai.BASE_URL else 'openai'
+                if request.args.get('channel'):
+                    if selected == 'zzai' and base != backend_zzai.BASE_URL:
+                        return jsonify(error='ZhenZhen AI 使用固定的接口地址'), 400
+                    name = selected
+                model = data.get('model')
+                if not isinstance(model, str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_./:@+-]{0,255}', model):
+                    return jsonify(error='请输入有效的模型 ID'), 400
+                prefix = name.upper()
+                alias = prefix + '_API_KEY'
+                desired = {'IMAGE_BACKEND': name, prefix + '_MODEL': model}
+                if name == 'openai':
+                    desired['OPENAI_BASE_URL'] = base
+                elif 'resolution' in data:
+                    if data['resolution'] not in RESOLUTIONS:
+                        return jsonify(error='请选择有效分辨率'), 400
+                    desired['ZZAI_RESOLUTION'] = data['resolution']
+                if any(k in os.environ and os.environ[k] != v for k, v in desired.items()):
+                    return jsonify(error='该设置由进程环境变量指定'), 409
+                if (base != current_base or not configured(alias)) and not data.get('api_key'):
+                    return jsonify(error='请输入该接口对应的 API Key'), 400
+                changes = {k: v for k, v in desired.items() if k not in os.environ and settings.get(k) != v}
+                if 'api_key' in data:
+                    secret = data['api_key']
+                    if alias in os.environ:
+                        return jsonify(error='API Key 由进程环境变量指定'), 409
+                    if not isinstance(secret, str) or not re.fullmatch(r"""[^\s'"\x00-\x1f\x7f]{1,4096}""", secret):
+                        return jsonify(error='请输入有效的 API Key'), 400
+                    if secret != configured(alias):
+                        changes[alias] = f'"{secret}"' if '#' in secret else secret
+                if changes:
+                    newline = '\r\n' if '\r\n' in content else '\n'
+
+                    def replace(entry):
+                        value = changes.pop(entry['key'], None)
+                        if value is None:
+                            return entry[0]
+                        raw = entry['raw']
+                        original = strip_inline_env_comment(raw)
+                        suffix = raw[len(original.rstrip()):]
+                        return entry['prefix'] + value + suffix
+
+                    content = pattern.sub(replace, content)
+                    if changes and content and not content.endswith('\n'):
+                        content += newline
+                    content += ''.join(f'{k}={v}{newline}' for k, v in changes.items())
+                    write_bytes_atomic(path, content.encode('utf-8'))
+                return jsonify(saved=True)
+            except (OSError, UnicodeError):
+                return jsonify(error='无法读写生图配置文件，请检查文件权限和编码'), 500
 
     @app.route('/api/options')
     def get_options():

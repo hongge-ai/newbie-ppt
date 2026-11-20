@@ -17,6 +17,8 @@ command provides a compact view.
 
 ## Project Overview
 
+For product decisions, start with what users are trying to accomplish and how they will understand their choices. Choose the experience first, then adapt the interface or underlying architecture where it improves usability.
+
 Newbie PPT (newbie-ppt, a China-focused fork of hugohe3/ppt-master under MIT) turns source material into natively editable DrawingML PPTX. Generate runs one standard pipeline: Strategist → Image_Generator → Executor, with its Confirm UI stages. Image to PPTX and Beautify are fidelity profiles inside that pipeline.
 
 **Route selection authority**: [`skills/ppt-master/workflows/routing.md`](skills/ppt-master/workflows/routing.md) owns the three top-level artifact routes: Generate PPTX, Create Template, and Edit Native PPTX. Child workflows, profiles, stages, and governance documents refine one selected route; they are not competing top-level routes.
