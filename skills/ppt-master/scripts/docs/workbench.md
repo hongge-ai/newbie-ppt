@@ -75,6 +75,8 @@ Task surface (server writes `task.json`; frozen once submitted):
 |---|---|
 | GET `/` | Workbench single-page app shell |
 | GET `/api/health` | `{status, service: "workbench", pid, repo_root, projects_root, task_count}` |
+| GET / PUT `/api/settings/image` | Read the effective image URL, masked key and model, or save an explicit connection. New configurations start with ZhenZhen AI. A custom base URL uses the OpenAI-compatible image protocol. Changing the address requires a key for the new endpoint. |
+| POST `/api/settings/image` | Reveal the current endpoint's key on an explicit user request, or read the ZhenZhen AI price snapshot. Opening settings starts one asynchronous estimate refresh per configured key and local calendar day. Later reads use the stored snapshot, including after a failed refresh. Estimates are CNY per 16:9 image, rounded upward to two decimals. |
 | POST `/api/shutdown` | Graceful exit `{status: "ok"}` |
 | GET `/api/options` | Option universe: `canvas` (synced live from `config.CANVAS_FORMATS`, labels from `static/options.json`), `page_counts`, `image_policies`, `languages` |
 | GET `/api/tasks` | `{tasks: [...]}` newest-first summaries with derived `status` and a `runtime` block; corrupt records appear with `status: "error"` |
@@ -135,7 +137,7 @@ state), a left rail holding the task list, and the workspace on the right.
 
 | Route | Workspace |
 |---|---|
-| `#/new` (fallback) | compose form: topic, "what it should feel like", canvas, page count, language, image policy, materials — no title field |
+| `#/new` (fallback) | compose form: topic, reference materials, canvas, page count, language, image policy radio group, speaker notes |
 | `#/task/<id>` | the task itself across a 3-step journey (`① 确认内容大纲 → ② 选择模板与风格 → ③ 生成幻灯片`) — draft form; takeover dispatch; **Step 1 outline workspace** (slide-by-slide cards from `outline.md` supporting both inline text-selection batch AI comments and direct single-slide text edit / add / delete / reorder); **Step 2 template & style picker** (visual gallery of AI free-design + slide-roster templates with cover/chapter/content SVG previews, full-roster modal, collapsed advanced palette/method customizer, and dual submit for direct generation vs Stage-2 fine-tuning); **Step 3 slide execution** (state line, progress bar, live slide thumbnails, deliverables, collapsible parameters/activity, feedback) |
 | `#/task/<id>/preview` | native page preview & annotation view in focus mode (`slide_preview.js`) |
 | `#/task/<id>/confirm` | full Stage 1 / Stage 2 confirmation view in focus mode (`stage2_confirm.js`) — a fallback for the embedded review, not the normal path |
@@ -269,7 +271,7 @@ derivation, applied at read time by [`agent_bridge.effective_state`](agent_bridg
 
 | Field group | draft | after submit | Writer |
 |---|---|---|---|
-| `display_title`, `topic`, `requirements`, `params`, `uploads` | server (PATCH/POST/DELETE) | frozen (server returns 409) | server |
+| `display_title`, `topic`, `params`, `uploads` | server (PATCH/POST/DELETE) | frozen (server returns 409) | server |
 | `submitted_at` | server, on submit only | frozen | server |
 | stage, progress, events, blocking request, error, exports | never present | read from `<project>/.runtime/` + project tree | agent |
 
@@ -290,7 +292,6 @@ without restart.
 
   "display_title": "Q3 汇报",        // AI names it; the user may rename it any time
   "topic": "非空任务主题",
-  "requirements": {"feel": ""},       // "what it should feel like", free text
   "params": {
     "canvas": "ppt169",               // config.CANVAS_FORMATS key
     "page_count": null,               // hint, not a hard constraint
@@ -302,7 +303,6 @@ without restart.
 }
 ```
 
-`requirements.feel` is the only free-text requirement the compose form asks for.
 Audience, intent, core message, and delivery context are **not** task fields: the
 AI authors them as the Stage-1 proposal, and the user edits them on the card
 before confirming. Keeping them out of `task.json` is what stops the same fact
@@ -353,7 +353,7 @@ route with its normal Confirm UI stages.
    and the run reads only the project-local `templates/` afterwards. There is no
    second human gate: after the install, author `recommendations.stage2.json` and
    wait for the user to confirm it in the embedded plan review (`confirm_ui/wait.py <project> --stage final`).
-6. **User domain is explicit**: `topic`, `requirements.feel`, and `params`
+6. **User domain is explicit**: `topic` and `params`
    (language, page count, canvas, image policy, speaker notes) are the user's
    stated requirements for this run — honor them as explicit requests in the
    profile's normal confirmation/spec mechanics; they are hints the profile

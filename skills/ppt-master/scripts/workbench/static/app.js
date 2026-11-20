@@ -239,7 +239,6 @@
         speaker_notes: false,
         image_policy: 'auto'
       },
-      requirements: { feel: '' },
       uploads_present: []
     };
   }
@@ -256,16 +255,16 @@
 
   function formHtml(model) {
     var p = model.params || {};
-    var r = model.requirements || {};
     var opts = optionsCache || {};
     var editing = !!model.task_id;
     return '<div class="card"><h2>任务</h2>' +
       '<label class="field"><span>主题 / 需求描述</span>' +
       '<textarea id="f-topic" rows="3" placeholder="例如：根据这份季度报告做一份 10 页的汇报 PPT">' +
       esc(model.topic || '') + '</textarea></label>' +
-      '<label class="field"><span>想要的感觉（可选）</span>' +
-      '<input id="f-feel" type="text" value="' + esc(r.feel) +
-      '" placeholder="例如：克制专业，像咨询报告；或轻快一点给学生看"></label>' +
+      '<div class="field"><span>参考资料（可选）</span>' +
+      '<ul class="list" id="upload-list">' + uploadRows(model.uploads_present || []) + '</ul>' +
+      '<button class="btn" id="upload-btn" type="button">上传文件</button>' +
+      '<input id="f-files" type="file" multiple hidden></div>' +
       '<div class="field"><span>画幅</span>' + canvasPickerHtml(p.canvas || 'ppt169') + '</div>' +
       '<div class="field-row">' +
       '<label class="field"><span>页数</span><input id="f-pages" type="number" min="1" max="60" ' +
@@ -273,23 +272,19 @@
       '<label class="field"><span>语言</span><select id="f-lang">' +
       options(opts.languages, p.primary_language) + '</select></label>' +
       '</div>' +
-      '<div class="field-row">' +
-      '<label class="field"><span>配图策略</span><select id="f-image">' +
-      options(opts.image_policies, p.image_policy) + '</select></label>' +
+      '<fieldset class="policy-picker"><legend>配图策略</legend><div>' +
+      (opts.image_policies || []).map(function (item) {
+        return '<label><input type="radio" name="image-policy" value="' + esc(item.value) + '"' +
+          (item.value === (p.image_policy || 'auto') ? ' checked' : '') + '> ' + esc(item.label) + '</label>';
+      }).join('') + '</div></fieldset>' +
       '<label class="field-check"><input id="f-notes" type="checkbox"' +
       (p.speaker_notes ? ' checked' : '') + '> 生成讲者备注</label>' +
-      '</div>' +
       '<p class="card-hint">提交后分三步推进：① 先核对逐页内容大纲（支持划词批注或直接手改）→ ② 再挑模板与视觉风格 → ③ 自动生成幻灯片。</p>' +
       '<div class="actions">' +
       (editing ? '<button class="btn" id="save-btn" type="button">保存修改</button>' : '') +
       '<button class="btn btn-primary" id="submit-btn" type="button">' +
       (editing ? '提交生成' : '创建并提交') + '</button></div>' +
-      '</div>' +
-      '<div class="card"><h2>参考材料</h2>' +
-      '<p class="card-hint">可选。提交时会一起交给 AI。</p>' +
-      '<ul class="list" id="upload-list">' + uploadRows(model.uploads_present || []) + '</ul>' +
-      '<label class="btn" for="f-files">上传文件</label>' +
-      '<input id="f-files" type="file" multiple hidden></div>';
+      '</div>';
   }
 
   function selectedCanvas() {
@@ -306,10 +301,7 @@
         page_count: pages ? parseInt(pages, 10) : null,
         primary_language: $('#f-lang').value,
         speaker_notes: $('#f-notes').checked,
-        image_policy: $('#f-image').value
-      },
-      requirements: {
-        feel: $('#f-feel').value.trim()
+        image_policy: $('input[name="image-policy"]:checked').value
       }
     };
   }
@@ -328,11 +320,7 @@
   function createTaskFromForm() {
     var values = formValues();
     if (!values.topic) { toast('请先填写主题', true); return Promise.reject(new Error('topic required')); }
-    return api('POST', '/api/tasks', {
-      topic: values.topic,
-      params: values.params,
-      requirements: values.requirements
-    }).then(function (data) {
+    return api('POST', '/api/tasks', values).then(function (data) {
       newTaskId = data.task_id;
       return data.task_id;
     });
@@ -360,6 +348,7 @@
       });
     }
 
+    $('#upload-btn').addEventListener('click', function () { $('#f-files').click(); });
     $('#f-files').addEventListener('change', function (event) {
       var files = Array.prototype.slice.call(event.target.files || []);
       if (!files.length) return;
@@ -394,10 +383,7 @@
         ? Promise.resolve((model && model.task_id) || newTaskId)
         : createTaskFromForm();
       ready.then(function (taskId) {
-        return api('PATCH', '/api/tasks/' + enc(taskId), {
-          params: values.params,
-          requirements: values.requirements
-        }).then(function () {
+        return api('PATCH', '/api/tasks/' + enc(taskId), values).then(function () {
           if (!create) { toast('已保存'); loadTask(taskId); return null; }
           return api('POST', '/api/tasks/' + enc(taskId) + '/submit').then(function () {
             toast('已提交，交给 AI 处理');
@@ -3294,7 +3280,6 @@
 
   function detailsHtml(task) {
     var p = task.params || {};
-    var r = task.requirements || {};
     var opts = optionsCache || {};
     var canvasItem = (opts.canvas || []).filter(function (item) { return item.id === p.canvas; })[0];
     var rows = [
@@ -3302,8 +3287,7 @@
       ['页数', p.page_count == null ? '由 AI 决定' : String(p.page_count)],
       ['语言', optionLabel(opts.languages, p.primary_language)],
       ['配图', optionLabel(opts.image_policies, p.image_policy)],
-      ['讲者备注', p.speaker_notes ? '开启' : '关闭'],
-      ['想要的感觉', r.feel || '—']
+      ['讲者备注', p.speaker_notes ? '开启' : '关闭']
     ];
     if (task.runtime && task.runtime.error) rows.push(['错误', task.runtime.error.message || '']);
     return '<dl class="meta">' + rows.map(function (row) {
@@ -3443,6 +3427,220 @@
 
   document.getElementById('new-task').addEventListener('click', function () {
     location.hash = '#/new';
+  });
+
+  var settingsDialog = $('#image-settings');
+  var baseInput = $('#image-base');
+  var modelInput = $('#image-model');
+  var savedImageSettings;
+  var channel = 'zzai';
+  var channelSettings = {};
+  var channelDrafts = {};
+  var channelButtons = Array.from(document.querySelectorAll('[data-channel]'));
+  var keyInput = $('#image-key');
+  var eyeButton = $('#toggle-image-key');
+  var draftKey = '';
+  var storedMask = '';
+  var keyVersion = 0;
+  var priceSession = 0;
+  var priceSnapshot = {status: 'loading', table: {}};
+  var quoteModel = $('#quote-model');
+  var quoteSize = $('#quote-size');
+  var knownModels = ['v2-lowprice', 'v2.5-flare', 'v2.5-sunburst', 'v2.5-lowprice',
+    'v2.6-flare', 'v2.6-sunburst', 'v2.6-lowprice'].map(function (id) { return 'zhenzhen-image-g-' + id; });
+
+  function modelName(id) {
+    return id.replace('zhenzhen-image-g-v', 'GPT Image ').replace('-lowprice', ' 低价版')
+      .replace('-flare', ' Flare').replace('-sunburst', ' Sunburst');
+  }
+  function displayPrice(model, size) {
+    var amount = (priceSnapshot.table[model] || {})[size];
+    return amount == null ? '暂无估价' : '¥' + amount;
+  }
+  function drawPrices() {
+    var table = priceSnapshot.table;
+    var ids = Object.keys(table);
+    if (!ids.length) ids = knownModels.slice();
+    var selected = modelInput.value || savedImageSettings.default_model;
+    if (ids.indexOf(selected) < 0) ids.push(selected);
+    quoteModel.replaceChildren();
+    ids.forEach(function (id) { quoteModel.add(new Option(modelName(id), id)); });
+    quoteModel.value = selected;
+    var price = displayPrice(selected, quoteSize.value);
+    $('#quote-amount').textContent = price === '暂无估价' ? price : '预计 ' + price + ' / 张';
+    var stateLabel = {loading: '正在读取价格', refreshing: '正在更新今日价格',
+      no_key: '保存该渠道的 API Key 后重新打开设置即可查价',
+      failed: '今日查价失败', ready: ''}[priceSnapshot.status];
+    var when = priceSnapshot.updated ? '报价日期 ' + priceSnapshot.updated : '';
+    $('#quote-note').textContent = ['按 16:9 单张文生图估算', stateLabel, when].filter(Boolean).join(' · ');
+    $('#quote-details').hidden = !Object.keys(table).length;
+    $('#quote-details tbody').innerHTML = Object.keys(table).map(function (id) {
+      return '<tr><th scope="row">' + esc(modelName(id)) + '</th>' +
+        ['1k','2k','4k'].map(function (size) { return '<td>' + esc(displayPrice(id, size)) + '</td>'; }).join('') + '</tr>';
+    }).join('');
+  }
+  function updatePricePanel() {
+    var active = channel === 'zzai';
+    $('#zzai-pricing').hidden = !active;
+    $('#custom-model-field').hidden = active;
+    modelInput.required = !active;
+    if (active) drawPrices();
+  }
+  async function loadPrices(session, onOpen) {
+    try {
+      var snapshot = await api('POST', '/api/settings/image', {action: 'prices', on_open: !!onOpen});
+      if (session !== priceSession || !settingsDialog.open) return;
+      priceSnapshot = snapshot;
+      updatePricePanel();
+      if (snapshot.status === 'refreshing') {
+        window.setTimeout(function () { if (session === priceSession) loadPrices(session); }, 1400);
+      }
+    } catch (_) {
+      if (session !== priceSession) return;
+      priceSnapshot.status = 'failed';
+      updatePricePanel();
+    }
+  }
+  quoteModel.addEventListener('change', function () { modelInput.value = quoteModel.value; drawPrices(); });
+  quoteSize.addEventListener('change', drawPrices);
+
+  function maskImageKey() {
+    keyVersion++;
+    var edge = Math.min(4, Math.floor(draftKey.length / 3));
+    var mask = draftKey.slice(0, edge) + '********' + (edge ? draftKey.slice(-edge) : '');
+    keyInput.type = 'password';
+    keyInput.value = '';
+    keyInput.placeholder = (draftKey ? mask : storedMask) || '输入 API Key';
+    eyeButton.setAttribute('aria-label', '显示 API Key');
+    eyeButton.setAttribute('aria-pressed', 'false');
+  }
+  keyInput.addEventListener('focus', function () {
+    if (keyInput.type === 'password') keyInput.value = draftKey;
+  });
+  keyInput.addEventListener('input', function () { keyVersion++; draftKey = keyInput.value; });
+  keyInput.addEventListener('blur', function () {
+    if (keyInput.type === 'password') maskImageKey();
+  });
+  eyeButton.addEventListener('click', async function () {
+    if (keyInput.type === 'text') { maskImageKey(); return; }
+    var version = ++keyVersion;
+    try {
+      var value = draftKey;
+      if (!value && storedMask) {
+        var data = await api('POST', '/api/settings/image?channel=' + channel, {base_url: savedImageSettings.base_url, action: 'reveal'});
+        if (version !== keyVersion || !settingsDialog.open) return;
+        value = data.api_key;
+      }
+      keyInput.type = 'text';
+      keyInput.value = value;
+      eyeButton.setAttribute('aria-label', '隐藏 API Key');
+      eyeButton.setAttribute('aria-pressed', 'true');
+    } catch (error) { $('#settings-status').textContent = error.message; }
+  });
+  settingsDialog.addEventListener('close', function () {
+    priceSession++;
+    channelDrafts = {};
+    draftKey = storedMask = '';
+    maskImageKey();
+  });
+
+  function refreshEndpointKey() {
+    draftKey = '';
+    storedMask = savedImageSettings && baseInput.value.trim().replace(/\/+$/, '') === savedImageSettings.base_url
+      ? savedImageSettings.key_mask : '';
+    maskImageKey();
+  }
+  baseInput.addEventListener('input', function () { refreshEndpointKey(); updatePricePanel(); });
+  function showChannel(name) {
+    channel = name;
+    savedImageSettings = channelSettings[name];
+    var draft = channelDrafts[name] || savedImageSettings;
+    baseInput.value = draft.base_url;
+    modelInput.value = draft.model;
+    quoteSize.value = draft.resolution || '1k';
+    $('.image-onboarding').hidden = name !== 'zzai';
+    $('#byok-address').hidden = name !== 'openai';
+    channelButtons.forEach(function (button) {
+      button.checked = button.dataset.channel === name;
+    });
+    refreshEndpointKey();
+    draftKey = draft.key || '';
+    maskImageKey();
+    updatePricePanel();
+    $('#settings-status').textContent = '';
+    var active = savedImageSettings.active;
+    $('#active-channel').textContent = active ? '当前生效：' +
+      ({openai: '自定义服务（BYOK）', zzai: 'ZhenZhen AI'}[active] || active) : '尚未启用生图渠道';
+    $('#save-settings').textContent = active === name ? '保存更改' :
+      (active ? '保存并切换到 ' : '保存并启用 ') + (name === 'zzai' ? 'ZhenZhen AI' : 'BYOK');
+  }
+  channelButtons.forEach(function (button) {
+    button.addEventListener('change', function () {
+      if (channel === button.dataset.channel) return;
+      channelDrafts[channel] = {base_url: baseInput.value, model: modelInput.value,
+        resolution: quoteSize.value, key: draftKey};
+      showChannel(button.dataset.channel);
+    });
+  });
+  $('#paste-image-key').addEventListener('click', async function () {
+    var version = keyVersion;
+    try {
+      var value = (await navigator.clipboard.readText()).trim();
+      if (!settingsDialog.open || version !== keyVersion) return;
+      if (!value || value.length > 4096 || /\s/.test(value)) throw new Error();
+      draftKey = value;
+      maskImageKey();
+      $('#settings-status').textContent = '密钥已填入，保存后生效。';
+    } catch (_) {
+      keyInput.focus();
+      $('#settings-status').textContent = '请在 API Key 输入框内手动粘贴密钥。';
+    }
+  });
+  $('#open-settings').addEventListener('click', async function () {
+    var session = ++priceSession;
+    $('#zzai-pricing').hidden = true;
+    priceSnapshot = {status: 'loading', table: {}};
+    var controls = [baseInput, modelInput, keyInput, eyeButton, $('#paste-image-key'), $('#save-settings')].concat(channelButtons);
+    controls.forEach(function (node) { node.disabled = true; });
+    channelButtons.forEach(function (node) { node.checked = node.dataset.channel === 'zzai'; });
+    $('.image-onboarding').hidden = false;
+    $('#byok-address').hidden = $('#custom-model-field').hidden = true;
+    $('#active-channel').textContent = '';
+    baseInput.value = modelInput.value = '';
+    $('#settings-status').textContent = '正在读取设置…';
+    settingsDialog.showModal();
+    try {
+      var settings = await Promise.all(['zzai','openai'].map(function (name) {
+        return api('GET', '/api/settings/image?channel=' + name);
+      }));
+      if (session !== priceSession || !settingsDialog.open) return;
+      channelSettings = {zzai: settings[0], openai: settings[1]};
+      showChannel('zzai');
+      loadPrices(session, true);
+      controls.forEach(function (node) { node.disabled = false; });
+      $('#settings-status').textContent = '';
+    } catch (error) { $('#settings-status').textContent = error.message; }
+  });
+  $('#cancel-settings').addEventListener('click', function () { settingsDialog.close(); });
+  $('#image-settings-form').addEventListener('submit', async function (event) {
+    event.preventDefault();
+    $('#save-settings').disabled = true;
+    try {
+      var values = { base_url: baseInput.value.trim(), model: modelInput.value.trim() };
+      if (!$('#zzai-pricing').hidden) {
+        values.model = quoteModel.value;
+        values.resolution = quoteSize.value;
+      }
+      if (draftKey) values.api_key = draftKey;
+      channelButtons.forEach(function (button) { button.disabled = true; });
+      await api('PUT', '/api/settings/image?channel=' + channel, values);
+      settingsDialog.close();
+      toast('生图设置已保存');
+    } catch (error) { $('#settings-status').textContent = error.message; }
+    finally {
+      $('#save-settings').disabled = false;
+      channelButtons.forEach(function (button) { button.disabled = false; });
+    }
   });
 
   window.addEventListener('hashchange', route);

@@ -64,6 +64,7 @@ configure_utf8_stdio()
 
 ENV_PATH = resolve_env_path()
 IMAGE_ENV_PREFIXES = (
+    "ZZAI_",
     "IMAGE_",
     "GEMINI_",
     "OPENAI_",
@@ -104,6 +105,14 @@ ALL_ASPECT_RATIOS = [
 ALL_IMAGE_SIZES = ["512px", "1K", "2K", "4K"]
 
 BACKEND_REGISTRY = {
+    "zzai": {
+        "module": "backend_zzai",
+        "tier": "core",
+        "label": "ZhenZhen AI",
+        "default_model": "zhenzhen-image-g-v2.5-flare",
+        "default_image_size": "1K",
+        "key_hint": "ZZAI_API_KEY",
+    },
     "gemini": {
         "module": "backend_gemini",
         "tier": "core",

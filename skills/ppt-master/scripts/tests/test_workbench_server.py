@@ -162,7 +162,7 @@ class TaskLifecycleTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         task = self.client.get(f'/api/tasks/{task_id}').get_json()
         self.assertEqual(task['display_title'], 'Q3 汇报')
-        self.assertEqual(task['requirements'], {'feel': '克制专业，像咨询报告'})
+        self.assertNotIn('requirements', task)
         self.assertEqual(task['params']['canvas'], 'ppt43')
         self.assertEqual(task['params']['page_count'], 10)
         self.assertTrue(task['params']['speaker_notes'])
