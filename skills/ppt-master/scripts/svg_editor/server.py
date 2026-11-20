@@ -440,7 +440,7 @@ def create_app(
     images_dir = project_path / 'images'
     icons_dir = icon_dir_for_project(project_path)
 
-    app = Flask(__name__, static_folder='static', static_url_path='/static')
+    app = Flask(__name__, static_folder=None)
     app.config['PROJECT_PATH'] = project_path
     app.config['SVG_DIR'] = svg_dir
     app.config['LIVE_MODE'] = live
@@ -517,7 +517,10 @@ def create_app(
 
     @app.route('/')
     def index():
-        return send_from_directory(app.static_folder, 'index.html')
+        return jsonify({
+            'service': 'live_preview',
+            'message': 'Preview UI is served by workbench',
+        })
 
     @app.route('/api/config')
     def get_config():

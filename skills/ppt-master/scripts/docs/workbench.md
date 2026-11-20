@@ -137,9 +137,9 @@ state), a left rail holding the task list, and the workspace on the right.
 |---|---|
 | `#/new` (fallback) | compose form: topic, "what it should feel like", canvas, page count, language, image policy, materials — no title field |
 | `#/task/<id>` | the task itself across a 3-step journey (`① 确认内容大纲 → ② 选择模板与风格 → ③ 生成幻灯片`) — draft form; takeover dispatch; **Step 1 outline workspace** (slide-by-slide cards from `outline.md` supporting both inline text-selection batch AI comments and direct single-slide text edit / add / delete / reorder); **Step 2 template & style picker** (visual gallery of AI free-design + slide-roster templates with cover/chapter/content SVG previews, full-roster modal, collapsed advanced palette/method customizer, and dual submit for direct generation vs Stage-2 fine-tuning); **Step 3 slide execution** (state line, progress bar, live slide thumbnails, deliverables, collapsible parameters/activity, feedback) |
-| `#/task/<id>/preview` | page preview in focus mode |
-| `#/task/<id>/confirm` | the full confirmation surface in focus mode — a fallback for the embedded review, not the normal path |
-| `#/task/<id>/spec` | spec review in focus mode |
+| `#/task/<id>/preview` | native page preview & annotation view in focus mode (`slide_preview.js`) |
+| `#/task/<id>/confirm` | full Stage 1 / Stage 2 confirmation view in focus mode (`stage2_confirm.js`) — a fallback for the embedded review, not the normal path |
+| `#/project/<slug>/preview`, `#/project/<slug>/confirm` | project-scoped native focus views (target of legacy `/p/<slug>/{preview,confirm}/` redirects when unbound to a task) |
 
 **One page, four states**: creating a task and confirming it are the same route.
 A submitted task with `runtime.stage == confirm_stage1` renders the proposal card
@@ -162,16 +162,17 @@ can do so without exposing four abstract kind buckets by default. Both inline an
 full confirmation surfaces honor the same `free_design` / `templates` rules.
 
 When the agent has authored `recommendations.stage2.json` and the result is still
-`stage1`, the progress payload reports `plan.review_due` and the same page embeds
-the confirmation surface below the card. That second confirmation is where the
-user still owns the production decisions; the workbench never applies the
-authored plan on its own, and the surface writes the final `result.json` only on
-the user's submit.
+`stage1`, the progress payload reports `plan.review_due` and the same page mounts
+the native Stage 2 confirmation component (`workbench/static/stage2_confirm.js`)
+inline below the outline card. That second confirmation is where the user still
+owns the production decisions; the workbench never applies the authored plan on
+its own, and submits the final `result.json` only on the user's submit.
 
-**Focus mode** is the tool presentation: entering one of the three surfaces hides
+**Focus mode** is the tool presentation: entering Preview or Confirmation hides
 the task header and every task card, leaving a single slim bar (`← <task> /
-<tool>`) above the surface frame. One chrome layer at a time instead of stacked
-ones.
+<tool>`) above the native view (`WorkbenchSlidePreview` or
+`WorkbenchConfirmView`). The legacy `spec_review` web UI has been retired, and
+visiting `#/task/<id>/spec` renders a light-theme retirement notice.
 
 **One owner per fact**: the status badge lives in the page header only (the rail
 shows a colour dot); the stage is named once, in the state card, and the ten
@@ -181,30 +182,29 @@ card; there is no second task list, no duplicate download control, and no
 permanent tab strip.
 ## Project surfaces
 
-The confirmation, preview, and spec-review pages are **not separate services**.
-Each is a Flask app mounted inside this one, on this one port, under the
+All browser UI rendering is owned by the single light-theme Workbench SPA
+(`workbench/static/{app,slide_preview,stage2_confirm,style_slides}.js`). The
+`confirm_ui` and `svg_editor` Flask backends are **not separate browser
+services**; their API handlers are mounted inside this process under the
 project's slug:
 
-| Surface | Mount path | What the human does there |
-|---|---|---|
-| Confirmation | `/p/<slug>/confirm/` | the full Stage-1 form and template picker; kept as the fallback for the inline proposal card |
-| Preview | `/p/<slug>/preview/` | watch pages land, direct-edit, annotate |
-| Spec review | `/p/<slug>/spec/` | block drafts, comments, apply |
+| Surface | API Mount Prefix | Legacy URL Redirect (`302`) | What the human does in Workbench |
+|---|---|---|---|
+| Confirmation | `/p/<slug>/confirm/api/...` | `/#/task/<id>/confirm` or `/#/project/<slug>/confirm` | Stage-1 fallback & full Stage-2 palette, typography, style, icon & image strategy confirmation |
+| Preview | `/p/<slug>/preview/api/...` | `/#/task/<id>/preview` or `/#/project/<slug>/preview` | watch pages land, direct-edit attributes/geometry, annotate (`slide_preview.js`) |
 
-`surface_mount.py` owns the routing. A surface app is built lazily per project
-with `embedded=True`, which disables its idle watchdog and turns
-`/api/shutdown` into a no-op: **no browser view can end the shared process**.
-Surfaces keep their own absolute `/api/...` routes and never learn the prefix,
-because two adjustments make the browser agree:
+`surface_mount.py` owns the routing. Each backend app is built lazily per
+project with `embedded=True`, which disables its idle watchdog and turns
+`/api/shutdown` into a no-op: **no client request can end the shared process**.
+Legacy browser roots (`/p/<slug>/confirm/` and `/p/<slug>/preview/`) return a
+`302` redirect to the corresponding Workbench SPA route (preserving `?slide=...`),
+while `/p/<slug>/spec/` returns `404` because the legacy `spec_review` web UI is
+retired.
 
-- served HTML gets its `/static/` references rewritten to relative ones, so
-  assets resolve under the mount;
-- `static/surface_base.js` (served by this app) runs before the surface code and
-  prefixes leading-slash `fetch`/`XMLHttpRequest` calls.
-
-Page SVGs reference images as `../images/x.png`; from `/p/<slug>/preview/` that
-resolves to `/p/<slug>/images/x.png`, so the mount also routes that path into
-the preview app's `/images/` handler.
+Page SVGs reference images as `../images/x.png`; `WorkbenchSlidePreview`
+rewrites those relative `href`s during SVG sanitization to
+`/p/<slug>/images/x.png`, and `surface_mount.py` also keeps `/p/<slug>/images/...`
+routed directly to the preview backend.
 
 The agent needs small file-bus CLIs, never a per-project server:
 
@@ -213,7 +213,6 @@ python3 scripts/confirm_ui/outline_store.py <project> --publish            # pub
 python3 scripts/confirm_ui/wait.py <project> --stage outline               # 0 revising|confirmed, 1 not ready, 124 timeout
 python3 scripts/confirm_ui/wait.py <project> --stage outline --publish-revision
 python3 scripts/confirm_ui/wait.py <project> --stage stage1                # prints {stage, status, delegate_stage2}
-python3 scripts/spec_review/hold.py <project> on|off                       # review-write hold
 ```
 
 ## Template choice lives in Stage 1

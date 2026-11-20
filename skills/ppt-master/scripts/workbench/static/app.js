@@ -41,7 +41,7 @@
   }, {});
 
   var TOOLS = [
-    ['preview', '页面预览'], ['confirm', '阶段确认'], ['spec', '规格评审']
+    ['preview', '页面预览'], ['confirm', '阶段确认']
   ];
 
   var EVENT_LABELS = {
@@ -77,6 +77,28 @@
   var outlineBubbleEl = null;
   var outlineDocClickBound = false;
   var commentSeq = 0;
+  var activeFocusCtrl = null;
+  var activePlanCtrl = null;
+
+  function teardownFocusView() {
+    if (activeFocusCtrl && typeof activeFocusCtrl.destroy === 'function') {
+      try { activeFocusCtrl.destroy(); } catch (_) {}
+    }
+    activeFocusCtrl = null;
+    if (workspace) workspace.classList.remove('is-focus');
+  }
+
+  function teardownPlanView() {
+    if (activePlanCtrl && typeof activePlanCtrl.destroy === 'function') {
+      try { activePlanCtrl.destroy(); } catch (_) {}
+    }
+    activePlanCtrl = null;
+  }
+
+  function teardownActiveViews() {
+    teardownFocusView();
+    teardownPlanView();
+  }
 
   // ---------- helpers ----------
 
@@ -414,7 +436,8 @@
 
   var lastProgressCache = null;
 
-  function loadTask(taskId, focus) {
+  function loadTask(taskId, focus, query) {
+    teardownActiveViews();
     lastSignature = '';
     proposalTaskId = null;
     lastProgressCache = null;
@@ -429,7 +452,7 @@
     ]).then(function (results) {
       var task = results[0];
       refreshRail(taskId);
-      if (focus) renderFocus(task, focus);
+      if (focus) renderFocus(task, focus, query);
       else renderTaskHome(task);
     }).catch(function (error) {
       setConn(true);
@@ -654,6 +677,12 @@
     if (!unlocked[targetStep]) {
       toast('请先完成上一步确认后再进入此步骤');
       return;
+    }
+    if (targetStep !== 'theme') {
+      teardownPlanView();
+      if (proposalTaskId && proposalTaskId.indexOf('plan:') === 0) {
+        proposalTaskId = null;
+      }
     }
     closeOutlineBubble();
     closeModalListener();
@@ -2921,35 +2950,48 @@
   }
 
   // The Stage-2 plan is the AI's proposal, not a verdict: it opens in the
-  // confirmation surface right here so colours, typography, template
+  // native confirmation view right here so colours, typography, template
   // application, page count and image strategy stay the user's to change.
   function renderPlanReview(task, slot, slug) {
-    slot.innerHTML = '<div class="card card-plan">' +
-      '<div class="proposal-outline-bar">' +
-      '<div class="proposal-outline-info">' +
-      '<span class="proposal-outline-ok">微调配色与字体</span>' +
-      '<strong>AI 已按大纲与所选风格配好色板、字体与配图策略</strong></div>' +
-      '<button type="button" class="btn btn-small" id="plan-back-outline">← 查看大纲</button>' +
-      '</div>' +
-      '<p class="card-hint">核对下方配色、字体与图标设置，点击页面底部的「确认最终方案」即可开始绘制幻灯片。</p>' +
-      '<div class="plan-frame"><iframe src="/p/' + enc(slug) +
-      '/confirm/" title="方案确认"></iframe></div></div>';
-    var backBtn = slot.querySelector('#plan-back-outline');
-    if (backBtn) {
-      backBtn.addEventListener('click', function () { switchJourneyStep(task, 'outline'); });
-    }
+    teardownPlanView();
+    slot.innerHTML = '<div id="plan-native-host"></div>';
+    var host = slot.querySelector('#plan-native-host');
+    if (!host || !window.WorkbenchConfirmView) return;
+    activePlanCtrl = window.WorkbenchConfirmView.mount(host, {
+      slug: slug,
+      taskId: task.task_id,
+      mode: 'inline',
+      onBackToOutline: function () { switchJourneyStep(task, 'outline'); },
+      onConfirmed: function () {
+        toast('已确认最终方案，等待 AI 生成 PPT…');
+        teardownPlanView();
+        proposalTaskId = null;
+        lastSignature = '';
+        renderOverview(task);
+      }
+    });
   }
 
   function syncProposalSlot(task, progress, visible) {
     var slot = $('#proposal-slot');
     if (!slot) return;
     slot.hidden = !visible;
-    if (!visible) return;
+    if (!visible) {
+      teardownPlanView();
+      if (proposalTaskId && proposalTaskId.indexOf('plan:') === 0) {
+        proposalTaskId = null;
+      }
+      return;
+    }
     var runtime = progress.runtime || {};
     var slug = runtime.slug;
     var plan = progress.plan || {};
+    if (!(plan.review_due && slug)) {
+      teardownPlanView();
+    }
     if (plan.review_due && slug) {
       if (proposalTaskId === 'plan:' + task.task_id) return;
+      teardownPlanView();
       proposalTaskId = 'plan:' + task.task_id;
       renderPlanReview(task, slot, slug);
     } else if (runtime.stage === 'template_install') {
@@ -2973,20 +3015,89 @@
 
   // ---------- focus mode ----------
 
-  function renderFocus(task, kind) {
-    var label = (TOOLS.filter(function (item) { return item[0] === kind; })[0] || [])[1] || kind;
+  function renderFocusBody(slug, kind, backHref) {
+    if (kind === 'spec') {
+      return '<div class="card"><h2>规格评审页已下线</h2>' +
+        '<p class="hint">工作台已统一至轻量设计确认与页面预览流程，旧版规格评审页面已停用。</p>' +
+        '<div class="actions"><a class="btn" href="' + esc(backHref) + '">返回上一页</a></div></div>';
+    }
+    if (!slug) {
+      return '<div class="card"><h2>还没有项目</h2><p class="hint">AI 接管任务后，这里会打开对应页面。</p></div>';
+    }
+    if (kind === 'preview') {
+      return '<div class="focus-native-host is-preview" id="focus-native-host"></div>';
+    }
+    if (kind === 'confirm') {
+      return '<div class="focus-native-host is-confirm" id="focus-native-host"></div>';
+    }
+    return '<div class="card"><h2>未知工具视图</h2>' +
+      '<p class="hint">当前工作台仅支持页面预览（preview）与阶段确认（confirm）。</p>' +
+      '<div class="actions"><a class="btn" href="' + esc(backHref) + '">返回上一页</a></div></div>';
+  }
+
+  function mountFocusHost(slug, kind, hashPrefix, backHref, query, taskId) {
+    var host = document.getElementById('focus-native-host');
+    if (!host) return;
+    if (kind === 'preview' && window.WorkbenchSlidePreview) {
+      if (workspace) workspace.classList.add('is-focus');
+      activeFocusCtrl = window.WorkbenchSlidePreview.mount(host, {
+        slug: slug,
+        initialSlide: (query && query.get('slide')) || null,
+        onSlideChange: function (name) {
+          var nextHash = hashPrefix + '/preview?slide=' + enc(name);
+          if (location.hash !== nextHash && history.replaceState) {
+            history.replaceState(null, '', nextHash);
+          }
+        }
+      });
+    } else if (kind === 'confirm' && window.WorkbenchConfirmView) {
+      activeFocusCtrl = window.WorkbenchConfirmView.mount(host, {
+        slug: slug,
+        taskId: taskId || null,
+        mode: 'standalone',
+        onConfirmed: taskId ? function () {
+          toast('已确认最终方案');
+          location.hash = backHref;
+        } : null
+      });
+    }
+  }
+
+  function renderFocus(task, kind, query) {
+    teardownActiveViews();
+    stopPoll();
+    var toolItem = TOOLS.filter(function (item) { return item[0] === kind; })[0];
+    var label = toolItem ? toolItem[1] : (kind === 'spec' ? '规格评审' : kind);
     var title = task.display_title || task.topic || task.task_id;
     var slug = (task.runtime || {}).slug;
-    stopPoll();
-
-    var body = slug
-      ? '<div class="focus-frame"><iframe src="/p/' + enc(slug) + '/' + enc(kind) +
-        '/" title="' + esc(label) + '"></iframe></div>'
-      : '<div class="card"><h2>还没有项目</h2><p class="hint">AI 接管任务后，这里会打开对应页面。</p></div>';
+    var backHref = '#/task/' + enc(task.task_id);
 
     workspace.innerHTML =
-      '<div class="focus-bar"><a href="#/task/' + enc(task.task_id) + '">← ' + esc(title) + '</a>' +
-      '<span class="focus-title">' + esc(label) + '</span></div>' + body;
+      '<div class="focus-bar"><a href="' + esc(backHref) + '">← ' + esc(title) + '</a>' +
+      '<span class="focus-title">' + esc(label) + '</span></div>' +
+      renderFocusBody(slug, kind, backHref);
+
+    if (slug) {
+      mountFocusHost(slug, kind, backHref, backHref, query, task.task_id);
+    }
+  }
+
+  function renderProjectFocus(slug, kind, query) {
+    teardownActiveViews();
+    stopPoll();
+    refreshRail('');
+    var viewKind = kind || 'preview';
+    var toolItem = TOOLS.filter(function (item) { return item[0] === viewKind; })[0];
+    var label = toolItem ? toolItem[1] : (viewKind === 'spec' ? '规格评审' : viewKind);
+    var backHref = '#/new';
+    var hashPrefix = '#/project/' + enc(slug);
+
+    workspace.innerHTML =
+      '<div class="focus-bar"><a href="' + esc(backHref) + '">← 工作台首页</a>' +
+      '<span class="focus-title">' + esc(slug + ' · ' + label) + '</span></div>' +
+      renderFocusBody(slug, viewKind, backHref);
+
+    mountFocusHost(slug, viewKind, hashPrefix, backHref, query, null);
   }
 
   // ---------- pane: form ----------
@@ -3060,7 +3171,7 @@
       slides.map(function (slide, idx) {
         var label = 'P' + (idx + 1 < 10 ? '0' + (idx + 1) : (idx + 1));
         var src = '/api/tasks/' + enc(task.task_id) + '/slides/' + enc(slide.name) + '?v=' + (slide.mtime || 0);
-        return '<a class="slide-live-item" href="#/task/' + enc(task.task_id) + '/preview" title="' + esc(slide.name) + '">' +
+        return '<a class="slide-live-item" href="#/task/' + enc(task.task_id) + '/preview?slide=' + enc(slide.name) + '" title="' + esc(slide.name) + '">' +
           '<div class="slide-live-frame"><img src="' + esc(src) + '" alt="' + esc(slide.name) + '" loading="lazy"></div>' +
           '<span>' + esc(label) + ' · ' + esc(slide.name.replace(/\.svg$/i, '')) + '</span></a>';
       }).join('') +
@@ -3295,19 +3406,38 @@
 
   function parseHash() {
     var raw = location.hash.replace(/^#\/?/, '');
-    var parts = raw.split('/');
+    var qIdx = raw.indexOf('?');
+    var pathPart = qIdx >= 0 ? raw.slice(0, qIdx) : raw;
+    var qsPart = qIdx >= 0 ? raw.slice(qIdx + 1) : '';
+    var query = new URLSearchParams(qsPart);
+    var parts = pathPart.split('/').filter(Boolean);
     if (parts[0] === 'task' && parts[1]) {
-      return { taskId: decodeURIComponent(parts[1]), focus: parts[2] || '' };
+      return {
+        taskId: decodeURIComponent(parts[1]),
+        projectSlug: null,
+        focus: parts[2] ? decodeURIComponent(parts[2]) : '',
+        query: query
+      };
     }
-    return { taskId: null, focus: '' };
+    if (parts[0] === 'project' && parts[1]) {
+      return {
+        taskId: null,
+        projectSlug: decodeURIComponent(parts[1]),
+        focus: parts[2] ? decodeURIComponent(parts[2]) : '',
+        query: query
+      };
+    }
+    return { taskId: null, projectSlug: null, focus: '', query: query };
   }
 
   function route() {
+    teardownActiveViews();
     stopPoll();
     closeModalListener();
     closeOutlineBubble();
     var parsed = parseHash();
-    if (parsed.taskId) loadTask(parsed.taskId, parsed.focus);
+    if (parsed.taskId) loadTask(parsed.taskId, parsed.focus, parsed.query);
+    else if (parsed.projectSlug) renderProjectFocus(parsed.projectSlug, parsed.focus, parsed.query);
     else renderNewTask();
   }
 

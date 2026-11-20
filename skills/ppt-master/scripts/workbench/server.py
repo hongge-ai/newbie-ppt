@@ -175,11 +175,9 @@ _SKILL_DIR = Path(__file__).resolve().parents[2]
 # repository checkout simply gets <install-parent>/projects as its root.
 DEFAULT_PROJECTS_ROOT = _SKILL_DIR.parent.parent / 'projects'
 _OPTIONS_PATH = Path(__file__).resolve().parent / 'static' / 'options.json'
-# The visual-style catalog and its preview SVGs are package-wide assets owned by
-# the confirmation surface; the workbench renders them in the task page so a
-# user sees the intended style before generation starts.
-_CATALOGS_PATH = _SCRIPTS_DIR / 'confirm_ui' / 'static' / 'catalogs.json'
-_STYLE_PREVIEW_PREFIX = '/static/style_previews/'
+# The visual-style catalog lives beside confirm_ui; the workbench renders
+# live SVG previews client-side via static/style_slides.js.
+_CATALOGS_PATH = _SCRIPTS_DIR / 'confirm_ui' / 'catalogs.json'
 
 
 def _visual_style_catalog() -> list:
@@ -202,7 +200,6 @@ def _visual_style_catalog() -> list:
                 'label': item.get('label_zh') or item.get('label') or style_id,
                 'group': group_label,
                 'description': item.get('desc_zh') or item.get('desc') or '',
-                'preview_url': _STYLE_PREVIEW_PREFIX + urllib.parse.quote(style_id) + '.svg',
             })
     return styles
 
@@ -1235,18 +1232,6 @@ def create_app(
     def index():
         return send_from_directory(app.static_folder, 'index.html')
 
-    @app.route('/static/style_previews/<path:filename>', methods=['GET'])
-    def style_preview_asset(filename: str):
-        """Serve the confirmation page's shared preset previews.
-
-        Those SVGs are package-wide assets owned by `confirm_ui`, not project
-        files; the mounted page asks for them at this absolute path, so the
-        workbench answers instead of the surface.
-        """
-        return send_from_directory(
-            _SCRIPTS_DIR / 'confirm_ui' / 'static' / 'style_previews', filename,
-        )
-
     @app.route('/api/health')
     def health():
         """Expose a cheap readiness probe for the daemon launcher."""
@@ -1864,23 +1849,6 @@ def create_app(
         resp.headers['Cache-Control'] = 'no-store'
         return resp
 
-    @app.route('/__wb/project-links/<slug>', methods=['GET'])
-    def project_links(slug: str):
-        """Return the workbench links for one mounted surface page."""
-        entry = next(
-            (item for item in _list_project_views(projects_path) if item['slug'] == slug),
-            None,
-        )
-        if entry is None:
-            return jsonify({'error': 'unknown project'}), 404
-        task_id = (entry['view'] or {}).get('task_id')
-        return jsonify({
-            'slug': slug,
-            'task_id': task_id,
-            'task_url': f'/#/task/{task_id}' if task_id else '/#/tasks',
-            'preview_url': f'/p/{slug}/preview/',
-        })
-
     @app.route('/api/projects/<slug>', methods=['GET'])
     def get_project(slug: str):
         """Return one project's run view, recent events, and inbox."""
@@ -2007,8 +1975,23 @@ def create_app(
         removed = _clear_assignment(projects_path, task_id)
         return jsonify({'cleared': removed})
 
-    # surfaces are mounted here instead of running their own servers.
-    mount_surfaces(app, projects_path)
+    def _resolve_task_id_for_slug(slug: str) -> Optional[str]:
+        project_dir, error = _resolve_project_path(projects_path, slug)
+        if error:
+            return None
+        try:
+            view = agent_bridge.effective_state(agent_bridge.Paths(project_dir))
+        except (OSError, ValueError, json.JSONDecodeError):
+            return None
+        task_id = view.get('task_id')
+        if not task_id or TASK_ID_RE.fullmatch(str(task_id)) is None:
+            return None
+        if not (_task_dir_path(projects_path, str(task_id)) / TASK_FILE_NAME).is_file():
+            return None
+        return str(task_id)
+
+    # APIs for confirm and preview stay mounted here instead of running own servers.
+    mount_surfaces(app, projects_path, task_id_resolver=_resolve_task_id_for_slug)
 
     return app
 

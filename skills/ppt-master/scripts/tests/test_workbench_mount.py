@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """PPT Master - Workbench Surface Mount Tests
 
-Prove that the per-project confirmation, preview, and spec surfaces are served
-by the one resident workbench app: mounted paths resolve, HTML is rewritten for
-the prefix, and a mounted view can never end the shared process.
+Prove that the per-project confirmation and preview APIs are served by the one
+resident workbench app, legacy surface roots redirect to native Workbench SPA
+routes, retired spec_review UI routes are removed, and mounted APIs can never
+end the shared process.
 
 Usage:
     cd skills/ppt-master/scripts && python3 -m unittest tests.test_workbench_mount
@@ -12,6 +13,7 @@ Dependencies:
     flask
 """
 
+import json
 import sys
 import tempfile
 import unittest
@@ -22,6 +24,7 @@ SCRIPTS_DIR = Path(__file__).resolve().parents[1]
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
+import agent_bridge  # noqa: E402
 from workbench import server  # noqa: E402
 
 
@@ -53,26 +56,48 @@ class SurfaceMountTests(unittest.TestCase):
         response.close()
         return response
 
-    def test_every_surface_is_served_by_the_workbench(self) -> None:
-        for kind in ('confirm', 'preview', 'spec'):
+    def test_legacy_surface_roots_redirect_to_workbench_spa(self) -> None:
+        for kind in ('confirm', 'preview'):
             with self.subTest(kind=kind):
                 response = self._get(f'/{kind}/')
-                self.assertEqual(response.status_code, 200)
-                self.assertEqual(response.mimetype, 'text/html')
+                self.assertEqual(response.status_code, 302)
+                self.assertEqual(
+                    response.headers['Location'],
+                    f'/#/project/{SLUG}/{kind}',
+                )
+                self.assertEqual(response.headers.get('Cache-Control'), 'no-store')
 
-    def test_html_is_rewritten_for_the_mount_prefix(self) -> None:
-        html = self._get('/preview/').get_data(as_text=True)
-        self.assertIn('/static/surface_base.js', html)
-        # The exit-the-server control is a dead button inside the workbench.
-        self.assertIn('/static/surface_mount.css', html)
-        self.assertIn('="static/style.css"', html)
-        self.assertNotIn('="/static/style.css"', html)
+        slide_resp = self._get('/preview/?slide=P01.svg')
+        self.assertEqual(slide_resp.status_code, 302)
+        self.assertEqual(
+            slide_resp.headers['Location'],
+            f'/#/project/{SLUG}/preview?slide=P01.svg',
+        )
+
+    def test_task_bound_project_redirects_to_task_focus_route(self) -> None:
+        task_id = 't20261120-100000-beef'
+        task_dir = self.projects_root / '.workbench' / 'tasks' / task_id
+        task_dir.mkdir(parents=True)
+        (task_dir / server.TASK_FILE_NAME).write_text(
+            json.dumps({'schema_version': 1, 'task_id': task_id, 'status': 'processing'}),
+            encoding='utf-8',
+        )
+        agent_bridge.start_run(self.project, task=task_id)
+
+        response = self._get('/preview/?slide=P01.svg')
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            response.headers['Location'],
+            f'/#/task/{task_id}/preview?slide=P01.svg',
+        )
+
+    def test_spec_surface_is_retired_from_mount(self) -> None:
+        self.assertEqual(self._get('/spec/').status_code, 404)
+        self.assertEqual(self._get('/spec/api/state').status_code, 404)
 
     def test_apis_answer_under_the_prefix(self) -> None:
         slides = self._get('/preview/api/slides').get_json()
         self.assertEqual([item['name'] for item in slides['slides']], ['P01.svg'])
-        state = self._get('/spec/api/state').get_json()
-        self.assertIn('hold', state)
         self.assertIn('current_stage', self._get('/confirm/api/session').get_json())
 
     def test_page_svg_image_reference_resolves(self) -> None:
@@ -83,7 +108,7 @@ class SurfaceMountTests(unittest.TestCase):
         self.assertEqual(response.data, b'png')
 
     def test_a_mounted_view_cannot_end_the_process(self) -> None:
-        for kind in ('confirm', 'preview', 'spec'):
+        for kind in ('confirm', 'preview'):
             with self.subTest(kind=kind):
                 response = self.client.post(f'/p/{SLUG}/{kind}/api/shutdown', json={})
                 self.assertEqual(response.status_code, 200)

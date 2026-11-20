@@ -391,7 +391,7 @@ def confirm_outline(project_path: Path, markdown: Optional[str] = None) -> dict:
     return read_outline_view(project_path)
 
 
-_CATALOGS_PATH = Path(__file__).resolve().parent / "static" / "catalogs.json"
+_CATALOGS_PATH = Path(__file__).resolve().parent / "catalogs.json"
 
 
 def valid_visual_style_ids() -> set[str]:

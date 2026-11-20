@@ -76,7 +76,7 @@ def create_app(project_dir: str, idle_timeout: int = 7200, embedded: bool = Fals
     """Create the testable HTTP surface; lifecycle belongs to the workbench."""
     store = ReviewStore(Path(project_dir))
     store.document()
-    app = Flask(__name__, static_folder="static", static_url_path="/static")
+    app = Flask(__name__, static_folder=None)
     app.config.update(MAX_CONTENT_LENGTH=4 * 1024 * 1024, LAST_ACTIVITY=time.monotonic(), IDLE_TIMEOUT=idle_timeout)
     app.extensions["review_store"] = store
     app.extensions["stop_event"] = threading.Event()
@@ -135,7 +135,7 @@ def create_app(project_dir: str, idle_timeout: int = 7200, embedded: bool = Fals
 
     @app.get("/")
     def index():
-        return send_from_directory(app.static_folder, "index.html")
+        return jsonify(status="retired", message="spec_review UI has been retired")
 
     @app.get("/api/health")
     def health():

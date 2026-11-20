@@ -450,9 +450,19 @@ class TaskLifecycleTests(unittest.TestCase):
         self.assertTrue(data['languages'])
         self.assertTrue(data['page_counts'])
         styles = data['visual_styles']
-        self.assertTrue(styles)
-        self.assertTrue(all(item['preview_url'].startswith('/static/style_previews/')
-                            for item in styles))
+        self.assertEqual(len(styles), 18)
+        self.assertTrue(all('preview_url' not in item for item in styles))
+        for asset, marker in (
+            ('/static/style_slides.js', 'WorkbenchStyleSlides'),
+            ('/static/slide_preview.js', 'WorkbenchSlidePreview'),
+            ('/static/stage2_confirm.js', 'WorkbenchConfirmView'),
+        ):
+            with self.subTest(asset=asset):
+                resp = self.client.get(asset)
+                self.assertEqual(resp.status_code, 200)
+                body = resp.get_data(as_text=True)
+                resp.close()
+                self.assertIn(marker, body)
 
     def test_proposal_needs_a_project(self) -> None:
         task_id = self._create()

@@ -54,6 +54,9 @@ _SCRIPTS_DIR = Path(__file__).resolve().parent.parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
+from confirm_ui.outline_store import (  # noqa: E402
+    extract_outline_preview_sample,
+)
 from console_encoding import configure_utf8_stdio  # noqa: E402
 from language_tags import (  # noqa: E402
     LanguageTagError,
@@ -110,7 +113,7 @@ _HEX_COLOR_RE = re.compile(r'#?(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})\Z')
 # Static option universe served at /api/catalogs (canvas synced live from config).
 _SKILL_DIR = Path(__file__).resolve().parents[2]
 _TEMPLATES_DIR = _SKILL_DIR / 'templates'
-_CATALOGS_PATH = Path(__file__).resolve().parent / 'static' / 'catalogs.json'
+_CATALOGS_PATH = Path(__file__).resolve().parent / 'catalogs.json'
 _ICON_LIBRARY_DIR = _TEMPLATES_DIR / 'icons'
 _AI_IMAGE_COMPARISON_DIR = _SKILL_DIR / 'references' / 'ai-image-comparison'
 _TEMPLATE_LIBRARY_CONFIG = {
@@ -2229,6 +2232,58 @@ def _build_ai_image_comparison() -> dict:
     }
 
 
+_SLUG_SUFFIX_RE = re.compile(r'(?:_ppt(?:169|43))?_\d{8}$', re.IGNORECASE)
+
+
+def _rec_text_field(data: dict, key: str) -> str:
+    """Extract a trimmed string value from a recommendation payload field."""
+    raw = data.get(key)
+    if isinstance(raw, dict):
+        raw = raw.get('value')
+    if isinstance(raw, str):
+        return re.sub(r'\s+', ' ', raw).strip()
+    return ''
+
+
+def _clean_project_slug_title(project_path: Path) -> str:
+    """Convert a project folder slug into a readable fallback title."""
+    stem = _SLUG_SUFFIX_RE.sub('', project_path.name)
+    cleaned = re.sub(r'[_-]+', ' ', stem).strip()
+    return cleaned or project_path.name
+
+
+def _build_preview_sample(project_path: Path, data: dict) -> dict:
+    """Build project-grounded preview copy for live 18-style SVG thumbnails.
+
+    Prefers parsed ``outline.md`` headings and bullets when available, and falls
+    back to recommendation communication fields so style thumbnails always
+    reflect the active project instead of static placeholder copy.
+    """
+    sample = extract_outline_preview_sample(project_path) or {}
+    result = dict(sample)
+    display_title = _rec_text_field(data, 'display_title')
+    core_msg = _rec_text_field(data, 'core_message')
+    intent = _rec_text_field(data, 'communication_intent')
+    outcome = _rec_text_field(data, 'audience_outcome')
+    audience = _rec_text_field(data, 'audience')
+    if not result.get('cover_title'):
+        result['cover_title'] = (
+            display_title
+            or (
+                _clean_project_slug_title(project_path)
+                if not core_msg or len(core_msg) > 28
+                else core_msg
+            )
+        )
+    if not result.get('cover_sub'):
+        result['cover_sub'] = core_msg or intent or outcome
+    if not result.get('content_bullets'):
+        bullets = [text for text in (core_msg, intent, outcome, audience) if text]
+        if bullets:
+            result['content_bullets'] = bullets[:3]
+    return result
+
+
 # --- app --------------------------------------------------------------------
 
 def create_app(
@@ -2242,7 +2297,7 @@ def create_app(
     project_path = Path(project_dir).resolve()
     confirm_dir = project_path / CONFIRM_DIR_NAME
 
-    app = Flask(__name__, static_folder='static', static_url_path='/static')
+    app = Flask(__name__, static_folder=None)
     app.config['PROJECT_PATH'] = project_path
     app.config['CONFIRM_DIR'] = confirm_dir
     app.config['LOCK_FILE'] = lock_file
@@ -2305,7 +2360,10 @@ def create_app(
 
     @app.route('/')
     def index():
-        return send_from_directory(app.static_folder, 'index.html')
+        return jsonify({
+            'service': 'confirm_ui',
+            'message': 'Confirmation UI is served by workbench',
+        })
 
     @app.route('/api/health')
     def health():
@@ -2515,6 +2573,7 @@ def create_app(
             recommend.pop('template_adherence', None)
         data.pop('template_reuse_scope', None)
         data.pop('template_adherence', None)
+        data['outline_preview'] = _build_preview_sample(project_path, data)
         # The page polls this endpoint after each confirmation until the AI
         # creates the next stage file, so it must never be cached.
         resp = jsonify(data)
