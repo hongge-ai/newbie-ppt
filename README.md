@@ -1,9 +1,8 @@
 # Newbie PPT — AI generates native PowerPoint from any document
 
 > **newbie-ppt** is a China-focused fork of [ppt-master](https://github.com/hugohe3/ppt-master) (MIT).
-> It keeps the full native-PowerPoint generation pipeline and adds a local web workbench:
-> create a task in the browser, confirm the template or free design on the confirmation
-> page, submit, and watch every page appear live — no more chat-only black box.
+> In the local workbench, choose a curated example, supply a topic or material,
+> and confirm the outline. Preview each slide as it is produced and open the editable PowerPoint.
 
 [![Version](https://img.shields.io/github/v/release/hongge-ai/newbie-ppt?label=version&color=blue)](https://github.com/hongge-ai/newbie-ppt/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -306,7 +305,7 @@ AI:  Sure. Let's confirm the design spec:
 
 The AI handles everything — content analysis, visual design, SVG generation, and PPTX export.
 
-**Local workbench (visual, recommended for beginners):** skip describing your needs in chat — start the local workbench and do everything in the browser: create a task, set page count / canvas / language / image policy, and upload source material. After submitting, paste the trigger sentence it shows into your AI chat; the confirmation page then asks you to pick a template workspace or free design, and every later step links on from there. While the agent generates, the workbench shows the live stage, every page as it appears, and any question the run is waiting on — answer it right there; when it finishes you can download the PPTX and leave feedback.
+**Local workbench.** Browse the full example deck and select it before adding your topic or source files. You can also give the example name to your AI when asking it to create a workbench task. Once you confirm the outline, follow slide production in the browser and open or save the finished PPTX.
 
 ```bash
 uv run python skills/ppt-master/scripts/workbench/server.py

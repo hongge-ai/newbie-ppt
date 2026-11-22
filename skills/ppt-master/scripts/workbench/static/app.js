@@ -13,7 +13,7 @@
     draft: '草稿', submitted: '待处理', processing: '生成中',
     interrupted: '已中断', done: '已完成', failed: '失败', error: '损坏'
   };
-  var ATTENTION_LABELS = {outline: '待你确认大纲', template: '待你选择模板', plan: '待你确认方案', answer: '待你回答'};
+  var ATTENTION_LABELS = {example: '待你补选示例', outline: '待你确认大纲', template: '待你选择模板', plan: '待你确认方案', answer: '待你回答'};
 
   var STEPS = [
     ['init', '初始化'], ['source', '素材'], ['outline', '大纲'],
@@ -293,10 +293,27 @@
     return '/static/examples/' + enc(example.id) + '/' + String(page).padStart(2, '0') + '.webp';
   }
 
-  async function renderExamples(exampleId, compose, requestedPage, draftId) {
+  function wireResumeExample(taskId, exampleId) {
+    var button = $('#resume-example');
+    button.onclick = async function () {
+      button.disabled = true;
+      try {
+        await api('POST', '/api/tasks/' + enc(taskId) + '/resume-with-example', {example_id: exampleId});
+        var home = '#/task/' + enc(taskId);
+        if (location.hash === home) loadTask(taskId);
+        else location.hash = home;
+      } catch (error) {
+        button.disabled = false;
+        toast(error.message, true);
+      }
+    };
+  }
+
+  async function renderExamples(exampleId, compose, requestedPage, draftId, resumeId) {
     refreshRail();
     var hash = location.hash;
-    var draftQuery = draftId ? '?draft=' + enc(draftId) : '';
+    var context = resumeId ? 'resume=' + enc(resumeId) : (draftId ? 'draft=' + enc(draftId) : '');
+    var draftQuery = context ? '?' + context : '';
     workspace.innerHTML = '<p class="loading">正在读取示例…</p>';
     try {
       var items = (await api('GET', '/api/examples')).examples;
@@ -304,7 +321,8 @@
       if (!exampleId) {
         var categories = {business:'商业', technology:'科技', education:'科普与教育', data:'数据',
           culture:'文化', design:'艺术与设计'};
-        workspace.innerHTML = '<h1>精选示例</h1><div class="example-filters">' +
+        workspace.innerHTML = (resumeId ? '<h1>补选精选示例</h1><p>选定后将按已确认的大纲继续生成。</p>' : '<h1>精选示例</h1>') +
+          '<div class="example-filters">' +
           '<input type="search" id="example-search" aria-label="搜索示例" placeholder="搜索示例">' +
           '<select id="example-category" aria-label="示例分类"><option value="">全部分类</option>' +
           Object.entries(categories).map(function (pair) {
@@ -332,7 +350,7 @@
       var example = items.find(function (e) { return e.id === exampleId; });
       if (!example) throw new Error('示例不存在');
       var prefix = '#/example/' + enc(example.id);
-      if (compose) {
+      if (compose && !resumeId) {
         workspace.innerHTML = '<a href="' + prefix + draftQuery + '">← 返回示例</a><h1>做同款</h1><div id="pane"></div>';
         var model = draftId ? await api('GET', '/api/tasks/' + enc(draftId)) : draftModel();
         if (location.hash !== hash) return;
@@ -346,15 +364,17 @@
       workspace.innerHTML = '<div class="focus-bar"><a href="' + backHref + '">← 精选示例</a>' +
         '<a href="' + esc(example.source) + '" target="_blank" rel="noopener noreferrer">查看官网原例 ↗</a></div>' +
         '<div class="page-head example-reader-head"><h1>' + esc(example.title) + '</h1>' +
-        '<a class="btn btn-primary" href="' + prefix + '/make' + draftQuery + '">做同款</a></div>' +
+        (resumeId ? '<button class="btn btn-primary" id="resume-example">选用此示例并继续生成</button>' :
+          '<a class="btn btn-primary" href="' + prefix + '/make' + draftQuery + '">做同款</a>') + '</div>' +
         '<div class="focus-native-host is-preview" id="focus-native-host"></div>';
+      if (resumeId) wireResumeExample(resumeId, exampleId);
       activeFocusCtrl = mountSlideReader($('#focus-native-host'), {
         selected: page, backHref: backHref,
         pages: example.pages.map(function (title, index) {
           return {name: index + 1, number: index + 1, title: title, image: exampleImage(example, index + 1)};
         }),
         imageUrl: function (slide) { return slide.image; },
-        pageHash: function (slide) { return prefix + '?page=' + slide.number + (draftId ? '&draft=' + enc(draftId) : ''); }
+        pageHash: function (slide) { return prefix + '?page=' + slide.number + (context ? '&' + context : ''); }
       });
     } catch (error) {
       if (location.hash === hash) workspace.innerHTML = '<p>' + esc(error.message) + '</p><a href="#/new">返回精选示例</a>';
@@ -380,6 +400,10 @@
     ]).then(function (results) {
       var task = results[0];
       refreshRail();
+      if (focus === 'confirm' && (task.example_id || task.attention === 'example')) {
+        location.replace('#/task/' + enc(taskId));
+        return;
+      }
       if (focus && (focus === 'preview' || (!task.example_id && focus === 'confirm'))) renderFocus(task, focus, query);
       else renderTaskHome(task);
     }).catch(function (error) {
@@ -401,6 +425,18 @@
   }
 
   function renderTaskHome(task) {
+    if (task.attention === 'example') {
+      workspace.innerHTML = headerHtml(task) + '<div class="card"><h2>为这份大纲补选示例</h2>' +
+        '<p>大纲已确认，选定示例后即可继续生成。</p><a class="btn btn-primary" href="#/new?resume=' +
+        enc(task.task_id) + '">选择精选示例</a></div>';
+      return;
+    }
+    if (task.example_chosen_after_outline && task.status === 'interrupted' && !task.assignment) {
+      workspace.innerHTML = headerHtml(task) + '<div class="card"><p>示例已选定，继续使用已确认的大纲。</p>' +
+        '<button class="btn btn-primary" id="resume-example">继续生成</button></div>';
+      wireResumeExample(task.task_id, task.example_id);
+      return;
+    }
     if (task.status === 'draft') {
       workspace.innerHTML = headerHtml(task) + '<div id="pane"></div>';
       renderForm($('#pane'), task);
@@ -2251,7 +2287,7 @@
     var parsed = parseHash();
     if (parsed.taskId) loadTask(parsed.taskId, parsed.focus, parsed.query);
     else if (parsed.projectSlug) renderProjectFocus(parsed.projectSlug, parsed.focus, parsed.query);
-    else renderExamples(parsed.example, parsed.compose, parsed.query.get('page'), parsed.query.get('draft'));
+    else renderExamples(parsed.example, parsed.compose, parsed.query.get('page'), parsed.query.get('draft'), parsed.query.get('resume'));
   }
 
   document.getElementById('new-task').addEventListener('click', function () {

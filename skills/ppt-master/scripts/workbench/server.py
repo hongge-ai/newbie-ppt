@@ -134,6 +134,7 @@ USER_DOMAIN_FIELDS = (
     'display_title',
     'topic',
     'example_id',
+    'example_chosen_after_outline',
     'params',
     'uploads',
 )
@@ -167,7 +168,7 @@ AGENT_HINT_TEMPLATE = """请接手 newbie-ppt 仓库中的一个工作台任务�
    - 没有：新建项目（project_manager.py init <名称>），然后运行
      agent_bridge.py run start --project <项目路径> --task {task_id}
      把本次运行绑定到该任务，网页会自动显示进度。
-3. 对于 example_id 任务，按任务 params.canvas 初始化项目，根据新材料拟定页数和 outline.md，等待用户确认大纲（confirm_ui/wait.py --stage outline）。确认时工作台会安装所选资源：有 example_reference.json 时，读取其中的逐页 SVG 排版、预览位置和设计资料，为新主题设计可编辑页面；有 template_install.json 时，使用 templates/ 中的规范及版式。按已委托的方案配图、逐页绘制、校验与导出。每页完成后报告进度。详见 scripts/docs/workbench.md。
+3. 对于 example_id 任务，新项目按 params.canvas 初始化，根据材料拟定 outline.md 并等待确认。接续时先读取已有大纲状态，已确认就直接使用。读取工作台安装的 example_reference.json（逐页 SVG 排版、预览和设计资料）或 template_install.json 对应的模板规范。按已委托的方案配图、逐页绘制、校验与导出。每页完成后报告进度。详见 scripts/docs/workbench.md。
 4. 无 example_id 的旧任务依已有确认流程接续。导出到项目 exports/ 后报告完成。"""
 
 # Slide file names inside a generated project's svg_output/: a numeric
@@ -218,6 +219,17 @@ def _install_example(project: Path, example_id: str) -> None:
         read_template_install(project, snapshot_template_roots(project, roots), None)
     else:
         apply_templates(project, roots)
+
+
+def _install_after_outline(project: Path, example_id: str) -> None:
+    confirm = project / 'confirm_ui'
+    archive = confirm / 'before_example_selection'
+    archive.mkdir(exist_ok=True)
+    for name in ('recommendations.stage1.json', 'recommendations.stage2.json', 'result.json',
+                 'session.json', 'template_selection.json', 'workbench_prefs.json'):
+        if (confirm / name).is_file() and not (archive / name).exists():
+            (confirm / name).rename(archive / name)
+    _install_example(project, example_id)
 
 
 _TEMPLATE_INDEX_PATHS = {
@@ -439,6 +451,7 @@ def _default_task(task_id: str, topic: str, display_title: Optional[str]) -> dic
         'display_title': display_title,
         'topic': topic,
         'example_id': None,
+        'example_chosen_after_outline': False,
         'params': {
             'canvas': 'ppt169',
             'page_count': None,
@@ -538,6 +551,8 @@ def _apply_user_patch(task: dict, payload: object) -> Optional[str]:
 
 def _submit_error(task: dict) -> Optional[str]:
     """Return the blocking error for a draft submission, or None."""
+    if task.get('example_id') not in _examples():
+        return '请先选择精选示例'
     if not str(task.get('topic') or '').strip() and not task.get('uploads'):
         return 'topic is required before submitting'
     return None
@@ -737,7 +752,7 @@ def _list_task_summaries(projects_root: Path) -> list:
             'display_title': task.get('display_title'),
             'topic': task.get('topic'),
             'status': status,
-            'attention': _task_attention(status, runtime),
+            'attention': _task_attention(task, status, runtime),
             'created_at': task.get('created_at'),
             'submitted_at': task.get('submitted_at'),
             'updated_at': task.get('updated_at'),
@@ -844,7 +859,16 @@ def _task_inbox(project: Path, task_id: Optional[str]) -> list:
     return items
 
 
-def _task_attention(status: str, runtime: Optional[dict], outline=None, plan=None, inbox=None) -> Optional[str]:
+def _can_choose_after_outline(task, runtime, outline):
+    project = Path(runtime['project_dir'])
+    return (task.get('submitted_at') and not task.get('example_id') and runtime['view'].get('state') == 'interrupted'
+            and runtime['view'].get('stage') in ('template_prep', 'confirm_stage1', 'spec')
+            and outline.get('status') == 'confirmed'
+            and not (project / INSTALL_RECEIPT_NAME).exists() and not (project / 'example_reference.json').exists()
+            and not discover_slide_svgs(project / 'svg_output') and not any((project / 'exports').glob('*.pptx')))
+
+
+def _task_attention(task: dict, status: str, runtime: Optional[dict], outline=None, plan=None, inbox=None) -> Optional[str]:
     if status not in ('processing', 'interrupted') or not runtime:
         return None
     project = Path(runtime['project_dir'])
@@ -852,11 +876,13 @@ def _task_attention(status: str, runtime: Optional[dict], outline=None, plan=Non
     outline = outline if outline is not None else outline_summary(project)
     if outline.get('status') == 'ready':
         return 'outline'
+    if _can_choose_after_outline(task, runtime, outline):
+        return 'example'
     plan = plan if plan is not None else _plan_state(project)
-    if plan['review_due']:
+    if not task.get('example_id') and plan['review_due']:
         return 'plan'
     confirm = project / 'confirm_ui'
-    if (view.get('stage') in ('confirm_stage1', 'template_prep') or outline.get('status') == 'confirmed') and (
+    if not task.get('example_id') and (view.get('stage') in ('confirm_stage1', 'template_prep') or outline.get('status') == 'confirmed') and (
             (confirm / 'recommendations.stage1.json').is_file() and not (confirm / 'result.json').exists()):
         return 'template'
     if view.get('blocking'):
@@ -930,7 +956,7 @@ def _task_progress_payload(task: dict, runtime: Optional[dict]) -> dict:
         payload['confirm'] = None
     payload['plan'] = _plan_state(project_path)
     payload['attention'] = _task_attention(
-        payload['status'], runtime, payload['outline'], payload['plan'], payload['requests'])
+        task, payload['status'], runtime, payload['outline'], payload['plan'], payload['requests'])
     return payload
 
 
@@ -1502,26 +1528,25 @@ def create_app(
 
     @app.route('/api/tasks', methods=['POST'])
     def create_task():
-        """Create one draft task from a topic (and optional initial params)."""
+        """Create a draft for a selected catalog example."""
         data = request.get_json(silent=True) or {}
         if not isinstance(data, dict):
             return jsonify(error='invalid task'), 400
         example_id = data.get('example_id')
         example = _examples().get(example_id) if isinstance(example_id, str) else None
-        if example_id is not None and example is None:
-            return jsonify(error='未知示例'), 400
+        if example is None:
+            return jsonify(error='请先选择精选示例', code='example_required', examples_url='/api/examples', gallery='/#/new'), 400
         topic = data.get('topic', '')
-        if not isinstance(topic, str) or (not topic.strip() and not example_id):
-            return jsonify({'error': 'topic must be a non-empty string'}), 400
+        if not isinstance(topic, str):
+            return jsonify({'error': 'topic must be a string'}), 400
         title = data.get('display_title')
         if title is not None and (not isinstance(title, str) or len(title) > 200):
             return jsonify({'error': 'display_title must be a string of at most 200 characters'}), 400
         task_id = _new_task_id()
         task = _default_task(task_id, topic.strip(), title.strip() if isinstance(title, str) else None)
-        if example_id:
-            task['example_id'] = example_id
-            task['params']['canvas'] = example['canvas']
-            task['params']['image_policy'] = 'auto'
+        task['example_id'] = example_id
+        task['params']['canvas'] = example['canvas']
+        task['params']['image_policy'] = 'auto'
         if isinstance(data.get('params'), dict):
             error = _apply_params_patch(task['params'], data['params'])
             if error:
@@ -1560,7 +1585,7 @@ def create_app(
         payload = dict(task)
         payload['status'] = _derived_state(task, runtime)
         payload['runtime'] = _runtime_summary(runtime)
-        payload['attention'] = _task_attention(payload['status'], runtime)
+        payload['attention'] = _task_attention(task, payload['status'], runtime)
         payload['uploads_present'] = _uploads_listing(task_dir)
         payload['assignment'] = _assignment_for(projects_path, task_id)
         if payload['status'] == 'submitted':
@@ -1681,6 +1706,42 @@ def create_app(
         if not runtime:
             return None, None, (jsonify({'error': 'task has no project yet'}), 404)
         return Path(runtime['project_dir']), runtime, None
+
+    @app.post('/api/tasks/<task_id>/resume-with-example')
+    def resume_with_example(task_id: str):
+        data = request.get_json(silent=True)
+        example_id = data.get('example_id') if isinstance(data, dict) else None
+        if not isinstance(example_id, str) or example_id not in _examples():
+            return jsonify(error='请先选择精选示例'), 400
+        if request.headers.get('Origin', request.host_url.rstrip('/')) != request.host_url.rstrip('/'):
+            return jsonify(error='请在本地工作台继续任务'), 403
+        with dispatch_lock:
+            task, task_dir, error = _load_task_or_abort(task_id)
+            if error:
+                return error
+            project, runtime, error = _project_or_abort(task_id)
+            if error:
+                return error
+            chosen = task.get('example_chosen_after_outline')
+            if chosen and task.get('example_id') != example_id:
+                return jsonify(error='此任务已经选定示例'), 409
+            assignment = _assignment_for(projects_path, task_id)
+            if assignment and assignment.get('phase') != 'stopped':
+                if chosen:
+                    return jsonify(assignment=assignment)
+                return jsonify(error='已有 AI 正在处理此任务'), 409
+            outline = outline_summary(project)
+            if _derived_state(task, runtime) != 'interrupted' or outline.get('status') != 'confirmed':
+                return jsonify(error='仅支持接续已有确认大纲的中断任务'), 409
+            if not chosen and not _can_choose_after_outline(task, runtime, outline):
+                return jsonify(error='仅支持接续已有确认大纲的中断任务'), 409
+            if not codex_agent():
+                return jsonify(error='请先连接 Codex 后台执行器，再继续生成'), 409
+            # Remember the decision first so a partial install can only retry the same resource.
+            if not chosen:
+                task.update(example_chosen_after_outline=True, example_id=example_id, updated_at=_now_iso())
+                write_json_atomic(task_dir / TASK_FILE_NAME, task)
+            return dispatch_task(task_id, codex_dispatch.AGENT_ID, resume_outline=True)
 
     @app.route('/api/tasks/<task_id>/progress', methods=['GET'])
     def get_task_progress(task_id: str):
@@ -2254,7 +2315,7 @@ def create_app(
         with dispatch_lock:
             return dispatch_task(task_id)
 
-    def dispatch_task(task_id: str, agent_id: str = ''):
+    def dispatch_task(task_id: str, agent_id: str = '', *, resume_outline: bool = False):
         task, task_dir, error = _load_task_or_abort(task_id)
         if error:
             return error
@@ -2270,7 +2331,7 @@ def create_app(
             return jsonify(error='已有 AI 正在处理此任务'), 409
         retry = managed and existing and existing.get('phase') == 'stopped' and data.get('retry') is True
         runtime = _runtime_for(task_id)
-        if runtime and (not retry or _derived_state(task, runtime) == 'done'):
+        if runtime and (not (retry or resume_outline) or _derived_state(task, runtime) == 'done'):
             return jsonify({'error': 'task already has a run'}), 409
         if existing and existing.get('agent_id') != agent_id and not retry:
             return jsonify({'error': 'already dispatched to ' + str(existing.get('name'))}), 409
@@ -2280,8 +2341,14 @@ def create_app(
             agent = codex_agent()
             if not agent:
                 return jsonify(error='Codex 后台执行器未连接'), 409
-            if existing and existing.get('phase') == 'stopped' and not retry:
+            if existing and existing.get('phase') == 'stopped' and not (retry or resume_outline):
                 return jsonify(assignment=existing)
+            if runtime and task.get('example_chosen_after_outline'):
+                try:
+                    with outline_install_lock:
+                        _install_after_outline(Path(runtime['project_dir']), task['example_id'])
+                except (ApplyTemplateError, OSError, ValueError) as exc:
+                    return jsonify(error=f'示例安装失败，请重试：{exc}'), 409
             attempt = secrets.token_hex(6)
             assignment = {'task_id': task_id, 'agent_id': agent_id, 'name': agent['name'], 'attempt': attempt,
                           'created_at': _now_iso(), 'phase': 'stopped'}
@@ -2291,6 +2358,10 @@ def create_app(
             prompt = AGENT_HINT_TEMPLATE.format(task_id=task_id, repo_root=_repo_root(projects_path),
                                                base_url=_server_url(server_port or DEFAULT_PORT))
             prompt += '\n请在本次后台执行中持续等待网页确认，按流程完成交付。'
+            if runtime and task.get('example_chosen_after_outline'):
+                prompt += (f"\n本次接续已有项目 {runtime['project_dir']}。用户已确认 outline.md 并补选精选示例 "
+                           f"{task['example_id']}。沿用项目画幅、已确认的逐页内容及页数，读取已安装的示例资料。"
+                           "使用 run start --resume，从生成规范继续到可编辑 PPTX 交付，跳过大纲、Stage 1 和 Stage 2 的交互确认。")
             try:
                 proc = codex_dispatch.launch(codex_cli, _repo_root(projects_path), log_path, prompt)
             except OSError:

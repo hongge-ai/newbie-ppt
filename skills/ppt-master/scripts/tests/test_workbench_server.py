@@ -13,6 +13,7 @@ Dependencies:
 import io
 import hashlib
 import json
+import os
 import sys
 import tempfile
 import unittest
@@ -25,6 +26,14 @@ if str(SCRIPTS_DIR) not in sys.path:
 
 import agent_bridge  # noqa: E402
 from workbench import server  # noqa: E402
+
+
+def historical_submission(root, topic):
+    task_id = server._new_task_id()
+    task = server._default_task(task_id, topic, None)
+    task['submitted_at'] = task['created_at']
+    server.write_json_atomic(server._task_file_path(root, task_id), task)
+    return task_id
 
 
 class WorkbenchAppTests(unittest.TestCase):
@@ -133,7 +142,7 @@ class TaskLifecycleTests(unittest.TestCase):
         self.client = self.app.test_client()
 
     def _create(self, topic: str = '测试主题') -> str:
-        response = self.client.post('/api/tasks', json={'topic': topic})
+        response = self.client.post('/api/tasks', json={'topic': topic, 'example_id': 'bauhaus'})
         self.assertEqual(response.status_code, 201)
         return response.get_json()['task_id']
 
@@ -178,9 +187,62 @@ class TaskLifecycleTests(unittest.TestCase):
         self.assertEqual(task['status'], 'submitted')
         self.assertEqual(task['uploads'], [{'name': '需求文档.docx', 'size': 4}])
 
-    def test_create_requires_topic(self) -> None:
-        response = self.client.post('/api/tasks', json={'topic': '   '})
-        self.assertEqual(response.status_code, 400)
+    def test_new_task_requires_a_catalog_selection(self) -> None:
+        for fields in ({}, {'example_id': None}, {'example_id': ''}, {'example_id': ['bauhaus']},
+                       {'example_id': 'unknown'}):
+            response = self.client.post('/api/tasks', json={'topic': 'Brief', **fields})
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.get_json()['code'], 'example_required')
+        self.assertEqual(self.client.get('/api/tasks').get_json()['tasks'], [])
+        task_id = self._create()
+        task = self.client.get('/api/tasks/' + task_id).get_json()
+        task['example_id'] = None
+        server.write_json_atomic(self._task_file(task_id), task)
+        self.assertEqual(self.client.post('/api/tasks/' + task_id + '/submit').status_code, 400)
+        self.assertEqual(self.client.get('/api/tasks/' + task_id).get_json()['status'], 'draft')
+
+    def test_resume_installs_example_once_and_keeps_confirmed_outline(self) -> None:
+        from confirm_ui import outline_store
+
+        task_id = historical_submission(self.projects_root, 'Existing brief')
+        url = '/api/tasks/' + task_id
+        project = self.projects_root / 'existing_project'
+        project.mkdir()
+        agent_bridge.start_run(project, task=task_id)
+        agent_bridge.enter_stage(project, 'spec')
+        outline_store.publish_outline(project, '# Brief\n\n## 第 1 页 [封面] Brief\n- Text')
+        self.client.post(url + '/outline/confirm', json={})
+        confirm = project / 'confirm_ui'
+        receipt = (confirm / 'outline_state.json').read_bytes()
+        outline = (project / 'outline.md').read_bytes()
+        (confirm / 'template_selection.json').write_text('{"mode":"free_design"}', encoding='utf-8')
+        with patch.object(server.codex_dispatch, 'executable', return_value='codex'):
+            client = server.create_app(str(self.projects_root), idle_timeout=0).test_client()
+        instance = client.get('/api/health').get_json()['instance']
+        server.write_json_atomic(self.projects_root / '.workbench' / 'codex-dispatch.json',
+                                 {'instance': instance, 'name': 'Codex'})
+        endpoint = url + '/resume-with-example'
+        choice = {'example_id': 'bauhaus'}
+        self.assertEqual(client.post(endpoint, json=choice).status_code, 409)
+        (project / '.runtime' / 'lease.json').unlink()
+        self.assertEqual(client.get(url).get_json()['attention'], 'example')
+        self.assertEqual(client.get(url + '/progress').get_json()['attention'], 'example')
+        with patch.object(server.codex_dispatch, 'launch') as launch, patch.object(server, 'threading'):
+            launch.return_value.pid = os.getpid()
+            with patch.object(server, '_install_example', side_effect=server.ApplyTemplateError('offline')):
+                self.assertEqual(client.post(endpoint, json=choice).status_code, 409)
+                launch.assert_not_called()
+            first = client.post(endpoint, json=choice)
+            self.assertEqual(first.status_code, 200, first.get_json())
+            self.assertEqual(client.post(endpoint, json=choice).get_json(), first.get_json())
+            launch.assert_called_once()
+            self.assertIn(str(project), launch.call_args.args[-1])
+            self.assertTrue((project / 'template_install.json').is_file())
+        self.assertIsNone(client.get(url).get_json()['attention'])
+        self.assertFalse((confirm / 'template_selection.json').exists())
+        self.assertTrue((confirm / 'before_example_selection' / 'template_selection.json').is_file())
+        self.assertEqual((confirm / 'outline_state.json').read_bytes(), receipt)
+        self.assertEqual((project / 'outline.md').read_bytes(), outline)
 
     def test_patch_validates_params(self) -> None:
         task_id = self._create()
@@ -190,7 +252,7 @@ class TaskLifecycleTests(unittest.TestCase):
             {'params': {'page_count': 'ten'}},
             {'params': {'image_policy': 'stock'}},
             {'params': {'speaker_notes': 'yes'}},
-            {'topic': ''},
+            {'topic': 1},
             {'display_title': 42},
         ):
             with self.subTest(patch=patch_payload):
@@ -262,8 +324,7 @@ class TaskLifecycleTests(unittest.TestCase):
         })
 
     def test_confirm_route_persists_free_design_receipt(self) -> None:
-        task_id = self._create('黑土地科普课')
-        self.client.post(f'/api/tasks/{task_id}/submit')
+        task_id = historical_submission(self.projects_root, '黑土地科普课')
         project = self.projects_root / 'heitudi_demo_20261105'
         (project / 'confirm_ui').mkdir(parents=True)
         agent_bridge.start_run(project, task=task_id)
@@ -558,7 +619,7 @@ class ProgressAndFeedbackTests(unittest.TestCase):
             self.app = server.create_app(str(self.projects_root), idle_timeout=0)
         self.app.config['TESTING'] = True
         self.client = self.app.test_client()
-        response = self.client.post('/api/tasks', json={'topic': '进度测试'})
+        response = self.client.post('/api/tasks', json={'topic': '进度测试', 'example_id': 'bauhaus'})
         self.task_id = response.get_json()['task_id']
 
     def _task_file(self) -> Path:
@@ -783,7 +844,7 @@ class AgentSurfaceTests(unittest.TestCase):
         self.assertEqual(self.client.post(url, json={'choice': ['b']}).status_code, 409)
 
     def test_answer_through_the_task_id(self) -> None:
-        task_id = self.client.post('/api/tasks', json={'topic': '答题测试'}).get_json()['task_id']
+        task_id = self.client.post('/api/tasks', json={'topic': '答题测试', 'example_id': 'bauhaus'}).get_json()['task_id']
         self.client.post(f'/api/tasks/{task_id}/submit')
         agent_bridge.start_run(self.project, takeover=True, task=task_id)
         request = agent_bridge.open_request(self.project, kind='choice', title='T')
@@ -817,10 +878,7 @@ class OutlineAndDelegationTests(unittest.TestCase):
             self.app = server.create_app(str(self.projects_root), idle_timeout=0)
         self.app.config['TESTING'] = True
         self.client = self.app.test_client()
-        self.task_id = self.client.post(
-            '/api/tasks', json={'topic': '黑土地科普课'},
-        ).get_json()['task_id']
-        self.client.post(f'/api/tasks/{self.task_id}/submit')
+        self.task_id = historical_submission(self.projects_root, '黑土地科普课')
         self.project = self.projects_root / 'heitudi_20261118'
         (self.project / 'confirm_ui').mkdir(parents=True)
         agent_bridge.start_run(self.project, task=self.task_id)
