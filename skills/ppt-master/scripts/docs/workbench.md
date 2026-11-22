@@ -3,9 +3,9 @@
 > The single local web surface for this repository: create PPT generation
 > tasks, watch a run, answer the one
 > decision a run is waiting on, and pick up the delivered file. One instance
-> serves every project on one port. The server never runs generation and never
-> calls any model: the executing AI agent owns the run, and both sides meet at
-> files on disk.
+> serves every project on one port. The server dispatches tasks to AI clients
+> or starts a local Codex CLI process. The executing agent owns generation
+> and reports progress through the project files.
 
 ## Authority and Scope
 
@@ -30,10 +30,10 @@ by a task id the agent records, never by a second copy of the run state.
 ## `workbench/server.py`
 
 ```bash
-uv run python scripts/workbench/server.py                  # foreground, auto-open browser
+uv run python scripts/workbench/server.py                  # open the workbench; AI sessions also attach
 uv run python scripts/workbench/server.py --port 7071      # exact port, fail when taken
 uv run python scripts/workbench/server.py --no-browser     # remote access via port forwarding
-uv run python scripts/workbench/server.py --daemon         # background, return once reachable
+uv run python scripts/workbench/server.py --daemon --service-only  # start the web service and return
 uv run python scripts/workbench/server.py --timeout 0      # disable idle auto-shutdown
 uv run python scripts/workbench/server.py --shutdown       # stop the running instance (idempotent)
 ```
@@ -44,11 +44,19 @@ uv run python scripts/workbench/server.py --shutdown       # stop the running in
 - Without `--port`, binds the first free port from `127.0.0.1:7070`. It is the
   only local surface, so the range is kept away from the ad-hoc ports other
   tooling picks. `--port N` is exact and fails when unavailable.
-- `--daemon` starts a detached child (browser opening suppressed in the child),
-  waits until `GET /api/health` identifies this service against the lock, then
-  opens the browser and returns. There is **no wait mode**: the workbench has
-  no agent-blocking receipt lifecycle. The agent checks submitted tasks when
-  the user asks it to process them (see the routing row).
+- Starting or attaching from Codex enables the installed Codex CLI for the
+  current server instance. Each explicit dispatch starts an independent
+  workspace-write session in the repository and returns immediately. Its
+  assignment records the process ID, attempt and exit status; execution logs
+  live in `projects/.workbench/jobs/<task_id>/<attempt>.log`. The web route
+  supplies the repository's Generate instructions and the validated task ID.
+  Repeated dispatches reuse the active attempt. An unfinished task can be
+  retried after its process exits, reusing an existing project binding.
+- Claude Code and other one-shot clients keep the attach call pending and
+  consume the assigned-task JSON. Use `--service-only` to start a preview
+  during an existing run.
+- In a regular terminal the server runs in the foreground by default.
+  `--daemon` starts a detached server, checks its health, and returns.
 - Lock at `projects/.workbench/workbench.lock` (`{pid, port}`); duplicate
   launches are refused, stale locks (dead pid) are overwritten.
 - Idle auto-shutdown is disabled by default; arm one with `--timeout <seconds>`.
@@ -79,6 +87,7 @@ Task surface (server writes `task.json`; frozen once submitted):
 | POST `/api/settings/image` | Reveal the current endpoint's key on an explicit user request, or read the ZhenZhen AI price snapshot. Opening settings starts one asynchronous estimate refresh per configured key and local calendar day. Later reads use the stored snapshot, including after a failed refresh. Estimates are CNY per 16:9 image, rounded upward to two decimals. |
 | POST `/api/shutdown` | Graceful exit `{status: "ok"}` |
 | GET `/api/options` | Option universe: `canvas` (synced live from `config.CANVAS_FORMATS`, labels from `static/options.json`), `page_counts`, `image_policies`, `languages` |
+| GET `/api/settings/image?view=status` | Returns `{configured}` for the task form, based on the active backend and presence of a matching API key. |
 | GET `/api/tasks` | `{tasks: [...]}` newest-first summaries with derived `status` and a `runtime` block; corrupt records appear with `status: "error"` |
 | POST `/api/tasks` | `{topic, display_title?, params?}` → `201 {task_id}`; creates a draft |
 | GET `/api/tasks/<id>` | The user-domain record plus derived `status`, `runtime`, and `uploads_present` |
@@ -95,7 +104,10 @@ Task surface (server writes `task.json`; frozen once submitted):
 | POST `/api/tasks/<id>/proposal/reopen` | Clear Stage-1 confirmation receipts before slides exist (`409` once `svg_output/` has pages) so the user can re-pick a visual style or template |
 | POST `/api/tasks/<id>/confirm` | The Stage-1 confirmation: `{display_title, contract, template_mode, selection_keys, options_sha256, skip_stage2_review?, preferred_visual_style?}` → the title lands in `task.json`, `skip_stage2_review` and `preferred_visual_style` land in `confirm_ui/workbench_prefs.json` (read as `delegate_stage2` and `preferred_visual_style` by `wait.py --stage stage1`), and the rest goes to the surface that owns `result.json`. Supports both `free_design` (`selection_keys: []` with any of the 18 catalog `visual_styles`) and `templates` (≥1 workspace key). Stage 2 submits through the embedded surface when not delegated |
 | GET `/api/tasks/<id>/slides/<name>` | One page SVG (numeric-prefix name whitelist) |
+| GET `/api/projects/<slug>/page-previews` | PowerPoint-rendered page roster shared by the thumbnail grid and full-screen viewer. The task progress endpoint includes it with `?preview=1`. |
 | GET `/api/tasks/<id>/exports/<name>` | One exported PPTX download (`.pptx` whitelist, attachment) |
+| POST `/api/tasks/<id>/exports/<name>/open` | Open the task's exported PPTX with the local default application |
+| POST `/api/tasks/<id>/exports/<name>/save-as` | Native Save As dialog for browsers without a file picker. Cancellation returns `{saved: false}` |
 | GET `/api/tasks/<id>/images/<path>` | One project image asset so inline page previews resolve |
 | POST `/api/tasks/<id>/requests/<req_id>` | Answer one inbox request through the task the browser is showing |
 | GET/POST `/api/tasks/<id>/feedback` | Read / write `feedback.json` (allowed at any status) |
@@ -119,69 +131,27 @@ exist. Agents announce themselves; the human always presses the dispatch.
 
 | Piece | Shape |
 |---|---|
-| Presence | `POST /api/agents/register` → `agent_id`; `POST /api/agents/<id>/heartbeat`; `GET /api/agents` lists them. A missing heartbeat for 45 s means offline. |
-| Dispatch | `POST /api/tasks/<id>/assign` `{agent_id}` only for a submitted task without a run; exclusive, revocable, and valid for 180 s. A second agent gets `409`. |
+| Presence | `POST /api/agents/register` → `agent_id`; `POST /api/agents/<id>/heartbeat`; `GET /api/agents` lists them. The waiting client unregisters with `DELETE /api/agents/<id>` on exit. A missing heartbeat for 45 s means offline. |
+| Dispatch | `POST /api/tasks/<id>/assign` with `{agent_id}`. An unclaimed one-shot dispatch expires after 180 s. A background dispatch returns an accepted attempt; after exit, `retry: true` can restart an unfinished task. |
 | Delivery | The agent polls `GET /api/agents/<id>/assignment`; a dispatched task returns its `task_id`, `task_file` and hint. |
-| Command | `scripts/workbench_agent.py attach --name "<session>"` registers, heartbeats, waits for a dispatch, prints the assigned task as one JSON line, and exits. |
+| Command | `scripts/workbench_agent.py attach --name "<session>"` enables the background Codex runner or registers a one-shot client according to the calling environment. |
 
-The takeover card has exactly three states: **no agent** shows the attach
-command (never a copyable trigger sentence); **one agent** lists it with an
+Before dispatch, **no agent** shows the attach
+command with a copy button; **one agent** lists it with an
 explicit 分派 button; **several** list them as a radio group and dispatch the
 chosen one. Nothing is dispatched automatically, and one task never belongs to
 two agents.
 
 ## Page map
 
-One shell for every screen: a top bar (brand, one **新建任务** action, connection
-state), a left rail holding the task list, and the workspace on the right.
-
 | Route | Workspace |
 |---|---|
-| `#/new` (fallback) | compose form: topic, reference materials, canvas, page count, language, image policy radio group, speaker notes |
-| `#/task/<id>` | the task itself across a 3-step journey (`① 确认内容大纲 → ② 选择模板与风格 → ③ 生成幻灯片`) — draft form; takeover dispatch; **Step 1 outline workspace** (slide-by-slide cards from `outline.md` supporting both inline text-selection batch AI comments and direct single-slide text edit / add / delete / reorder); **Step 2 template & style picker** (visual gallery of AI free-design + slide-roster templates with cover/chapter/content SVG previews, full-roster modal, collapsed advanced palette/method customizer, and dual submit for direct generation vs Stage-2 fine-tuning); **Step 3 slide execution** (state line, progress bar, live slide thumbnails, deliverables, collapsible parameters/activity, feedback) |
-| `#/task/<id>/preview` | native page preview & annotation view in focus mode (`slide_preview.js`) |
-| `#/task/<id>/confirm` | full Stage 1 / Stage 2 confirmation view in focus mode (`stage2_confirm.js`) — a fallback for the embedded review, not the normal path |
-| `#/project/<slug>/preview`, `#/project/<slug>/confirm` | project-scoped native focus views (target of legacy `/p/<slug>/{preview,confirm}/` redirects when unbound to a task) |
+| `#/new` | Curated examples with the cover and representative interior pages |
+| `#/example/<id>` | All original pages, in order; browsing writes no task |
+| `#/example/<id>/make` | Topic, material upload or both |
+| `#/task/<id>` | Outline review, per-page progress, native preview and editable PPTX delivery |
+| `#/task/<id>/preview` | PowerPoint-rendered pages of the generated presentation |
 
-**One page, four states**: creating a task and confirming it are the same route.
-A submitted task with `runtime.stage == confirm_stage1` renders the proposal card
-inline, above the status card, so nothing jumps to another page; confirming calls
-`POST /api/tasks/<id>/confirm`, which the mounted surface turns into
-`result.json` + `template_selection.json`. The card opens with the title the AI
-suggested for this task — the compose form never asks for one — then lists the
-contract fields and the visual template gallery; canvas, page
-count, and language render read-only because they are the user's own constraints
-from the compose form.
-
-**Visual-first template choice, advanced assembly collapsed.** The primary gallery
-shows only choices the user can judge visually — an AI free-design card carrying
-the recommended `preview` sample, plus visual templates (`deck` and canvas-matched
-`layout` workspaces) rendered with inline cover/chapter/content SVG previews and
-a full-roster preview modal. Clicking an active template card deselects it back
-to free design. Roster-free `brand` (palette/identity) and `style` (method)
-workspaces sit in a collapsed advanced customizer so users who want to mix pieces
-can do so without exposing four abstract kind buckets by default. Both inline and
-full confirmation surfaces honor the same `free_design` / `templates` rules.
-
-When the agent has authored `recommendations.stage2.json` and the result is still
-`stage1`, the progress payload reports `plan.review_due` and the same page mounts
-the native Stage 2 confirmation component (`workbench/static/stage2_confirm.js`)
-inline below the outline card. That second confirmation is where the user still
-owns the production decisions; the workbench never applies the authored plan on
-its own, and submits the final `result.json` only on the user's submit.
-
-**Focus mode** is the tool presentation: entering Preview or Confirmation hides
-the task header and every task card, leaving a single slim bar (`← <task> /
-<tool>`) above the native view (`WorkbenchSlidePreview` or
-`WorkbenchConfirmView`). The legacy `spec_review` web UI has been retired, and
-visiting `#/task/<id>/spec` renders a light-theme retirement notice.
-
-**One owner per fact**: the status badge lives in the page header only (the rail
-shows a colour dot); the stage is named once, in the state card, and the ten
-internal pipeline stages live only in the expandable activity log; page previews
-appear only inside the preview tool; exports appear once, in the deliverables
-card; there is no second task list, no duplicate download control, and no
-permanent tab strip.
 ## Project surfaces
 
 All browser UI rendering is owned by the single light-theme Workbench SPA
@@ -217,21 +187,14 @@ python3 scripts/confirm_ui/wait.py <project> --stage outline --publish-revision
 python3 scripts/confirm_ui/wait.py <project> --stage stage1                # prints {stage, status, delegate_stage2}
 ```
 
-## Template choice lives in Stage 1
+## Curated examples
 
-The workbench does not carry, preselect, or persist a template, brand, style,
-or layout. A task records only the user's own brief; which template workspace to
-use is decided on the confirmation page's Stage 1, where the four registered
-kinds are browsed with real previews, or the run continues as free design.
+`GET /api/examples` exposes the bundled landscape examples in source order. Include a deck when its original page width exceeds its height. Each entry identifies the full set of original page previews, its official viewer and the canvas for a new task. On outline confirmation the workbench installs one of two production inputs:
 
-That keeps one truth: `task.json` never disagrees with the confirmed choice, and
-a template is installed from the Stage-1 receipt, not from the task.
+- A curated Deck workspace installs its verified template receipt and structured prototypes. Use template-aware Stage 2.
+- A source example installs the checksum-verified `example_reference.json`. It contains the original page SVG markup, preview locations and the source design notes when available. Use ordinary flat Stage 2. Inspect the cover and relevant interior compositions together with their previews. Ground the new spec and lock in the observed type, color, spacing, image framing and page hierarchy. Record the reference page used for each composition in the page plan. Use these source artifacts as design evidence. Select, repeat and adapt compositions for the approved outline, replace original facts and imagery, and author editable text, graphics and data on the task canvas.
 
-The picker shows what it is choosing: each layout or deck candidate renders its
-prototype roster as page thumbnails, with `{{TOKEN}}` placeholders replaced by
-sample copy and `../images/` resolved through the served workspace path. Brand
-and style candidates have no roster and render their identity card (parsed
-`design_spec` frontmatter plus the primary-color swatch) instead.
+Creating a curated task saves its allowlisted example ID. An upload-only draft can have an empty topic. Submission requires a topic or an uploaded file. A single available agent is dispatched on submission; an unavailable agent can attach later. Outline confirmation verifies the selected resource before publishing the confirmed outline, including on retry. Curated tasks delegate design decisions and continue directly to production. Standalone project confirmation and existing tasks without an example retain their own workflows.
 
 ## Task File Bus
 
@@ -291,13 +254,14 @@ without restart.
   "updated_at": "…",
 
   "display_title": "Q3 汇报",        // AI names it; the user may rename it any time
-  "topic": "非空任务主题",
+  "topic": "任务主题",
+  "example_id": "bauhaus",            // selected by the user before composing
   "params": {
     "canvas": "ppt169",               // config.CANVAS_FORMATS key
     "page_count": null,               // hint, not a hard constraint
     "primary_language": "zh-CN",
     "speaker_notes": false,
-    "image_policy": "auto"            // auto|none|web|ai (hint)
+    "image_policy": "ai"              // ai (default)|none|web; older records may use auto
   },
   "uploads": [{"name": "需求文档.docx", "size": 12345}]   // snapshot taken at submit
 }
@@ -312,11 +276,7 @@ There is deliberately no `status`, `project_dir`, `agent_log`, `error`,
 `deliverables`, or `template_selection` key. Records carrying them are normalized on read: only the
 fields above survive, so an older file cannot smuggle run state back in.
 
-The browser submits template selections as `(kind, id)` pairs only; the
-server resolves each `workspace_root` from the registered library indexes,
-so an arbitrary path can never enter a task. `indexes_sha256` fingerprints
-the four index files at selection time so the agent can warn (never block)
-when the template library changed after the user chose.
+The browser submits an example ID. The server resolves its Deck from the curated catalog.
 
 `feedback.json`: `{schema_version: 1, rating: 1-5|null, comment,
 wants_revision, submitted_at}` — written by the browser at any status; the
@@ -347,12 +307,8 @@ route with its normal Confirm UI stages.
    when uploads exist — its move semantics carry the staged files into
    `sources/`; conversion and any research then follow the selected profile's
    normal source-intake rules.
-5. **Templates and the second stage**: nothing to install from the task. Stage 1's
-   confirmed choice is either free design or ≥1 workspace root; when it names
-   roots, the page hands them to [`apply-template-workspace.md`](../../workflows/stages/apply-template-workspace.md),
-   and the run reads only the project-local `templates/` afterwards. There is no
-   second human gate: after the install, author `recommendations.stage2.json` and
-   wait for the user to confirm it in the embedded plan review (`confirm_ui/wait.py <project> --stage final`).
+5. **Example selection**: for `example_id` follow [Curated examples](#curated-examples); the approved outline and installed design supply the production inputs. Select each composition to serve the new slide's content, replace sample material with current evidence, and map the chosen prototypes in the spec and lock. For an existing task without an example, resume its recorded confirmation workflow.
+
 6. **User domain is explicit**: `topic` and `params`
    (language, page count, canvas, image policy, speaker notes) are the user's
    stated requirements for this run — honor them as explicit requests in the
@@ -376,8 +332,22 @@ tree. Slides are recognized by the numeric-prefix naming contract (`P01.svg`,
 `01_cover.svg`), exports by the `.pptx` suffix, the pending decision by the
 inbox, and the confirm panel state comes from the project's
 `confirm_ui/session.json` when a Default-profile task runs one. The browser
-polls every 2 s while the task is open and stops once the status is `done` or
-`failed`, then offers the feedback card.
+polls every 2 s while the task is open, including while the final preview renders.
+
+On Windows with desktop PowerPoint installed, each complete draft SVG can be
+compiled into a temporary one-slide PPTX. A single background worker renders
+it through PowerPoint. When the exported deck arrives, the worker renders a
+read-only copy in presentation order and publishes all final pages together.
+The grid thumbnail and full-screen image derive from the same PowerPoint raster.
+Both are cached by source revision under `projects/.workbench/page-previews/`.
+The full-screen viewer links to the SVG editor for direct edits and annotations.
+
+The delivery viewer displays the generated pages alone.
+
+The task progress response includes `image_progress`. Its `total` is unknown
+until the image roster is available. The `ready` entries identify readable
+planned files in the task image route, and `failed` and `manual` count
+outstanding manifest items in those states.
 
 The inbox card is the one place the human writes back into a run: choosing an
 option posts to `POST /api/tasks/<id>/requests/<req_id>`, which calls
@@ -386,30 +356,7 @@ remains the record.
 
 ## Frontend regression checks
 
-Manual checklist, run on a disposable checkout:
-
-1. `uv run python scripts/workbench/server.py` opens the browser at the logged URL.
-2. The task list renders; creating a task from a topic jumps to its detail page.
-3. The detail form edits params, uploads a file, and the file appears in the list.
-4. The detail form carries no template control, no audience field, and no title field: submitting
-   shows the takeover card with the three dispatch states, never a copyable
-   trigger sentence.
-5. The proposal card is where a template is chosen: it lists the four registered
-   kinds, shows the AI's style preview and contract, and one 确认并生成 writes
-   `result.json` + `template_selection.json` without leaving the page.
-6. After confirming, the same page switches to progress; the preview tool shows
-   pages landing as they are generated.
-7. With a hand-attached fake project (`agent_bridge.py run start --task
-   <task_id>` in a scratch project plus a few `svg_output/*.svg` and one
-   `exports/*.pptx`), the progress page renders stage, events, page
-   thumbnails, the export download link, and the inbox card; answering it
-   writes `resp-NNNN.json` and the card turns into 已回复; stars/rating
-   feedback lands in `feedback.json`.
-8. `curl http://127.0.0.1:<port>/api/projects` lists the scratch project with
-   its stage and progress, and `GET /api/projects/<slug>` returns events and
-   the inbox.
-9. `curl -H "Host: evil.example" http://127.0.0.1:<port>/api/health` returns 403.
-10. `uv run python scripts/workbench/server.py --shutdown` returns 0 twice in a row.
+Open the gallery and browse the full source without creating a task. Submit a topic-only task and an attachment-only task. Verify that confirming the outline installs the selected example, and that repeated confirmation leaves the same template receipt. Check per-page previews and the open and save actions against the final export.
 
 ## Remote access
 

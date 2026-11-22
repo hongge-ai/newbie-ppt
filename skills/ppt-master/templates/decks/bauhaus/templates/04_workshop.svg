@@ -1,0 +1,36 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" data-pptx-master="bauhaus" data-pptx-master-name="Bauhaus" data-pptx-layout="workshop" data-pptx-layout-name="Two viewpoints" font-family="Microsoft YaHei, Arial, sans-serif">
+  <rect id="paper" x="0" y="0" width="1280" height="720" fill="#F2EEE5" data-pptx-layer="master" data-pptx-editable="false"/>
+  <rect id="field-6" x="64" y="284" width="279" height="92" fill="#171717" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <rect id="field-8" x="370" y="284" width="279" height="92" fill="#E3DCCE" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <g id="slot-photo" data-pptx-placeholder="picture" data-pptx-idx="1" data-pptx-bounds="698 63 517 590">
+    <image data-pptx-carrier="true" x="698" y="63" width="517" height="590" href="../images/bauhaus-sample-5.jpg" preserveAspectRatio="xMidYMid slice"/>
+  </g>
+  <g id="slot-section" data-pptx-placeholder="body" data-pptx-idx="2" data-pptx-bounds="62 68 595 26">
+    <text data-pptx-carrier="true" x="62" y="83" font-size="15" font-weight="400" fill="#171717">{{SECTION}}</text>
+  </g>
+  <g id="slot-page_title" data-pptx-placeholder="title" data-pptx-idx="3" data-pptx-bounds="62 123 595 64">
+    <text data-pptx-carrier="true" x="62" y="163" font-size="40" font-weight="700" fill="#171717">{{PAGE_TITLE}}</text>
+  </g>
+  <g id="slot-intro" data-pptx-placeholder="body" data-pptx-idx="4" data-pptx-bounds="62 196 600 86">
+    <text data-pptx-carrier="true" x="62" y="219" font-size="23" font-weight="400" fill="#171717">{{INTRO}}</text>
+  </g>
+  <g id="slot-view_1" data-pptx-placeholder="body" data-pptx-idx="5" data-pptx-bounds="78 301 248 53">
+    <text data-pptx-carrier="true" x="78" y="323" font-size="22" font-weight="700" fill="#FFFFFF">{{VIEW_1}}</text>
+  </g>
+  <g id="slot-view_2" data-pptx-placeholder="body" data-pptx-idx="6" data-pptx-bounds="384 301 248 53">
+    <text data-pptx-carrier="true" x="384" y="323" font-size="22" font-weight="700" fill="#171717">{{VIEW_2}}</text>
+  </g>
+  <g id="slot-link" data-pptx-placeholder="body" data-pptx-idx="7" data-pptx-bounds="64 412 595 65">
+    <text data-pptx-carrier="true" x="64" y="439" font-size="27" font-weight="700" fill="#171717">{{LINK}}</text>
+  </g>
+  <g id="slot-explanation" data-pptx-placeholder="body" data-pptx-idx="8" data-pptx-bounds="64 496 590 134">
+    <text data-pptx-carrier="true" x="64" y="516" font-size="20" font-weight="400" fill="#171717">{{EXPLANATION}}</text>
+  </g>
+  <g id="slot-source" data-pptx-placeholder="body" data-pptx-idx="9" data-pptx-bounds="64 666 860 28">
+    <text data-pptx-carrier="true" x="64" y="680" font-size="14" font-weight="400" fill="#746E64">{{SOURCE}}</text>
+  </g>
+  <g id="slot-folio" data-pptx-placeholder="body" data-pptx-idx="10" data-pptx-bounds="1090 666 130 28">
+    <text data-pptx-carrier="true" x="1090" y="680" font-size="14" font-weight="400" fill="#746E64">{{FOLIO}}</text>
+  </g>
+</svg>

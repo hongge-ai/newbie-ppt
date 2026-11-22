@@ -14,7 +14,7 @@
       <span class="brand-name">牛鼻 PPT</span>
     </a>
     <span class="conn" id="conn" hidden>连接中断，正在重试</span>
-    <button class="btn btn-primary" id="new-task" type="button">新建任务</button>
+    <button class="btn btn-primary" id="new-task" type="button">精选示例</button>
   </header>
 
   <div class="app-body">
@@ -35,27 +35,21 @@
 
   <dialog id="image-settings" aria-labelledby="settings-title">
     <form id="image-settings-form">
-      <h2 id="settings-title">AI 生图设置</h2>
-      <p id="active-channel" role="status"></p>
+      <h2 id="settings-title">AI 配图设置</h2>
       <fieldset class="channel-picker">
-        <legend>选择图片生成方式</legend>
+        <legend>配图服务</legend>
         <div class="channel-cards">
           <label><input type="radio" name="image-channel" data-channel="zzai" checked>
-            <span><strong>ZhenZhen AI <small>推荐</small></strong><span>使用平台密钥，选择模型并查看估价。</span></span>
+            <span><strong>ZhenZhen AI <small hidden>使用中</small></strong><span>使用 ZhenZhen AI 的 API Key</span></span>
           </label>
           <label><input type="radio" name="image-channel" data-channel="openai">
-            <span><strong>自定义服务（BYOK）</strong><span>连接已有的服务商，使用自己的 API Key。</span></span>
+            <span><strong>自定义服务 <small hidden>使用中</small></strong><span>连接兼容 OpenAI 接口的服务</span></span>
           </label>
         </div>
       </fieldset>
-      <section class="image-onboarding" aria-labelledby="image-guide">
-        <h3 id="image-guide">用 GPT Image 制作 PPT 配图</h3>
-        <p>注册后，在控制台创建并复制 API Key。回到这里粘贴，选择模型和分辨率即可。</p>
-        <a class="btn btn-primary" href="https://www.zzai.app/?s=xx1N.ppt" rel="sponsored noopener noreferrer" target="_blank">前往注册 ↗</a>
-        <small>注册入口为推广链接</small>
-      </section>
       <div id="byok-address" hidden><label class="field"><span>API 地址</span><input id="image-base" type="url" required autocomplete="off" aria-describedby="base-help"></label>
       <p id="base-help">填写第三方服务提供的 OpenAI 兼容接口地址。</p></div>
+      <p class="image-onboarding">还没有 API Key？<a href="https://www.zzai.app/?s=xx1N.ppt" rel="sponsored noopener noreferrer" target="_blank">前往 ZhenZhen AI 注册</a>，在控制台创建。</p>
       <label class="field" for="image-key"><span>API Key</span></label>
       <div class="key-control">
         <input id="image-key" type="password" maxlength="4096" autocomplete="off" spellcheck="false">
@@ -64,7 +58,6 @@
             <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="eye-slash" d="m3 3 18 18"/>
           </svg>
         </button>
-        <button class="btn" id="paste-image-key" type="button">一键粘贴</button>
       </div>
       <label class="field" id="custom-model-field"><span>模型 ID</span><input id="image-model" type="text" required maxlength="256" autocomplete="off"></label>
       <section id="zzai-pricing" hidden>
@@ -73,7 +66,7 @@
           <label>分辨率<select id="quote-size"><option value="1k">1K</option><option value="2k">2K</option><option value="4k">4K</option></select></label>
           <output id="quote-amount" aria-live="polite"></output>
         </div>
-        <p class="card-hint" id="quote-note"></p>
+        <p id="quote-note" role="status"></p>
         <details id="quote-details"><summary>查看全部估价</summary><table><thead><tr><th>模型</th><th>1K</th><th>2K</th><th>4K</th></tr></thead><tbody></tbody></table></details>
       </section>
       <p id="settings-status" role="status"></p>
@@ -84,9 +77,6 @@
     </form>
   </dialog>
   <div class="toast" id="toast" hidden></div>
-  <script src="/static/style_slides.js"></script>
-  <script src="/static/slide_preview.js"></script>
-  <script src="/static/stage2_confirm.js"></script>
   <script src="/static/app.js"></script>
 </body>
 </html>

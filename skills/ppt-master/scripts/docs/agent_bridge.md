@@ -263,6 +263,11 @@ alive without the checker importing anything.
 
 Generate route:
 
+For a workbench-bound run, outline, Stage 1, and Stage 2 decisions use their
+dedicated review controls and the corresponding `confirm_ui/wait.py` receipt.
+Skip the inbox `ask` and `answer` entries below for these decisions. Use the
+inbox for a separate question that the review controls cannot answer.
+
 | Point | Call |
 |---|---|
 | Processing a submitted workbench task | `run start --route generate --task <task_id>` (the only task binding; inherited by `--resume` and `--takeover`) |

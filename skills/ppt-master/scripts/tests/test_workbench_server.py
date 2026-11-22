@@ -11,6 +11,7 @@ Dependencies:
 """
 
 import io
+import hashlib
 import json
 import sys
 import tempfile
@@ -290,6 +291,7 @@ class TaskLifecycleTests(unittest.TestCase):
         sha = proposal['template_options']['options_sha256']
         resp = self.client.post(f'/api/tasks/{task_id}/confirm', json={
             'display_title': '黑土地：一厘米四百年',
+            'preferred_visual_style': 'photo-editorial',
             'contract': {'audience': '中学生与公众'},
             'template_mode': 'free_design',
             'selection_keys': [],
@@ -301,6 +303,73 @@ class TaskLifecycleTests(unittest.TestCase):
         )
         self.assertEqual(selection['mode'], 'free_design')
         self.assertEqual(selection['selections'], [])
+        self.assertEqual(self.client.get(f'/api/projects/{project.name}/selection-preview').status_code, 404)
+
+    def test_curated_task_installs_only_the_chosen_deck_at_outline_confirmation(self):
+        from confirm_ui import outline_store
+
+        examples = self.client.get('/api/examples').get_json()['examples']
+        example = examples[0]
+        self.assertEqual(example['id'], 'bauhaus')
+        self.assertEqual(len(example['pages']), 13)
+        for i in range(1, 14):
+            with self.client.get(f'/static/examples/bauhaus/{i:02}.webp') as image:
+                self.assertEqual(image.status_code, 200)
+        self.assertEqual(self.client.get('/api/tasks').get_json()['tasks'], [])
+        self.assertEqual(self.client.post('/api/tasks', json={'example_id': '../unknown'}).status_code, 400)
+        task_id = self.client.post('/api/tasks', json={'example_id': 'bauhaus'}).get_json()['task_id']
+        path = f'/api/tasks/{task_id}'
+        self.assertEqual(self.client.post(path + '/submit').status_code, 400)
+        self.assertEqual(self._upload(task_id, 'brief.txt').status_code, 201)
+        self.assertEqual(self.client.post(path + '/submit', json={}).status_code, 200)
+        self.assertEqual(self.client.get(path).get_json()['example_id'], 'bauhaus')
+        project = self.projects_root / 'example_run'
+        project.mkdir()
+        agent_bridge.start_run(project, task=task_id)
+        outline_store.publish_outline(project, '# Brief\n\n## 第 1 页 [封面] Brief\n- First point')
+        for _ in range(2):
+            response = self.client.post(path + '/outline/confirm', json={})
+            self.assertEqual(response.status_code, 200, response.get_json())
+        receipt = json.loads((project / 'template_install.json').read_text('utf-8'))
+        self.assertIn('design_spec.deck.bauhaus.md', receipt['installed_specs'])
+        self.assertEqual(len(list((project / 'templates').glob('*.svg'))), 10)
+        self.assertEqual(self.client.post(path + '/confirm', json={}).status_code, 409)
+
+    def test_landscape_source_example_keeps_its_canvas_and_layouts_on_retry(self):
+        from confirm_ui import outline_store
+
+        examples = self.client.get('/api/examples').get_json()['examples']
+        for example in examples:
+            frame = server.CANVAS_FORMATS[example['canvas']]
+            self.assertGreater(frame['width'], frame['height'], example['id'])
+        example_id = 'custom_1920x600_autumn_web_banner'
+        task_id = self.client.post('/api/tasks', json={
+            'example_id': example_id, 'topic': 'A seasonal programme',
+        }).get_json()['task_id']
+        path = f'/api/tasks/{task_id}'
+        self.assertEqual(self.client.get(path).get_json()['params']['canvas'], 'webbanner')
+        self.client.post(path + '/submit', json={})
+        project = self.projects_root / 'banner_run'
+        project.mkdir()
+        agent_bridge.start_run(project, task=task_id)
+        outline_store.publish_outline(project, '# Programme\n\n## 第 1 页 [封面] Programme\n- Opening')
+        for _ in range(2):
+            response = self.client.post(path + '/outline/confirm', json={})
+            self.assertEqual(response.status_code, 200, response.get_json())
+        installed = json.loads((project / 'example_reference.json').read_text('utf-8'))
+        self.assertEqual(installed['example_id'], example_id)
+        self.assertEqual(installed['viewBox'], '0 0 1920 600')
+        self.assertTrue(all('<svg' in slide['svg'] for slide in installed['slides']))
+
+    def test_example_submission_dispatches_to_connected_agent(self):
+        agent = self.client.post('/api/agents/register', json={'name': 'Connected AI'}).get_json()
+        task_id = self.client.post('/api/tasks', json={
+            'example_id': 'bauhaus', 'topic': 'Reading a railway map',
+        }).get_json()['task_id']
+        path = '/api/tasks/' + task_id
+        self.assertEqual(self.client.post(path + '/submit', json={}).status_code, 200)
+        detail = self.client.get(path).get_json()
+        self.assertEqual(detail['assignment']['agent_id'], agent['agent_id'])
 
     def test_plan_review_is_due_only_with_a_stage2_plan(self) -> None:
         project = self.projects_root / 'plan_demo'
@@ -449,9 +518,8 @@ class TaskLifecycleTests(unittest.TestCase):
         self.assertTrue(data['image_policies'])
         self.assertTrue(data['languages'])
         self.assertTrue(data['page_counts'])
-        styles = data['visual_styles']
-        self.assertEqual(len(styles), 18)
-        self.assertTrue(all('preview_url' not in item for item in styles))
+        self.assertIn('examples', data)
+        self.assertNotIn('visual_styles', data)
         for asset, marker in (
             ('/static/style_slides.js', 'WorkbenchStyleSlides'),
             ('/static/slide_preview.js', 'WorkbenchSlidePreview'),
@@ -556,6 +624,83 @@ class ProgressAndFeedbackTests(unittest.TestCase):
         ):
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url).status_code, 404)
+
+    def test_export_desktop_actions(self) -> None:
+        project = self._attach_project('desktop_actions')
+        directory = project / 'exports'
+        directory.mkdir()
+        source = directory / 'out.pptx'
+        source.write_bytes(b'demo deck')
+        base = f'/api/tasks/{self.task_id}/exports'
+        origin = {'Origin': 'http://localhost'}
+        self.assertEqual(self.client.get(f'{base}/out.pptx/open').status_code, 405)
+        self.assertEqual(self.client.post(f'{base}/out.pptx/open', json={}).status_code, 403)
+        self.assertEqual(self.client.post(f'{base}/missing.pptx/open', headers=origin, json={}).status_code, 404)
+        with patch.object(server.os, 'startfile', create=True) as win_open, patch.object(server.subprocess, 'run') as run:
+            self.assertTrue(self.client.post(f'{base}/out.pptx/open', headers=origin, json={}).json['opened'])
+            if server.os.name == 'nt':
+                win_open.assert_called_once_with(str(source))
+            else:
+                self.assertEqual(run.call_args.args[0][-1], str(source))
+            target = project / '我的副本.pptx'
+            run.return_value.stdout = json.dumps(str(target)).encode()
+            self.assertTrue(self.client.post(f'{base}/out.pptx/save-as', headers=origin, json={}).json['saved'])
+            self.assertEqual(target.read_bytes(), source.read_bytes())
+            run.return_value.stdout = b'null'
+            self.assertFalse(self.client.post(f'{base}/out.pptx/save-as', headers=origin, json={}).json['saved'])
+
+    def test_slide_progress_follows_previewable_file_revisions(self) -> None:
+        project = self._attach_project('preview_incremental')
+        slides = project / 'svg_output'
+        slides.mkdir()
+        first, second = slides / 'P01.svg', slides / 'P02.svg'
+        first.write_text('<svg>', encoding='utf-8')
+        second.write_text('<svg/>', encoding='utf-8')
+        url = f'/api/tasks/{self.task_id}/progress'
+        partial = self.client.get(url).get_json()
+        self.assertEqual([slide['name'] for slide in partial['slides']], ['P02.svg'])
+        first.write_text('<svg><text>First</text></svg>', encoding='utf-8')
+        complete = self.client.get(url).get_json()
+        self.assertEqual([slide['name'] for slide in complete['slides']], ['P01.svg', 'P02.svg'])
+
+    @unittest.skipUnless(sys.platform == 'win32', 'PowerPoint preview is Windows-only')
+    def test_preview_views_share_cached_pages_and_prefer_finished_export(self) -> None:
+        from workbench.powerpoint_preview import PreviewRenderer
+
+        project = self._attach_project('rendered_pages')
+        slides = project / 'svg_output'
+        slides.mkdir()
+        (slides / '02_read.svg').write_text('<svg/>', encoding='utf-8')
+        project_url = f'/api/projects/{project.name}/page-previews'
+        task_url = f'/api/tasks/{self.task_id}/progress?preview=1'
+        with patch.object(PreviewRenderer, '_schedule', return_value=True) as schedule:
+            pending = self.client.get(project_url).json
+            self.assertIsNone(pending['pages'][0]['image'])
+            self.assertEqual(pending['pages'][0]['number'], 2)
+            cache = self.projects_root / '.workbench' / 'page-previews' / project.name
+            draft = cache / schedule.call_args.args[-1]
+            draft.mkdir(parents=True)
+            (draft / '1.webp').write_bytes(b'draft')
+            first = self.client.get(task_url).json['page_preview']
+            self.assertEqual(first, self.client.get(project_url).json)
+            self.assertEqual(first['source'], 'draft')
+            (project / 'exports').mkdir()
+            (project / 'exports' / 'final.pptx').write_bytes(b'placeholder')
+            updating = self.client.get(project_url).json
+            self.assertEqual(updating['pages'][0]['image'], first['pages'][0]['image'])
+            final = cache / schedule.call_args.args[-1]
+            final.mkdir()
+            (final / 'count').write_text('2')
+            (final / '2.webp').write_bytes(b'final')
+            result = self.client.get(project_url).json
+            self.assertEqual(result['source'], 'final')
+            self.assertEqual(result['pages'][1]['name'], '02_read.svg')
+            image = self.client.get(project_url + '/' + result['pages'][1]['image'])
+            try:
+                self.assertEqual(image.get_data(), b'final')
+            finally:
+                image.close()
+            self.assertEqual(self.client.get(task_url).json['page_preview'], result)
 
     def test_feedback_roundtrip_and_validation(self) -> None:
         self.assertEqual(
@@ -681,6 +826,50 @@ class OutlineAndDelegationTests(unittest.TestCase):
         agent_bridge.start_run(self.project, task=self.task_id)
         agent_bridge.enter_stage(self.project, 'outline', label='撰写大纲')
 
+    def test_review_reminder_does_not_create_a_second_answer_form(self) -> None:
+        url = f'http://127.0.0.1:7070/#/task/{self.task_id}'
+        agent_bridge.open_request(self.project, kind='confirm', title='请在「① 内容大纲」确认', url=url)
+        progress_url = f'/api/tasks/{self.task_id}/progress'
+        progress = self.client.get(progress_url).get_json()
+        self.assertEqual(progress['requests'], [])
+        self.assertIsNone(progress['attention'])
+        self.assertIsNone(self.client.get('/api/tasks').get_json()['tasks'][0]['attention'])
+
+        question = agent_bridge.open_request(
+            self.project, kind='confirm', title='Include the appendix?', url=url,
+        )
+        progress = self.client.get(progress_url).get_json()
+        self.assertEqual([item['request']['id'] for item in progress['requests']], [question['id']])
+        self.assertEqual(progress['attention'], 'answer')
+
+    def test_image_progress_counts_planned_assets_as_files_become_readable(self) -> None:
+        from PIL import Image
+
+        def progress():
+            return self.client.get(f'/api/tasks/{self.task_id}/progress').get_json()['image_progress']
+
+        self.assertIsNone(progress()['total'])
+        directory = self.project / 'images'
+        directory.mkdir()
+        manifest = directory / 'image_prompts.json'
+        manifest.write_text(json.dumps({'items': [
+            {'filename': 'cover.jpg', 'status': 'Pending', 'alt_text': 'Waterfall'},
+            {'filename': 'closing.png', 'status': 'Failed'},
+            {'filename': '../outside.jpg', 'status': 'Generated'},
+        ]}), encoding='utf-8')
+        self.assertEqual(progress(), {'total': 2, 'ready': [], 'failed': 1, 'manual': 0})
+        (self.project / 'spec_lock.md').write_text(
+            '## images\n- cover: images/cover.jpg | source=ai | crop=adaptive\n'
+            '- river: images/river.jpg | source=web | crop=adaptive\n', encoding='utf-8')
+        Image.new('RGB', (32, 32)).save(directory / 'river.jpg')
+        Image.new('RGB', (32, 32)).save(directory / 'unplanned.jpg')
+        (directory / 'cover.jpg').write_bytes(b'partial')
+        partial = progress()
+        self.assertEqual(partial['total'], 3)
+        self.assertEqual([r['name'] for r in partial['ready']], ['river.jpg'])
+        Image.new('RGB', (32, 32)).save(directory / 'cover.jpg')
+        self.assertEqual([r['name'] for r in progress()['ready']], ['cover.jpg', 'river.jpg'])
+
     def test_outline_edit_revise_wait_and_confirm_lifecycle(self) -> None:
         from confirm_ui import outline_store
         from confirm_ui import wait as confirm_wait
@@ -703,6 +892,8 @@ class OutlineAndDelegationTests(unittest.TestCase):
         self.assertEqual(published['status'], 'ready')
         self.assertEqual(published['round'], 1)
         self.assertEqual(published['slide_count'], 2)
+        self.assertEqual(self.client.get('/api/tasks').get_json()['tasks'][0]['attention'], 'outline')
+        self.assertEqual(self.client.get(f'/api/tasks/{self.task_id}/progress').get_json()['attention'], 'outline')
 
         progress = self.client.get(f'/api/tasks/{self.task_id}/progress').get_json()
         self.assertEqual(progress['outline']['status'], 'ready')

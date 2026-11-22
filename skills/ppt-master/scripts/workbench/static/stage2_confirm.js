@@ -352,7 +352,7 @@
         '    <div class="tpl-modal-title">' +
         '      <i class="tpl-dot" style="background:' + esc(swatch) + '"></i>' +
         '      <strong>' + esc(styleItem.label) + '</strong>' +
-        '      <span class="tpl-modal-sub">' + esc(styleItem.group || '') + ' · 4 类核心版面</span>' +
+        '      <span class="tpl-modal-sub">' + esc(styleItem.group || '') + ' · ' + slides.length + ' 种排版</span>' +
         '    </div>' +
         '    <button type="button" class="btn btn-small" data-modal-close>关闭</button>' +
         '  </div>' +

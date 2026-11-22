@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" data-pptx-master="bauhaus" data-pptx-master-name="Bauhaus" data-pptx-layout="timeline" data-pptx-layout-name="Timeline" font-family="Microsoft YaHei, Arial, sans-serif">
+  <rect id="paper" x="0" y="0" width="1280" height="720" fill="#F2EEE5" data-pptx-layer="master" data-pptx-editable="false"/>
+  <rect id="field-2" x="0" y="0" width="1280" height="720" fill="#171717" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <line id="field-7" x1="115" y1="407" x2="1025" y2="407" stroke="#A7A195" stroke-width="1" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <circle id="field-8" cx="116" cy="407" r="13" fill="#F2EEE5" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <circle id="field-11" cx="413" cy="407" r="13" fill="#F2EEE5" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <circle id="field-14" cx="710" cy="407" r="13" fill="#F2EEE5" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <circle id="field-17" cx="1007" cy="407" r="13" fill="#BD4029" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <g id="slot-section" data-pptx-placeholder="body" data-pptx-idx="1" data-pptx-bounds="64 68 785 26">
+    <text data-pptx-carrier="true" x="64" y="83" font-size="15" font-weight="400" fill="#FFFFFF">{{SECTION}}</text>
+  </g>
+  <g id="slot-page_title" data-pptx-placeholder="title" data-pptx-idx="2" data-pptx-bounds="64 123 785 64">
+    <text data-pptx-carrier="true" x="64" y="163" font-size="40" font-weight="700" fill="#FFFFFF">{{PAGE_TITLE}}</text>
+  </g>
+  <g id="slot-intro" data-pptx-placeholder="body" data-pptx-idx="3" data-pptx-bounds="64 189 858 77">
+    <text data-pptx-carrier="true" x="64" y="211" font-size="22" font-weight="400" fill="#FFFFFF">{{INTRO}}</text>
+  </g>
+  <g id="slot-year" data-pptx-placeholder="body" data-pptx-idx="4" data-pptx-bounds="886 110 325 122">
+    <text data-pptx-carrier="true" x="886" y="193" font-size="83" font-weight="700" fill="#373737">{{YEAR}}</text>
+  </g>
+  <g id="slot-date_1" data-pptx-placeholder="body" data-pptx-idx="5" data-pptx-bounds="100 445 250 57">
+    <text data-pptx-carrier="true" x="100" y="471" font-size="26" font-weight="700" fill="#FFFFFF">{{DATE_1}}</text>
+  </g>
+  <g id="slot-event_1" data-pptx-placeholder="body" data-pptx-idx="6" data-pptx-bounds="100 508 241 118">
+    <text data-pptx-carrier="true" x="100" y="528" font-size="20" font-weight="400" fill="#FFFFFF">{{EVENT_1}}</text>
+  </g>
+  <g id="slot-date_2" data-pptx-placeholder="body" data-pptx-idx="7" data-pptx-bounds="397 445 250 57">
+    <text data-pptx-carrier="true" x="397" y="471" font-size="26" font-weight="700" fill="#FFFFFF">{{DATE_2}}</text>
+  </g>
+  <g id="slot-event_2" data-pptx-placeholder="body" data-pptx-idx="8" data-pptx-bounds="397 508 241 118">
+    <text data-pptx-carrier="true" x="397" y="528" font-size="20" font-weight="400" fill="#FFFFFF">{{EVENT_2}}</text>
+  </g>
+  <g id="slot-date_3" data-pptx-placeholder="body" data-pptx-idx="9" data-pptx-bounds="694 445 250 57">
+    <text data-pptx-carrier="true" x="694" y="471" font-size="26" font-weight="700" fill="#FFFFFF">{{DATE_3}}</text>
+  </g>
+  <g id="slot-event_3" data-pptx-placeholder="body" data-pptx-idx="10" data-pptx-bounds="694 508 241 118">
+    <text data-pptx-carrier="true" x="694" y="528" font-size="20" font-weight="400" fill="#FFFFFF">{{EVENT_3}}</text>
+  </g>
+  <g id="slot-date_4" data-pptx-placeholder="body" data-pptx-idx="11" data-pptx-bounds="991 445 250 57">
+    <text data-pptx-carrier="true" x="991" y="471" font-size="26" font-weight="700" fill="#FFFFFF">{{DATE_4}}</text>
+  </g>
+  <g id="slot-event_4" data-pptx-placeholder="body" data-pptx-idx="12" data-pptx-bounds="991 508 241 118">
+    <text data-pptx-carrier="true" x="991" y="528" font-size="20" font-weight="400" fill="#FFFFFF">{{EVENT_4}}</text>
+  </g>
+</svg>

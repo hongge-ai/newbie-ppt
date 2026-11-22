@@ -39,20 +39,16 @@
   ],
   "image_policies": [
     {
-      "value": "auto",
-      "label": "自动(AI 生成优先)"
+      "value": "ai",
+      "label": "AI 生成图片"
     },
     {
       "value": "none",
-      "label": "不配图(纯版式)"
+      "label": "不配图（纯版式）"
     },
     {
       "value": "web",
       "label": "网络图片搜索"
-    },
-    {
-      "value": "ai",
-      "label": "AI 生成图片"
     }
   ],
   "languages": [

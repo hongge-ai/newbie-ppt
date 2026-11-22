@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" data-pptx-master="bauhaus" data-pptx-master-name="Bauhaus" data-pptx-layout="connections" data-pptx-layout-name="Network" font-family="Microsoft YaHei, Arial, sans-serif">
+  <rect id="paper" x="0" y="0" width="1280" height="720" fill="#F2EEE5" data-pptx-layer="master" data-pptx-editable="false"/>
+  <circle id="field-5" cx="204" cy="425" r="92" fill="#BD4029" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <line id="field-8" x1="294" y1="425" x2="455" y2="274" stroke="#746E64" stroke-width="1" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <line id="field-11" x1="294" y1="425" x2="455" y2="348" stroke="#746E64" stroke-width="1" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <line id="field-14" x1="294" y1="425" x2="455" y2="422" stroke="#746E64" stroke-width="1" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <line id="field-17" x1="294" y1="425" x2="455" y2="496" stroke="#746E64" stroke-width="1" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <line id="field-20" x1="294" y1="425" x2="455" y2="570" stroke="#746E64" stroke-width="1" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <g id="slot-section" data-pptx-placeholder="body" data-pptx-idx="1" data-pptx-bounds="64 68 860 26">
+    <text data-pptx-carrier="true" x="64" y="83" font-size="15" font-weight="400" fill="#171717">{{SECTION}}</text>
+  </g>
+  <g id="slot-page_title" data-pptx-placeholder="title" data-pptx-idx="2" data-pptx-bounds="64 123 860 64">
+    <text data-pptx-carrier="true" x="64" y="163" font-size="40" font-weight="700" fill="#171717">{{PAGE_TITLE}}</text>
+  </g>
+  <g id="slot-intro" data-pptx-placeholder="body" data-pptx-idx="3" data-pptx-bounds="64 192 900 65">
+    <text data-pptx-carrier="true" x="64" y="213" font-size="21" font-weight="400" fill="#171717">{{INTRO}}</text>
+  </g>
+  <g id="slot-hub" data-pptx-placeholder="body" data-pptx-idx="4" data-pptx-bounds="126 397 156 56">
+    <text data-pptx-carrier="true" x="204" y="421" text-anchor="middle" font-size="24" font-weight="700" fill="#FFFFFF">{{HUB}}</text>
+  </g>
+  <g id="slot-photo" data-pptx-placeholder="picture" data-pptx-idx="5" data-pptx-bounds="978 242 227 301">
+    <image data-pptx-carrier="true" x="978" y="242" width="227" height="301" href="../images/bauhaus-sample-12.jpg" preserveAspectRatio="xMidYMid slice"/>
+  </g>
+  <g id="slot-branch_1" data-pptx-placeholder="body" data-pptx-idx="6" data-pptx-bounds="478 256 477 42">
+    <text data-pptx-carrier="true" x="478" y="279" font-size="23" font-weight="700" fill="#171717">{{BRANCH_1}}</text>
+  </g>
+  <g id="slot-note_1" data-pptx-placeholder="body" data-pptx-idx="7" data-pptx-bounds="478 292 477 35">
+    <text data-pptx-carrier="true" x="478" y="308" font-size="16" font-weight="400" fill="#746E64">{{NOTE_1}}</text>
+  </g>
+  <g id="slot-branch_2" data-pptx-placeholder="body" data-pptx-idx="8" data-pptx-bounds="478 330 477 42">
+    <text data-pptx-carrier="true" x="478" y="353" font-size="23" font-weight="700" fill="#171717">{{BRANCH_2}}</text>
+  </g>
+  <g id="slot-note_2" data-pptx-placeholder="body" data-pptx-idx="9" data-pptx-bounds="478 366 477 35">
+    <text data-pptx-carrier="true" x="478" y="382" font-size="16" font-weight="400" fill="#746E64">{{NOTE_2}}</text>
+  </g>
+  <g id="slot-branch_3" data-pptx-placeholder="body" data-pptx-idx="10" data-pptx-bounds="478 404 477 42">
+    <text data-pptx-carrier="true" x="478" y="427" font-size="23" font-weight="700" fill="#171717">{{BRANCH_3}}</text>
+  </g>
+  <g id="slot-note_3" data-pptx-placeholder="body" data-pptx-idx="11" data-pptx-bounds="478 440 477 35">
+    <text data-pptx-carrier="true" x="478" y="456" font-size="16" font-weight="400" fill="#746E64">{{NOTE_3}}</text>
+  </g>
+  <g id="slot-branch_4" data-pptx-placeholder="body" data-pptx-idx="12" data-pptx-bounds="478 478 477 42">
+    <text data-pptx-carrier="true" x="478" y="501" font-size="23" font-weight="700" fill="#171717">{{BRANCH_4}}</text>
+  </g>
+  <g id="slot-note_4" data-pptx-placeholder="body" data-pptx-idx="13" data-pptx-bounds="478 514 477 35">
+    <text data-pptx-carrier="true" x="478" y="530" font-size="16" font-weight="400" fill="#746E64">{{NOTE_4}}</text>
+  </g>
+  <g id="slot-branch_5" data-pptx-placeholder="body" data-pptx-idx="14" data-pptx-bounds="478 552 477 42">
+    <text data-pptx-carrier="true" x="478" y="575" font-size="23" font-weight="700" fill="#171717">{{BRANCH_5}}</text>
+  </g>
+  <g id="slot-note_5" data-pptx-placeholder="body" data-pptx-idx="15" data-pptx-bounds="478 588 477 35">
+    <text data-pptx-carrier="true" x="478" y="604" font-size="16" font-weight="400" fill="#746E64">{{NOTE_5}}</text>
+  </g>
+  <g id="slot-source" data-pptx-placeholder="body" data-pptx-idx="16" data-pptx-bounds="64 666 860 28">
+    <text data-pptx-carrier="true" x="64" y="680" font-size="14" font-weight="400" fill="#746E64">{{SOURCE}}</text>
+  </g>
+  <g id="slot-folio" data-pptx-placeholder="body" data-pptx-idx="17" data-pptx-bounds="1090 666 130 28">
+    <text data-pptx-carrier="true" x="1090" y="680" font-size="14" font-weight="400" fill="#746E64">{{FOLIO}}</text>
+  </g>
+</svg>

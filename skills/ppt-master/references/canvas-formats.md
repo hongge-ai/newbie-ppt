@@ -2,8 +2,7 @@
 
 > See [`shared-standards-core.md`](./shared-standards-core.md) §4.1 for the normative root `viewBox` grammar, compatibility spellings, and fail-closed validation rules.
 
-This repository authors PPTX decks, so only the two PowerPoint canvases are
-registered:
+The usual presentation formats are:
 
 | ID | Format | Size | viewBox | Ratio | Use Case |
 |----|--------|------|---------|-------|----------|
@@ -12,7 +11,9 @@ registered:
 
 `config.CANVAS_FORMATS` is the single source of truth; project initialization,
 the confirmation page, template indexes, the checker, and the exporter read it.
-No other canvas is offered or accepted.
+Landscape gallery examples also use the registered source frames `wechat`
+(900×383), `banner` (1920×1080) and `webbanner` (1920×600).
+Use the selected example's frame for its editable PowerPoint adaptation.
 
 All pages and internal Layout prototypes in one export share one numeric canvas
 within PowerPoint's slide range (914,400–51,206,400 EMU per side). A fractional

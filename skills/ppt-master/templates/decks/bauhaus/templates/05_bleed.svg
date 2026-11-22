@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" data-pptx-master="bauhaus" data-pptx-master-name="Bauhaus" data-pptx-layout="bleed" data-pptx-layout-name="Documentary photograph" font-family="Microsoft YaHei, Arial, sans-serif">
+  <rect id="paper" x="0" y="0" width="1280" height="720" fill="#F2EEE5" data-pptx-layer="master" data-pptx-editable="false"/>
+  <g id="slot-photo" data-pptx-placeholder="picture" data-pptx-idx="1" data-pptx-bounds="0 0 1280 720">
+    <image data-pptx-carrier="true" x="0" y="0" width="1280" height="720" href="../images/bauhaus-sample-7.jpg" preserveAspectRatio="xMidYMid slice"/>
+  </g>
+  <g id="slot-section" data-pptx-placeholder="body" data-pptx-idx="2" data-pptx-bounds="64 68 530 26">
+    <text data-pptx-carrier="true" x="64" y="83" font-size="15" font-weight="400" fill="#FFFFFF">{{SECTION}}</text>
+  </g>
+  <g id="slot-page_title" data-pptx-placeholder="title" data-pptx-idx="3" data-pptx-bounds="64 123 530 64">
+    <text data-pptx-carrier="true" x="64" y="163" font-size="40" font-weight="700" fill="#FFFFFF">{{PAGE_TITLE}}</text>
+  </g>
+  <g id="slot-intro" data-pptx-placeholder="body" data-pptx-idx="4" data-pptx-bounds="64 184 495 80">
+    <text data-pptx-carrier="true" x="64" y="206" font-size="22" font-weight="400" fill="#FFFFFF">{{INTRO}}</text>
+  </g>
+  <g id="slot-fact_1" data-pptx-placeholder="body" data-pptx-idx="5" data-pptx-bounds="64 300 490 52">
+    <text data-pptx-carrier="true" x="64" y="326" font-size="26" font-weight="700" fill="#FFFFFF">{{FACT_1}}</text>
+  </g>
+  <g id="slot-fact_2" data-pptx-placeholder="body" data-pptx-idx="6" data-pptx-bounds="64 354 490 52">
+    <text data-pptx-carrier="true" x="64" y="380" font-size="26" font-weight="700" fill="#FFFFFF">{{FACT_2}}</text>
+  </g>
+  <g id="slot-fact_3" data-pptx-placeholder="body" data-pptx-idx="7" data-pptx-bounds="64 408 490 52">
+    <text data-pptx-carrier="true" x="64" y="434" font-size="26" font-weight="700" fill="#FFFFFF">{{FACT_3}}</text>
+  </g>
+  <g id="slot-caption" data-pptx-placeholder="body" data-pptx-idx="8" data-pptx-bounds="64 515 500 108">
+    <text data-pptx-carrier="true" x="64" y="535" font-size="20" font-weight="400" fill="#FFFFFF">{{CAPTION}}</text>
+  </g>
+</svg>

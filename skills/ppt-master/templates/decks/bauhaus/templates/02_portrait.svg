@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" data-pptx-master="bauhaus" data-pptx-master-name="Bauhaus" data-pptx-layout="portrait" data-pptx-layout-name="Portrait and quotation" font-family="Microsoft YaHei, Arial, sans-serif">
+  <rect id="paper" x="0" y="0" width="1280" height="720" fill="#F2EEE5" data-pptx-layer="master" data-pptx-editable="false"/>
+  <circle id="field-5" cx="1140" cy="275" r="40" fill="#BD4029" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <line id="field-7" x1="558" y1="400" x2="1205" y2="400" stroke="#746E64" stroke-width="1" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <g id="slot-photo" data-pptx-placeholder="picture" data-pptx-idx="1" data-pptx-bounds="96 64 394 592">
+    <image data-pptx-carrier="true" x="96" y="64" width="394" height="592" href="../images/bauhaus-sample-2.jpg" preserveAspectRatio="xMidYMid slice"/>
+  </g>
+  <g id="slot-section" data-pptx-placeholder="body" data-pptx-idx="2" data-pptx-bounds="558 68 650 26">
+    <text data-pptx-carrier="true" x="558" y="83" font-size="15" font-weight="400" fill="#171717">{{SECTION}}</text>
+  </g>
+  <g id="slot-page_title" data-pptx-placeholder="title" data-pptx-idx="3" data-pptx-bounds="558 123 650 64">
+    <text data-pptx-carrier="true" x="558" y="163" font-size="40" font-weight="700" fill="#171717">{{PAGE_TITLE}}</text>
+  </g>
+  <g id="slot-quote" data-pptx-placeholder="body" data-pptx-idx="4" data-pptx-bounds="558 221 535 150">
+    <text data-pptx-carrier="true" x="558" y="256" font-size="35" font-weight="400" fill="#171717">{{QUOTE}}</text>
+  </g>
+  <g id="slot-context" data-pptx-placeholder="body" data-pptx-idx="5" data-pptx-bounds="558 430 640 84">
+    <text data-pptx-carrier="true" x="558" y="454" font-size="24" font-weight="400" fill="#171717">{{CONTEXT}}</text>
+  </g>
+  <g id="slot-detail" data-pptx-placeholder="body" data-pptx-idx="6" data-pptx-bounds="558 540 640 98">
+    <text data-pptx-carrier="true" x="558" y="562" font-size="22" font-weight="400" fill="#171717">{{DETAIL}}</text>
+  </g>
+  <g id="slot-source" data-pptx-placeholder="body" data-pptx-idx="7" data-pptx-bounds="64 666 860 28">
+    <text data-pptx-carrier="true" x="64" y="680" font-size="14" font-weight="400" fill="#746E64">{{SOURCE}}</text>
+  </g>
+  <g id="slot-folio" data-pptx-placeholder="body" data-pptx-idx="8" data-pptx-bounds="1090 666 130 28">
+    <text data-pptx-carrier="true" x="1090" y="680" font-size="14" font-weight="400" fill="#746E64">{{FOLIO}}</text>
+  </g>
+</svg>

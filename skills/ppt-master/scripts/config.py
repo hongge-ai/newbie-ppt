@@ -184,6 +184,18 @@ CANVAS_FORMATS = {
     }
 }
 
+# Preserve the native frame when generating from a gallery example.
+for _key, _name, _width, _height, _ratio in (
+    ('wechat', 'WeChat header', 900, 383, '900:383'),
+    ('banner', 'Landscape banner', 1920, 1080, '16:9'),
+    ('webbanner', 'Wide web banner', 1920, 600, '16:5'),
+):
+    CANVAS_FORMATS[_key] = {
+        'name': _name, 'dimensions': f'{_width}×{_height}',
+        'width': _width, 'height': _height, 'viewbox': f'0 0 {_width} {_height}',
+        'aspect_ratio': _ratio, 'use_case': _name,
+    }
+
 
 # ============================================================
 # Design Color Configuration

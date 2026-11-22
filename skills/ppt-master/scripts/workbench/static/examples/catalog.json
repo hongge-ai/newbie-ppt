@@ -1,0 +1,1892 @@
+[
+  {
+    "id": "bauhaus",
+    "title": "包豪斯 1919–1933",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_bauhaus_1919_1933",
+    "representatives": [
+      4,
+      7,
+      11
+    ],
+    "pages": [
+      "包豪斯 1919–1933",
+      "一切从一句话开始",
+      "三座城市，十四年",
+      "先上同一门基础课",
+      "一个工坊，两位导师",
+      "谁在这里教书",
+      "校舍本身就是宣言",
+      "一盏灯里的圆、柱、球",
+      "从自行车到椅子",
+      "只用小写字母",
+      "1933：被迫落幕",
+      "关门之后，方法出发",
+      "留下的是方法，不是风格"
+    ],
+    "category": "design",
+    "canvas": "ppt169"
+  },
+  {
+    "id": "ppt169_sqlite_everywhere",
+    "title": "Why SQLite Is Everywhere",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_sqlite_everywhere",
+    "category": "technology",
+    "pages": [
+      "封面：SQLite 为什么无处不在——它替代的是 fopen()",
+      "部署量很可能超过其他所有引擎之和：>1e12 的算式",
+      "没有服务器：库本身就是数据库引擎",
+      "八层架构：把 SQL 编译成字节码，再在虚拟机里执行",
+      "编译路径：从 SQL 文本到字节码程序",
+      "存储路径：一个文件、多棵 B-tree、定长页",
+      "原子提交的两种机制：回滚日志 vs 预写日志",
+      "WAL 模式：读者永不阻塞写者",
+      "测试代码是库本身的 590 倍",
+      "不用遵守许可：它是公有领域",
+      "选 SQLite 之前先问三个问题",
+      "收尾：小、快、可靠，三者兼得"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      3,
+      7,
+      11
+    ],
+    "reference_sha256": "756aac8ed08ca577870fc8fca53c14047bff4c7d5f110b3a642285b3b1b6865c"
+  },
+  {
+    "id": "ppt169_goldberg_variations",
+    "title": "哥德堡变奏曲:一座对称的建筑",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_goldberg_variations",
+    "category": "education",
+    "pages": [
+      "封面:哥德堡变奏曲,一座对称的建筑",
+      "1741 年,一部写给双键盘羽管键琴的练习曲",
+      "全景:首尾同一首咏叹调,中间 30 个变奏",
+      "每三首一组,每组第三首是卡农",
+      "卡农的音程:从同度一级级升到九度",
+      "放大一级:三度卡农是怎么追的",
+      "地基:所有变奏共用一条低音线",
+      "第 16 首翻开后半,三首小调是三处阴影",
+      "终点回到起点:集腔曲之后咏叹调再现",
+      "古尔德 1955 与 1981:两种时间感",
+      "带着地图去听:四个小任务",
+      "收尾:同一条低音线,撑起 32 段音乐"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      3,
+      6,
+      9
+    ],
+    "reference_sha256": "a17c71ed865c9de812a8d63720d09e7feca4a32d3a45aa30ca1188bd75387df3"
+  },
+  {
+    "id": "ppt169_sub2_marathon_quick",
+    "title": "1:59:40:人类跑进两小时的那一天",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_sub2_marathon_quick",
+    "category": "data",
+    "pages": [
+      "封面:1:59:40,人类跑进两小时的那一天",
+      "两小时意味着每公里都要 2:50",
+      "2017 蒙扎差 25 秒,2019 维也纳快 20 秒",
+      "每一秒从哪里来:四个环节",
+      "轮换挡风,激光把配速画在路上",
+      "跟跑挡风:研究估算以分钟计",
+      "跑鞋:省下的是能耗,不直接是时间",
+      "补给、赛道与天气",
+      "各环节省了多少?能说的只有这么多",
+      "为什么 1:59:40 不算世界纪录",
+      "现在的官方纪录:1:59:30",
+      "它不算纪录,但它证明了可能"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      2,
+      5,
+      11
+    ],
+    "reference_sha256": "ee39b81b50c491d0725d7cb3fd70288e90256892bd029a9a8301690d9f907fce"
+  },
+  {
+    "id": "wechat_typst_series_banners",
+    "title": "Typst 入门 · 公众号系列横幅",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=wechat_typst_series_banners",
+    "category": "technology",
+    "pages": [
+      "系列头图:Typst 入门",
+      "01 导引",
+      "02 标记语法:语义先行",
+      "03 数学公式:用一对 $ 进入",
+      "04 中文排版:五类常见问题",
+      "文末:关注本号,跟完四篇"
+    ],
+    "canvas": "wechat",
+    "representatives": [
+      2,
+      3,
+      4
+    ],
+    "reference_sha256": "d459e230ea63009cbcdbdae99dffb8caf41de60eed93658d645646a44e03ff8e"
+  },
+  {
+    "id": "ppt169_container_shipping_editorial",
+    "title": "集装箱如何改变世界",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_container_shipping_editorial",
+    "category": "business",
+    "pages": [
+      "封面:集装箱如何改变世界",
+      "章节一:一艘油轮改装的船",
+      "旧世界:装一吨货 5.83 美元",
+      "那一船:不到 8 小时",
+      "引语:究竟有多重要,无法量化",
+      "改变世界的不是铁盒子,是同一个盒子",
+      "章节二:让所有人用同一个箱子",
+      "让标准成立的三件事(三联页)",
+      "战争把箱子推到亚洲",
+      "那个数字:+248%",
+      "成本与规模(四宫格)",
+      "收尾:下一个集装箱,会是什么?"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      4,
+      5,
+      8
+    ],
+    "reference_sha256": "88e53bd2ddb1e5df6aae87a01a5203790d5ed7793de2231c86778e7249d699b9"
+  },
+  {
+    "id": "ppt169_sanxingdui_kiosk_zh",
+    "title": "三星堆博物馆自助导览",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_sanxingdui_kiosk_zh",
+    "category": "culture",
+    "pages": [
+      "首页菜单:三星堆博物馆自助导览(四条可点路径)",
+      "章节:世纪逐梦",
+      "百年发现:从一条水沟到八座祭祀坑",
+      "八座祭祀坑与年代:公元前 1131—前 1012 年",
+      "章节:巍然王都",
+      "十二平方公里的王都",
+      "文物目录:天地人神,七件重点文物(可点)",
+      "青铜大立人像",
+      "一号青铜神树",
+      "青铜纵目面具:138 厘米的两耳间距",
+      "金杖",
+      "五号坑黄金面具:280 克(无照片页)",
+      "青铜大面具:131 厘米",
+      "龟背形网格状器",
+      "七件重点文物速查(原生表格)",
+      "参观信息与官网链接"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      3,
+      8,
+      14
+    ],
+    "reference_sha256": "bdcd51825bdeecd1ad31130d793ee19eaa482144b97d8b4177230e7aa3d9c624"
+  },
+  {
+    "id": "ppt169_muelltrennung_de_quick",
+    "title": "Mülltrennung in Deutschland",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_muelltrennung_de_quick",
+    "category": "education",
+    "pages": [
+      "Titel: Mülltrennung in Deutschland",
+      "Was Sie heute mitnehmen (Inhalt)",
+      "Zwei Gesetze – in je einem Satz",
+      "Wohin gehört was? Die Wege im Überblick",
+      "Restmüll und Biotonne",
+      "Gelbe Tonne und Gelber Sack",
+      "Altpapier und Altglas",
+      "Pfand: 25 Cent",
+      "Elektrogeräte und Batterien (in R1 eingefügt)",
+      "Sperrmüll und Wertstoffhof",
+      "Recyclingquoten in Zahlen",
+      "Fünf typische Verwechslungen",
+      "Fünf Regeln für den Alltag"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      4,
+      7,
+      10
+    ],
+    "reference_sha256": "5d526c6f6b0541d444337bf85385b85ee06f367a69227b401e05ed0070abe990"
+  },
+  {
+    "id": "ppt169_dujiangyan_zh_sparse",
+    "title": "都江堰：一座还在上班的两千岁工程",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_dujiangyan_zh_sparse",
+    "category": "culture",
+    "pages": [
+      "封面：一座还在上班的两千岁工程",
+      "本讲的四段路（整理）",
+      "问题：一条出山就发脾气的江",
+      "分水—排沙—引水：三件一套（整理）",
+      "鱼嘴：把一条江分成会看季节的两条",
+      "飞沙堰：让弯道替人排沙",
+      "宝瓶口：一道不会关上的闸门",
+      "一次洪水里，三件工程的动作顺序（整理）",
+      "六个字，管了两千年",
+      "岁修：把维护变成每年都要做的事",
+      "灌溉面积：一条走了两千年的上升线（整理）",
+      "今天的都江堰灌区：全国第一大",
+      "两块牌子：2000 与 2018",
+      "它给出的答案不是更高的坝"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      3,
+      7,
+      11
+    ],
+    "reference_sha256": "3b7cf671e48b4ba7b86ef01299f4783ce07e9c7987fa73685da33960e8faf837"
+  },
+  {
+    "id": "ppt169_china_rail_2024_zh",
+    "title": "中国铁路 2024：数据与现场",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_china_rail_2024_zh",
+    "category": "data",
+    "pages": [
+      "封面:43.12 亿人",
+      "2024 年全年总览(整理)",
+      "客运:六年回到高位",
+      "客运结构:公报原表",
+      "现场:候车大厅",
+      "货运:总量连续六年上行",
+      "货运品类:集装箱领涨,粮食领跌",
+      "换算周转量与国际班列",
+      "运输装备:机车、客车与货车",
+      "路网:16.2 万公里与它的结构",
+      "国际对照:八国营业里程(整理)",
+      "科技创新与运输安全",
+      "绿色低碳:能耗微升,排放持续下降",
+      "行业监管:许可、企业与处罚",
+      "结论:带走三条判断(整理)"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      4,
+      9,
+      13
+    ],
+    "reference_sha256": "f83a616466dae5708bd7b7f05cbd31a7208667a9b13bcf29fa0e04174e0ba5fa"
+  },
+  {
+    "id": "ppt169_china_rail_2024_zh_sonnet",
+    "title": "中国铁路2024：数据与现场（Sonnet 对照）",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_china_rail_2024_zh_sonnet",
+    "category": "data",
+    "pages": [
+      "封面:中国铁路2024,数据与现场",
+      "汇报导览",
+      "2024年铁路运输总览",
+      "客运:结构与增长",
+      "货运:总量与结构",
+      "重点物资运输与国际班列",
+      "换算周转量与运输安全",
+      "建设:投资与路网",
+      "现场影像:高铁桥梁工程",
+      "装备:机车车辆",
+      "现场影像:复兴号车厢与枢纽车站",
+      "国际对照:铁路营业里程",
+      "科技创新与技术标准",
+      "绿色低碳与行业监管",
+      "结语:量质齐升,支撑发展"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      4,
+      6,
+      10
+    ],
+    "reference_sha256": "2c203ee91e52690e4ccfdf97e08804d39a475a99d6148bc71c015fb6d1ff0ff3"
+  },
+  {
+    "id": "ppt169_infosec_training_zh_long",
+    "title": "信息安全意识培训（2026 版 · 新员工必修）",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_infosec_training_zh_long",
+    "category": "education",
+    "pages": [
+      "封面：你不是旁观者",
+      "目录：五章与你的关系",
+      "章节页 01：为什么是你",
+      "泄露的根因里，近一半与人直接相关",
+      "攻击者进门的方式，两条里有一条是社工",
+      "通报里的攻击者，是应聘进来的",
+      "你在这套风险里有三个身份",
+      "章节页 02：账号与密码",
+      "你被教了十年的口令规矩，已经过期",
+      "短信验证码挡不住今天的攻击者",
+      "一封钓鱼邮件的六处破绽",
+      "钓鱼早就不只在邮箱里",
+      "本章你要做的三件事",
+      "章节页 03：数据与设备",
+      "什么数据不能出门",
+      "走 U 盘的那条路，最难被发现",
+      "在家办公，等于把办公室的边界搬到你家",
+      "外发之前问自己四句话",
+      "章节页 04：合规红线",
+      "先说一件事：条号全变了",
+      "三部法律落到你身上的，是这几条",
+      "罚款有上限，任职资格没有",
+      "同一份名单，员工的入罪门槛只要一半",
+      "章节页 05：应急与上报",
+      "发现异常后的四个动作",
+      "报给谁、多久、怎么报",
+      "及时上报是免责条款，不是追责起点",
+      "随堂自测：五道判断题"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      4,
+      11,
+      25
+    ],
+    "reference_sha256": "44c1caae1725ab76c1f2f2533661d7673450ba22ddd236d2241feb38b9a2d6b7"
+  },
+  {
+    "id": "ppt169_nev_export_bilingual_zh_en",
+    "title": "中国新能源汽车出海 2025 / China's NEV Exports 2025",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_nev_export_bilingual_zh_en",
+    "category": "business",
+    "pages": [
+      "中国新能源汽车出海 2025 — 出口翻倍,但增长方式变了",
+      "本次简报的四个部分",
+      "先说口径:同一年有两个数字",
+      "总量 709.8 万辆,增量全部来自新能源",
+      "不是匀速,是两级台阶",
+      "261.5 还是 343 万辆,取决于谁在统计",
+      "第一目的国换成了墨西哥",
+      "量第一与增速第一不是同一家",
+      "建厂不是扩张动作,是回答三个问题",
+      "四个已落地的海外基地",
+      "充电与售后网络",
+      "一道按企业分级,一道一刀切",
+      "框架已达成,生效日还没有",
+      "总量增速回落,重心转向海外生产",
+      "下一阶段比什么"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      5,
+      9,
+      11
+    ],
+    "reference_sha256": "bf68178ecd100145f56b031b56f0376dde1296482ae348889cbf4bea27cc2442"
+  },
+  {
+    "id": "ppt169_dead_sea_scrolls_he_quick",
+    "title": "מגילות ים המלח: מהמערה למוזיאון",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_dead_sea_scrolls_he_quick",
+    "category": "culture",
+    "pages": [
+      "מגילות ים המלח מהמערה למוזיאון — שבעים שנה של גילוי, שימור והנגשה",
+      "1947: הכל התחיל במערה אחת",
+      "אוסף שלם התגלה מתחת לאבק",
+      "שלוש משפחות של כתבים",
+      "המגילה שהקדימה את זמנה באלף שנה",
+      "ארבע מגילות, ארבעה סיפורים",
+      "שתי שיטות, תאריך אחד",
+      "המודל שהזיז את התאריכים אחורה",
+      "הגילוי הוא גם רגע הסכנה",
+      "שימור הפיך, צעד אחר צעד",
+      "1965: הכיפה שמספרת את הסיפור",
+      "שניים עשר אורכי גל לכל קטע",
+      "2021: המדבר עדיין לא סיים לדבר"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      2,
+      6,
+      10
+    ],
+    "reference_sha256": "344096d67726457735f8ccd6782c326028e99b7dad2007611b7325e725f18e30"
+  },
+  {
+    "id": "ppt169_vietnam_coffee_vi_quick",
+    "title": "Cà phê Việt Nam: từ Tây Nguyên ra thế giới",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_vietnam_coffee_vi_quick",
+    "category": "business",
+    "pages": [
+      "Cà phê Việt Nam — Một ngành hàng đọc bằng số liệu",
+      "Bài giảng đi qua năm chặng",
+      "Gốc rễ: 1857 và 1914",
+      "Robusta chiếm gần như toàn bộ sản lượng",
+      "Tây Nguyên: 730.000 ha, Đắk Lắk 644.000 ha",
+      "Cả nước và Đắk Lắk: hai lát cắt số liệu",
+      "Sản lượng và xuất khẩu theo niên vụ",
+      "Kỷ lục 2024–2025: 8,4 tỷ USD",
+      "Gần một nửa lượng cà phê đi châu Âu",
+      "Điểm nghẽn giá trị: phần lớn vẫn xuất thô",
+      "Chế biến và thương hiệu",
+      "Cách người Việt uống cà phê",
+      "Bốn áp lực lên chuỗi cung ứng",
+      "Triển vọng niên vụ 2026/27"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      5,
+      7,
+      11
+    ],
+    "reference_sha256": "511f6fb5b529533c7b7a38e0e6360411e9c83754ef5463374c49e6eb8e16911a"
+  },
+  {
+    "id": "ppt169_russia_demography_ru",
+    "title": "Россия в цифрах: 30 лет демографии, 1991–2024",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_russia_demography_ru",
+    "category": "data",
+    "pages": [
+      "Россия в цифрах — 30 лет демографии, 1991–2024",
+      "Источник и метод",
+      "Население: −4,7 млн за 33 года",
+      "Восстановление и новый спад: +2,71 млн, −1,78 млн",
+      "Рождаемость ниже смертности с 1992 года",
+      "Естественная убыль — 30 лет из 34",
+      "Рождаемость: 1,73 → 1,42",
+      "Продолжительность жизни: провал 1994 года",
+      "Сверхсмертность мужчин: 14,2 года разрыва",
+      "Доля 65 лет и старше выросла до 17,2 %",
+      "Урбанизация: 75,1 %",
+      "Миграция: сальдо 2024 года отрицательно",
+      "Сопоставление пяти стран, 2024 год",
+      "Россия прибавила 4,9 года жизни",
+      "Что следует из данных"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      5,
+      9,
+      10
+    ],
+    "reference_sha256": "a313674cfe776ae5af969305f9dc19ac24ca865e30ed20ab9e8a92af9bb83525"
+  },
+  {
+    "id": "ppt169_thai_jasmine_rice_th",
+    "title": "ข้าวหอมมะลิ จากนาสู่โลก",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_thai_jasmine_rice_th",
+    "category": "culture",
+    "pages": [
+      "ข้าวหอมมะลิ จากนาสู่โลก — การบรรยายสาธารณะ",
+      "เส้นทางของการบรรยาย",
+      "199 รวง จากอำเภอบางคล้า",
+      "25 พฤษภาคม 2502 วันที่ขาวดอกมะลิ 105 เป็นพันธุ์รับรอง",
+      "ความหอมมาจากสารหนึ่งตัวและยีนหนึ่งตำแหน่ง",
+      "พื้นที่ปลูกกระจุกอยู่ที่ภาคตะวันออกเฉียงเหนือ",
+      "การรับรองสองชั้น พันธุ์และพื้นที่",
+      "ส่วนต่างที่มาจากการคุ้มครอง",
+      "ข้าวหอมทรงตัว ขณะที่ยอดรวมโตด้วยข้าวขาว",
+      "ตลาดข้าวหอมมะลิกระจุกอยู่ไม่กี่ประเทศ",
+      "ราคาที่ไร่นา มกราคม 2568",
+      "ตัวเลขที่คาดไว้สำหรับปีถัดไป",
+      "รางวัลข้าวที่ดีที่สุดในโลก 2563–2568",
+      "สามข้าวหอมบนเกณฑ์เดียวกัน",
+      "ความหอมไม่ใช่ของที่อยู่คงที่"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      5,
+      9,
+      10
+    ],
+    "reference_sha256": "59ff1e01058a127405c328a45b4c7641b397e5c85010de3808aaf4a42d2e77d3"
+  },
+  {
+    "id": "ppt43_fourier_transform_formulas_zh",
+    "title": "傅里叶变换:把信号拆成频率",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt43_fourier_transform_formulas_zh",
+    "category": "education",
+    "pages": [
+      "傅里叶变换 把信号拆成频率 — 一个和弦里有几个正弦波?",
+      "听到的是一条波,里面是好几条",
+      "级数不是技巧,是热方程解出来的",
+      "想知道某个频率有多少,就与它做积分",
+      "一条方波的频率清单",
+      "周期越长,频率排得越密",
+      "同一条式子,换成积分",
+      "四对变换,记住就能用",
+      "会用性质,就不用重算积分",
+      "时域卷积,频域相乘",
+      "采样让积分变成有限求和",
+      "每个频点都要遍历所有样本",
+      "拆成奇偶两半,再递归下去",
+      "图像、医学、无线、声音",
+      "三句话,和两条继续走的路"
+    ],
+    "canvas": "ppt43",
+    "representatives": [
+      2,
+      6,
+      13
+    ],
+    "reference_sha256": "6b19ee531a3fa4ae7125d6dc041d66f36c34beca6f63d29f433900925334416e"
+  },
+  {
+    "id": "ppt169_chandrayaan3_hi_quick",
+    "title": "चंद्रयान-3: चाँद के दक्षिणी ध्रुव तक",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_chandrayaan3_hi_quick",
+    "category": "education",
+    "pages": [
+      "चंद्रयान-3 चाँद के दक्षिणी ध्रुव तक — एक विज्ञान-व्याख्यान",
+      "मिशन के तीन उद्देश्य",
+      "2019 का सबक़: चंद्रयान-2",
+      "प्रक्षेपण: 14 जुलाई 2023",
+      "कक्षा-उन्नयन से चंद्र कक्षा तक",
+      "23 अगस्त 2023: सॉफ़्ट लैंडिंग",
+      "'शिव शक्ति' — अवतरण बिंदु का नाम",
+      "प्रज्ञान रोवर और सात पेलोड",
+      "LIBS: गंधक (S) की असंदिग्ध पुष्टि",
+      "ChaSTE और 'हॉप' प्रयोग",
+      "मिशन के बाद: निद्रा, वापसी और एक खोज",
+      "लागत: कम खर्च, बड़ा प्रतिफल",
+      "आगे की राह"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      3,
+      7,
+      9
+    ],
+    "reference_sha256": "838f313e98b42bbdaf1cfe5c17c1ffc7157c7161d214a754c2aac078be3f2671"
+  },
+  {
+    "id": "ppt169_arabic_coffee_ar",
+    "title": "القهوة العربية",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_arabic_coffee_ar",
+    "category": "culture",
+    "pages": [
+      "القهوة العربية — لغة الضيافة من الحبة إلى الفنجان",
+      "القهوة لغة ضيافة قبل أن تكون مشروباً",
+      "من الحبة إلى الفنجان في ست مراحل",
+      "في التحميص يولد اللون",
+      "من حفرة في الأرض إلى كوار المجلس",
+      "ثلاث دلال لثلاث مهام",
+      "لكل منطقة حمصتها وإضافاتها",
+      "التقديم يبدأ بالأكبر وينتهي بهزّة",
+      "هزّة الفنجان تعني: اكتفيت",
+      "من 2015 إلى 2024: اعتراف يتّسع",
+      "البن الخولاني: معرفة المدرّجات",
+      "2022 — عام القهوة السعودية",
+      "جازان: نحو ثلاثة أرباع البن السعودي",
+      "في جبال جازان: أكثر من 2000 مزرعة",
+      "حين يُهزّ الفنجان ينتهي الشرب، ولا تنتهي الضيافة"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      4,
+      7,
+      14
+    ],
+    "reference_sha256": "eb7f479dcf2ae8c1b66c833b062a72c755395b1f3bb442f41d1f7d3422780fac"
+  },
+  {
+    "id": "ppt169_jeju_haenyeo_ko",
+    "title": "제주 해녀",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_jeju_haenyeo_ko",
+    "category": "culture",
+    "pages": [
+      "제주 해녀",
+      "오늘은 세 가지 질문을 따라갑니다",
+      "물질은 장비 없이 맨몸과 숨만으로 하는 일이다",
+      "하루 최대 7시간, 한 해 90일 — 물질은 무리 지어 한다",
+      "기량은 하군에서 상군으로, 다시 하군으로 돈다",
+      "불턱은 탈의실이자 학교이자 회의장이었다",
+      "바다밭은 함께 가꾸는 공유지다",
+      "노래에서 어업 체계까지, 반세기 동안 여섯 번 지정되었다",
+      "유네스코와 FAO가 본 것은 기술보다 공동체다",
+      "55년 사이, 여섯 명 중 한 명만 바다에 남았다",
+      "1970년 4.6%였던 60세 이상이 2025년에는 90.1%다",
+      "들어오는 사람은 한 해 30여 명, 떠나는 사람은 100여 명이다",
+      "해녀학교가 새 해녀의 절반 가까이를 길러 냈다",
+      "해녀를 잇는다는 것은 숨의 기술과 바다의 규칙을 함께 잇는 일이다",
+      "더 알고 싶다면, 원자료로"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      2,
+      6,
+      13
+    ],
+    "reference_sha256": "a93c9f6d046c49e5f5591f1395a359d2cbef2dae7c7b821ec174f418d90d0687"
+  },
+  {
+    "id": "ppt169_jilin_geohazard_rules_beautify",
+    "title": "吉林省地质灾害治理工程项目管理办法 · 政策解读(美化)",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_jilin_geohazard_rules_beautify",
+    "category": "business",
+    "pages": [
+      "封面",
+      "目录",
+      "一、出台背景",
+      "二、政策依据",
+      "三、主体框架",
+      "第六条 项目入库流程",
+      "第七条、第八条 主管部门职责与管理原则",
+      "第九条 勘查单位职责",
+      "第十条 设计单位职责",
+      "第11-13条 对项目设计的其它要求",
+      "第十四条 施工单位职责",
+      "第十五、十六条 对施工单位的其它要求",
+      "第十七条 监理单位职责",
+      "第十八至二十条 技术文件、档案与实施期限",
+      "第四章 项目验收（第二十一条）四阶段",
+      "项目验收参建单位提交资料清单",
+      "第五章 工程运行管护（第二十二条）",
+      "第七章 附则",
+      "五、主要特点",
+      "封底"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      4,
+      11,
+      16
+    ],
+    "reference_sha256": "ffdb572b0a12bd6ca8d3c1747e18fa1c26afffbad9f8493aa7eeb49ec60de8b5"
+  },
+  {
+    "id": "ppt169_telford_feedback_2023_24_quick",
+    "title": "Corporate Feedback Report 2023/24",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_telford_feedback_2023_24_quick",
+    "category": "business",
+    "pages": [
+      "Corporate Feedback Report 2023/24 — more complaints, faster answers",
+      "More complaints, answered faster",
+      "659 complaints: the second-highest in five years",
+      "Two directorates received 372 of the 659 complaints",
+      "Upheld themes shrank — delay fell from 24% to 9%",
+      "42% upheld — the same rate as 2022/23",
+      "87% answered in 15 days; five directorates hit 90%",
+      "Stage Two is where the pressure moved",
+      "Elected-member enquiries rose 33% to 1,507",
+      "Compliments have more than doubled in five years",
+      "Complaints are turning into specific fixes",
+      "Ombudsman rate down to 1.74 per 10,000 people",
+      "From May 2024, the complaints clock runs shorter"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      4,
+      6,
+      10
+    ],
+    "reference_sha256": "73ec525c01bf8bb9010728dfec2b6ffafa29616f1bc991d19f3978965acf16ef"
+  },
+  {
+    "id": "ppt169_taiwan_super_aged_society_zh_hant",
+    "title": "臺灣進入超高齡社會",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_taiwan_super_aged_society_zh_hant",
+    "category": "data",
+    "pages": [
+      "臺灣進入超高齡社會 — 20% 之後，人口結構正在重新排列",
+      "每 5 個人，就有 1 位 65 歲以上",
+      "從 14% 到 20%，臺灣只用了 7 年",
+      "下一站：2037 年超過 30%",
+      "從高齡到超高齡，臺灣與韓國都只用 7 年",
+      "為什麼這麼快：出生變少、壽命變長",
+      "2020 年起，死亡數超過出生數",
+      "2026 年：中間寬、兩端窄的「燈籠型」",
+      "2075 年：翻轉成以高齡為主的「倒金鐘型」",
+      "從 3.2 位青壯年扶持 1 位長者，到 0.8 位",
+      "工作年齡人口不只變少，也在變老",
+      "長者不只變多，也更高齡",
+      "已推出家庭支持篇，另有三篇規劃中",
+      "推估落到生活裡的四個場景",
+      "來源與收束"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      4,
+      6,
+      12
+    ],
+    "reference_sha256": "e646db921ffb43dc0d7dae377704376fdf83450b15126bb1f91d878b35de7d99"
+  },
+  {
+    "id": "ppt169_tokaido_shinkansen_60_ja",
+    "title": "東海道新幹線 60年",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_tokaido_shinkansen_60_ja",
+    "category": "culture",
+    "pages": [
+      "東海道新幹線 60年 — 速さ・本数・安全を積み上げた大動脈の60年",
+      "60年は、四つの数字で語れる",
+      "6時間の旅が、4時間になった",
+      "1964年、4時間で走り出した",
+      "7世代で、4時間は2時間21分に",
+      "速さは、軽さと賢さの積み重ねだった",
+      "次の主役は、本数だった",
+      "1時間に「のぞみ」13本の時代へ",
+      "落ち込んでも、以前を上回った",
+      "たくさん走らせて、遅れは平均1.0分",
+      "60年間、乗車中の死傷事故はゼロ",
+      "大きな揺れが来る前に、列車を止める",
+      "止めたあとも、脱線させない",
+      "次の60年は、大動脈を二重にする",
+      "速さ・本数・正確さ・安全を、同時に積み上げた60年"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      4,
+      9,
+      14
+    ],
+    "reference_sha256": "dd4d59b68f29e9737607e86ef015b759ff0416d6f8006a7ec4d92ef670c3a80c"
+  },
+  {
+    "id": "ppt169_beidou_navigation_narrated",
+    "title": "北斗:从一颗星到全球组网",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_beidou_navigation_narrated",
+    "category": "education",
+    "pages": [
+      "北斗卫星导航系统:从一颗星到全球组网",
+      "导航是基础设施,基础设施要自己能开",
+      "一条路线,三十年,分三步走",
+      "从有源到无源,再到全球组网",
+      "三代北斗,差别不在多了几颗星",
+      "三种轨道,一个星座",
+      "每一层轨道都在替你做一件事",
+      "30 颗星,24 颗在中圆轨道",
+      "量四个距离,解四个未知数",
+      "水平 9 米,授时 20 纳秒",
+      "没有信号的地方,它还能替你发出一句话",
+      "区域 1000 个汉字,全球 40 个",
+      "98% 的国产手机里,已经有北斗",
+      "下一步,到 2035 年"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      2,
+      9,
+      13
+    ],
+    "reference_sha256": "df41cca2ff222fd16ee02704beb6c4208a29ad3a2295ddd19c782509a34e5ba8"
+  },
+  {
+    "id": "ppt169_fire_control_room_duty_manual",
+    "title": "消防控制室值班手册",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_fire_control_room_duty_manual",
+    "category": "technology",
+    "pages": [
+      "接到信号那一刻,你已经在某一级上",
+      "一年 90.8 万起火灾,最危险的六小时在夜里",
+      "夜里六小时,起数最少、死亡最多",
+      "先弄清信号从哪里来,再谈接到信号怎么办",
+      "七类设备把状态汇进一块屏,这块屏才是你的工作面",
+      "火警信号只有 10 秒额度,其他信号是 100 秒",
+      "四级判断轴:你在哪一级,决定你下一步做什么",
+      "L0 待确认:标准只给了一个动作——立刻去核实",
+      "L1 非火警:可以复位,不可以不留痕",
+      "L2 确认火警:三个动作同时开始,没有先后可挑",
+      "报警时说满五件事,少一件就要再问一轮",
+      "判断轴要落到两张能签字的表上",
+      "交接班清单:每一项都挡住一个已知的失败",
+      "每班两人是标准写死的下限,且两人不做同一件事",
+      "把该自动的设成手动,等于把整套联动关掉",
+      "每一条规则,都能走回它依赖的那一页"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      4,
+      8,
+      11
+    ],
+    "reference_sha256": "39fe826ac433e7d03826f66b81165ac292d5dee0341d768c583e36f8eea9c622"
+  },
+  {
+    "id": "ppt169_every_day_counts_proposal",
+    "title": "Every Day Counts",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_every_day_counts_proposal",
+    "category": "business",
+    "pages": [
+      "Every Day Counts — a two-year plan to reduce chronic absenteeism",
+      "What chronic absence counts: 18 days",
+      "The rate is still ten points above 2018-19 (NYC benchmark)",
+      "One city, one year: 16% to 46% across districts",
+      "Two peaks, and one of them is five-year-olds",
+      "Four kinds of reasons, and only one is refusal",
+      "Build one attendance system with three tiers",
+      "Every tier has a trigger, an owner, and a limit",
+      "Year one ends with a system Riverbend runs itself",
+      "In June 2027 the board decides on year two",
+      "The boundary of what we are proposing",
+      "Investment: $312,000 (illustrative)",
+      "A modeled nine-point reduction (illustrative)",
+      "One vote, on 8 October 2026"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      3,
+      6,
+      12
+    ],
+    "reference_sha256": "796cecf5859417cdffb6cc6aa1d8edeb2495626d21165e08c5ad00884d384910"
+  },
+  {
+    "id": "ppt169_night_shelf_creative_pitch",
+    "title": "The Night Shelf",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_night_shelf_creative_pitch",
+    "category": "business",
+    "pages": [
+      "The Night Shelf — give the night back to reading",
+      "Audience truth: 2 h 37 m of evening screens against sixteen minutes of reading",
+      "The last hour is already taken",
+      "What the work has to do",
+      "Reading is not competing with the day; it is competing with the last hour",
+      "The idea: the last hour belongs to a book",
+      "Hero execution — the finished piece, full frame",
+      "It runs everywhere the hour is spent: poster, social, in-store, bookmark",
+      "The identity, in use",
+      "Tone and craft: Unhurried",
+      "At real size, from the far pavement, the poster still reads",
+      "What it takes to make: scope, timeline, budget (illustrative)",
+      "How you will know it worked"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      3,
+      8,
+      10
+    ],
+    "reference_sha256": "61e39d676186b4185db709a1dfbd1944345808d9c4d1c471eb4d53365bf34b98"
+  },
+  {
+    "id": "ppt169_heatline_seed_pitch",
+    "title": "Heatline — Seed Round",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_heatline_seed_pitch",
+    "category": "business",
+    "pages": [
+      "Heatline — Europe has legislated the demand. Nobody has staffed the supply.",
+      "Why now: heat-pump sales and policy (+11%)",
+      "The problem: 750,000 installers short",
+      "Raise throughput, not headcount",
+      "Twelve weeks of capacity, one screen (illustrative mockup)",
+      "430 seats live across 41 businesses (illustrative)",
+      "Unit economics: 5.2× LTV/CAC waterfall (illustrative)",
+      "Bottom-up market: £11.9M reachable",
+      "Nobody else plans capacity months out",
+      "The manufacturer channel is repeatable",
+      "This rota ran by hand for nine years",
+      "Expansion seats carry the plan (illustrative)",
+      "The ask: £4.2M",
+      "44p in every pound goes to the planner",
+      "Definitions and every external source"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      4,
+      6,
+      10
+    ],
+    "reference_sha256": "28c8ab43cf13a4404b2a16ff09eaa73ce31c56a674ac2316f26d87414fb9aa21"
+  },
+  {
+    "id": "ppt169_how_color_works_workshop",
+    "title": "How Color Works",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_how_color_works_workshop",
+    "category": "education",
+    "pages": [
+      "How Color Works — a 90-minute hands-on workshop",
+      "By the end of this session you will be able to…",
+      "Your eye does not measure light — three cones sample it",
+      "Two ways color mixes, and you ship into both",
+      "Three dials — hue, saturation, lightness",
+      "Lightness does the heavy lifting: 9.90:1",
+      "The numbers you actually have to hit (WCAG)",
+      "Demo: five colors out of one print",
+      "Now measure it, then repair the pair that fails",
+      "Your turn — 12 minutes",
+      "Mistake 1 — saturation-only contrast (4.53:1 vs the near miss)",
+      "Mistake 2 — a rainbow ramp for ordered data",
+      "Check yourself — three questions",
+      "What you can do now, and where to go next"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      3,
+      6,
+      12
+    ],
+    "reference_sha256": "1e7318ea5d54bdaa8f43f1444fd8ca5e89d42bf0eeea317813b6021abebd3f58"
+  },
+  {
+    "id": "ppt169_raft_consensus_deepdive",
+    "title": "Raft：为了让人看懂而设计的共识算法",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_raft_consensus_deepdive",
+    "category": "technology",
+    "pages": [
+      "Raft：为了让人看懂而设计的共识算法",
+      "共识算法的工作对象：一份复制日志",
+      "Paxos 的两个缺陷：难懂，且不适合当实现的地基",
+      "把「可理解性」当成第一设计目标",
+      "三种服务器状态，一条被切成任期的时间轴",
+      "选举：心跳、随机超时，和一张先到先得的选票",
+      "日志复制：一条命令怎样才算「已提交」",
+      "日志会怎样对不上，以及领导者怎样把它掰回来",
+      "安全性靠两条限制：谁能当选，和什么时候算提交",
+      "整个基本算法只有两种 RPC",
+      "换机器与清日志：两个必须做、又不能出错的运维动作",
+      "可理解性实验：43 名学生，33 人 Raft 得分更高",
+      "一点点随机，就把选举从十秒压到几百毫秒",
+      "Raft 换来的是什么，又付出了什么"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      5,
+      6,
+      11
+    ],
+    "reference_sha256": "03af89dbb65bb76d99cc3aefb5bcd6f67b64b0a5d1312f7e2070af0471e9e3b7"
+  },
+  {
+    "id": "ppt169_teachers_day_chalkboard",
+    "title": "粉笔写下的节日 · 教师节黑板报",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_teachers_day_chalkboard",
+    "category": "culture",
+    "pages": [
+      "粉笔写下的节日 · 教师节黑板报",
+      "为什么是 9 月 10 日",
+      "改了四次的日子(上):1931 与 1939",
+      "改了四次的日子(下):1951 与 1985",
+      "从一个人的念头到全国性的节日,只隔四步",
+      "1985 年 9 月 10 日,第一个教师节",
+      "擦一擦板:讲台后面站着多少人",
+      "1870 万专任教师",
+      "他们是谁:师生比与学段结构",
+      "各国的教师节各挂在一个人或一份文件上",
+      "程门立雪:尊师在古人那里",
+      "名言、谜语、画法:黑板报的三个小栏目",
+      "教师节快乐"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      2,
+      8,
+      9
+    ],
+    "reference_sha256": "95d60a4c937540f87b7225843bc7b2ae0d068c74e350651fb78f04d1c29c04f3"
+  },
+  {
+    "id": "ppt43_sleep_science_explainer",
+    "title": "我们为什么要睡觉",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt43_sleep_science_explainer",
+    "category": "education",
+    "pages": [
+      "我们为什么要睡觉",
+      "每个人都熬过一次夜",
+      "可它为什么不能少睡一点",
+      "睡着以后，大脑分成了几种状态",
+      "一夜要绕四到五圈",
+      "让你困的，是两件不同的事",
+      "水位其实有实物",
+      "潮汐由光对时",
+      "咖啡因不给你能量",
+      "该睡多久，看你多大",
+      "代价是可以数出来的",
+      "两句你大概说过的话",
+      "这一块还在吵",
+      "回到熬夜的第二天",
+      "想自己查下去"
+    ],
+    "canvas": "ppt43",
+    "representatives": [
+      3,
+      9,
+      13
+    ],
+    "reference_sha256": "7ed3f45cba293e7f9d3416e050f3c5aff78b084f1389846004649d83b707fe37"
+  },
+  {
+    "id": "ppt169_qianli_jiangshan_scroll",
+    "title": "千里江山图·十八岁的青绿",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_qianli_jiangshan_scroll",
+    "category": "culture",
+    "pages": [
+      "千里江山图",
+      "你见过它，但很可能没有看完过它",
+      "九百年里，它这样打开过四十六天",
+      "关于他，我们只知道七十七个字",
+      "他先被退回过，然后皇帝亲自教他",
+      "青绿不是画上去的，是一层层堆出来的",
+      "现在，看这座桥",
+      "再往左，是水村、渔舟和更远的山",
+      "他没有在画上留下名字",
+      "九百年里，它经过了这些手",
+      "后来看到它的人，这样说",
+      "它今天还在被看见",
+      "下一次它打开的时候",
+      "出处"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      5,
+      8,
+      10
+    ],
+    "reference_sha256": "78accb1de5465856e7c55b0dc19157022cf10d7e17bc2e15eef83736831696f9"
+  },
+  {
+    "id": "ppt169_researchstudio_reel_paper",
+    "title": "ResearchStudio-Reel: Automate the Last Mile of Research from Paper to Poster, Video, and Blog",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_researchstudio_reel_paper",
+    "category": "technology",
+    "pages": [
+      "ResearchStudio-Reel: Automate the Last Mile of Research from Paper to Poster, Video, and Blog",
+      "The last mile of research is a separate layer, prepared in the days after acceptance, and three gaps remain open",
+      "Prior work is organized by output type; contracts differ in editability, and VLM scores are mostly used for evaluation, not as release gates",
+      "The answer: a native-editable workspace of five skills — one shared extractor, three editable generators, one convergence layer",
+      "Paper2Assets reads the PDF once and emits one bundle every generator consumes verbatim; figure cleanup runs once",
+      "Paper2Poster composes on four orthogonal axes, fills the page with a measured loop, and exports native PowerPoint shapes",
+      "The fill loop is discrete: five verdict bands, one section edited per round, termination as a categorical fixed point",
+      "Paper2Video plans duration before rendering, anchors narration to visible objects, and gates an editable deck plus two MP4s",
+      "Paper2Blog writes the Chinese and English articles separately from one evidence map, then gates the Word files on layout",
+      "Paper2Reel is a presentation surface, not a fourth summary: one alignment sidecar makes four artifacts views of one section",
+      "Best automated system on all three aesthetic sub-criteria (3.56 vs the authors' 3.03) and on two of three information sub-criteria",
+      "The PaperQuiz ordering nearly reverses the aesthetic ordering: denser posters answer more; the fill loop packs to a target density",
+      "With the skill, prompt, and pipeline fixed, five configurations each produce a full page differing in figure choice, density, and accent",
+      "A full four-artifact bundle takes about 89 minutes of stage time and 2.6M input / 276K output tokens per paper",
+      "Three contexts span the dissemination spectrum on one pipeline: a camera-ready week, a lab's intake, a course's weekly packs",
+      "Five failure modes recur in end-to-end runs; the system is calibrated on ML / CV / NLP venues only; quantitative evaluation covers the poster",
+      "Supported: a native-editable, section-aligned workspace with testable gates. Open: reading-and-recall evaluation and bespoke diagrams",
+      "Sources"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      5,
+      7,
+      12
+    ],
+    "reference_sha256": "0b7477d1c9b554deedaef1a393ed01eff25657a530d4adefc26f4e9d77f131ed"
+  },
+  {
+    "id": "ppt169_ev_market_priorities",
+    "title": "电动车增长的下一站:2026–2028 车企市场优先级与产品组合决策",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_ev_market_priorities",
+    "category": "business",
+    "pages": [
+      "电动车增长的下一站",
+      "增量重心已从欧美转向新兴市场,2026–2028 应分级投入,并以 PHEV 打开低渗透市场",
+      "2025 年全球电动车销量 2,100 万辆、渗透率 25%,五年增长七倍——电动车已是主流市场,不是利基",
+      "2025 年 400 万辆增量中,中国贡献一半,美国转负,中美欧之外的市场增量首次超过欧洲",
+      "美国渗透率连续两年停在 10%、销量首次下滑,日本仍在 3%——成熟市场里只有韩国还在起量",
+      "欧洲反弹到 28% 靠英国(35%)和德国(30%)拉动,法国两年零增长——进入欧洲要选国家,而不是选大区",
+      "东南亚渗透率两年从 8.4% 升到 18%、泰国达 23%,巴西、墨西哥、印度同步起量——新兴市场已经进入加速段",
+      "PHEV 已占全球电动车销量的 34%,在中国三年增长 3.4 倍——它是低渗透市场的破冰产品,不是过渡产品",
+      "到 2035 年的 3,400 万辆增量中,中国占 38%、欧洲 29%、印度与东南亚合计 12%,美国仅 5%——增量地图与今天的存量地图不同",
+      "建议按三级优先级分配 2026–2028 增量投入:中国深耕、欧洲选点、东南亚与拉美抢滩,美国转为守势",
+      "2026 年 PHEV 试点东南亚与拉美,2027 年按结果放量并补齐英德 BEV,2028 年再决定是否加码美国",
+      "三项风险各有可监测的触发指标:新兴市场增速回落、欧洲政策反复、PHEV 需求提前见顶——它们不构成不行动的理由",
+      "请管理层本季度决定三件事:批准三级优先级、批准 PHEV 先行节奏、指定东南亚试点负责人",
+      "附录:本报告全部数字来自 IEA Global EV Outlook 2025 数据浏览器,口径为乘用车 BEV + PHEV"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      3,
+      8,
+      12
+    ],
+    "reference_sha256": "77c3c6e36f76418f13a466eba842f76ff86a86c89a0c1df18af28c45bc85cb5b"
+  },
+  {
+    "id": "ppt169_apple_fy2025_review",
+    "title": "Apple FY2025 经营复盘:收入创新高,增长的一半来自服务",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_apple_fy2025_review",
+    "category": "business",
+    "pages": [
+      "封面 · FY2025:收入创新高,增长的一半来自服务",
+      "九项核心指标全部改善问题不在总量而在结构",
+      "25,126 百万美元增量里,服务贡献 51.7%",
+      "四个季度同比全部为正,Q1 峰值节奏保持不变",
+      "服务是唯一八个季度连续增长的业务",
+      "iPhone 依赖度降至 50.36%,可穿戴唯一收缩",
+      "四个地区增长,大中华区是唯一下滑地区",
+      "大中华区连降三个季度,Q4 是八季最低点",
+      "毛利率升至 46.91%,提升全部来自服务占比",
+      "净利润 +19.50% 有基数效应,可比口径 +7.72%",
+      "研发增速快于收入,销售及管理占比反而下降",
+      "三个必须回答的问题,每一个都缺一项数据",
+      "总量健康,质量提升,风险集中在两处",
+      "数据来源与口径"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      5,
+      8,
+      11
+    ],
+    "reference_sha256": "6d9bbadd89259cf51657bd78499b9fe4fb2387376d4aa4c8b9ce320c2afc06db"
+  },
+  {
+    "id": "ppt169_uv_launch",
+    "title": "uv:一个二进制,收干净 Python 装包那一摊",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_uv_launch",
+    "category": "technology",
+    "pages": [
+      "一个二进制,收干净 Python 装包那一摊",
+      "你每天在修的,不是包,是工具之间的缝",
+      "一个入口,替掉一整排命令",
+      "从零到能跑,你只需要记住四个动作",
+      "看它跑一遍:五条命令,一次装完",
+      "一个脚本也能有自己的依赖,不用先建环境",
+      "连 Python 版本也归它管,不用再装一个 pyenv",
+      "同一件事,你只是换了一条命令",
+      "快多少,取决于缓存是冷是热",
+      "你可以只用其中一块,也可以整套换过来",
+      "分清哪些能拿来用,哪些要显式开启",
+      "三个平台都能装,而且不用先有 Python",
+      "本卷每一句的出处都在这四个地方",
+      "今天先做一件事:在一个项目上跑通 uv pip install"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      4,
+      6,
+      11
+    ],
+    "reference_sha256": "e95539b58e2c559722b24b152c53b9c99cccb9b0b6c55b92de4b28633c9cec57"
+  },
+  {
+    "id": "ppt169_cloudflare_outage_postmortem",
+    "title": "Cloudflare Outage Postmortem, 18 November 2025",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_cloudflare_outage_postmortem",
+    "category": "business",
+    "pages": [
+      "A database permissions change, not an attack, stopped Cloudflare's core traffic on 18 November 2025",
+      "One feature file doubled in size and a fixed 200-feature limit turned it into a global 5xx event",
+      "Six product surfaces failed, and two of them degraded rather than stopped",
+      "The same bad file produced errors on the new proxy and silent false positives on the old one",
+      "The error rate rose and fell every five minutes until every database node produced the bad file",
+      "From the 11:05 access-control change to the first bypass at 13:05",
+      "From confidence in the trigger at 13:37 to full restoration at 17:06",
+      "Detection took three minutes; identifying the failing module took two hours and fifty-three",
+      "A query that filtered on table name but not database name became an unhandled panic in the core proxy",
+      "Four conditions had to hold at once, and no single one of them is the cause",
+      "Rapid global propagation of internally generated configuration is the condition both 2019 and 2025 share",
+      "Three controls limited the damage and are the ones to protect",
+      "Four corrective actions are published, and none of them carries an owner, a date, or a verification method",
+      "Five questions the published account does not settle",
+      "Every figure in this deck traces to one of three published records"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      5,
+      7,
+      12
+    ],
+    "reference_sha256": "456d325825c2522069d467df939f339ae214bb1f1c8ac02fe539b247355201d6"
+  },
+  {
+    "id": "ppt169_solar_cheapest_power",
+    "title": "光伏为什么最便宜,以及它开始变贵",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_solar_cheapest_power",
+    "category": "data",
+    "pages": [
+      "封面 · 光伏为什么最便宜,以及它开始变贵",
+      "十七年降 81% 之后,光伏成本在 2021 年触底、回升 85%",
+      "同一口径下,光伏与陆上风电是最便宜的两种新增电源",
+      "三个判断",
+      "01 · 便宜来自学习率",
+      "累计装机每翻一番,组件价格下降 20%",
+      "规模与价格",
+      "02 · 成本中心已经从组件挪到了 BOS 与储能",
+      "组件从系统成本的 44% 降到 30%",
+      "电芯价格在创新低,储能度电成本却涨了 39%",
+      "03 · 稀缺的不是价格,是并网容量与消纳空间",
+      "并网中位等待从 22 个月拉长到 61 个月",
+      "弃电与负电价同步上升",
+      "「最便宜」有四种口径,它们不可平均、也不可互换",
+      "把预算从最便宜的组件,移到最好的并网位置 · 来源"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      2,
+      6,
+      10
+    ],
+    "reference_sha256": "db06bb0f52742905091e6dfbb14cd77a424dc678471e5e77597421671532de39"
+  },
+  {
+    "id": "ppt169_apollo_photo_essay",
+    "title": "阿波罗:人类离开地球的四年",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_apollo_photo_essay",
+    "category": "design",
+    "pages": [
+      "封面 · 阿波罗:人类离开地球的四年",
+      "他们本来是去看月球的 · 地出",
+      "10 圈 · 20 小时",
+      "从落地到落脚,中间隔了六个小时",
+      "面罩里的那个人,就是按快门的人",
+      "那不是纪念照,是一次土壤力学试验",
+      "原话是过去完成时 · 阿波罗 13 号",
+      "回家的路,是绕着月球再走一圈",
+      "1971 年,他们开始开车",
+      "最后一次去的人里,有地质学家",
+      "1,459 天 · 四年的账",
+      "走的时候,他说我们还会回来 · 蓝色弹珠",
+      "来源与图片版权"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      2,
+      8,
+      10
+    ],
+    "reference_sha256": "6673dd4e81f064ea929d9f0fbabc492231b52149366e71ff7a52a1be288665ea"
+  },
+  {
+    "id": "ppt169_solar_terms_year",
+    "title": "二十四节气·全年手账",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_solar_terms_year",
+    "category": "culture",
+    "pages": [
+      "封面 · 二十四节气全年手账",
+      "全年总览 · 一年是一个环",
+      "春",
+      "立春 Start of Spring",
+      "雨水 Rain Water",
+      "惊蛰",
+      "春分 Spring Equinox",
+      "清明 Clear and Bright",
+      "谷雨 Grain Rain",
+      "夏",
+      "立夏 Start of Summer",
+      "小满 Grain Buds",
+      "芒种 Grain in Ear",
+      "夏至 Summer Solstice",
+      "小暑 Minor Heat",
+      "大暑 Major Heat",
+      "秋",
+      "立秋 Start of Autumn",
+      "处暑 End of Heat",
+      "白露 White Dew",
+      "秋分 Autumn Equinox",
+      "寒露 Cold Dew",
+      "霜降 Frost Descent",
+      "冬",
+      "立冬 Start of Winter",
+      "小雪 Minor Snow",
+      "大雪 Major Snow",
+      "冬至 Winter Solstice",
+      "小寒 Minor Cold",
+      "大寒 Major Cold",
+      "来源"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      5,
+      12,
+      26
+    ],
+    "reference_sha256": "626a24fb53527cf76eda81d3994e09b0d89674781c28b8a98be8696a742cb6e7"
+  },
+  {
+    "id": "ppt169_brutalism_field_guide",
+    "title": "Brutalism: A Field Guide",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_brutalism_field_guide",
+    "category": "design",
+    "pages": [
+      "Cover · Concrete, Honest, Unforgiving",
+      "1950: a name for a house in Kå",
+      "Then it spread like wildfire",
+      "béton brut",
+      "an ethic,not anaesthetic",
+      "The grain of the formwork stay",
+      "A façade that admits what it i",
+      "concrete emphasised equality",
+      "Eight countries, one language",
+      "The universities built them fi",
+      "NO DATA",
+      "The public verdict",
+      "The score sheet",
+      "Printed back into fashion",
+      "Judge it the way itasked to be",
+      "Sources"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      5,
+      6,
+      14
+    ],
+    "reference_sha256": "66a6a3b7eeaf25248710c417af6794b7796c1c81361536e5b057d8051c098f5d"
+  },
+  {
+    "id": "wechat_tea_header_set",
+    "title": "中国茶六大类 · 公众号头图",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=wechat_tea_header_set",
+    "category": "culture",
+    "pages": [
+      "总览 · 一张纸讲清楚中国茶六大类",
+      "绿茶 · 不发酵",
+      "白茶 · 微发酵",
+      "黄茶 · 轻发酵",
+      "青茶 · 半发酵",
+      "红茶 · 全发酵",
+      "黑茶 · 后发酵"
+    ],
+    "canvas": "wechat",
+    "representatives": [
+      2,
+      4,
+      6
+    ],
+    "reference_sha256": "43cbce324d9ad0de35166fe48cfd3c163f2fd60fe7b8f74563dc771ea018c30b"
+  },
+  {
+    "id": "banner_autumn_solar_terms",
+    "title": "二十四节气手账·秋 · 横幅",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=banner_autumn_solar_terms",
+    "category": "culture",
+    "pages": [
+      "总览 · 秋天六站",
+      "立秋",
+      "处暑",
+      "白露",
+      "秋分",
+      "寒露",
+      "霜降"
+    ],
+    "canvas": "banner",
+    "representatives": [
+      2,
+      4,
+      6
+    ],
+    "reference_sha256": "cc379d7fe2c3cc1480404dcc776931bbe350fca2c6fb9dbe3eb8b2fd5a4545d9"
+  },
+  {
+    "id": "custom_1920x600_autumn_web_banner",
+    "title": "二十四节气手账·秋 · 网页横幅",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=custom_1920x600_autumn_web_banner",
+    "category": "culture",
+    "pages": [
+      "总览 · 秋天六站",
+      "立秋",
+      "处暑",
+      "白露",
+      "秋分",
+      "寒露",
+      "霜降"
+    ],
+    "canvas": "webbanner",
+    "representatives": [
+      2,
+      4,
+      5
+    ],
+    "reference_sha256": "06054e8a4ee828a2c4fcded2658c967471cbc1cd060510edd0ae85726edfbbbf"
+  },
+  {
+    "id": "ppt169_webgpu_intro_quick",
+    "title": "WebGPU 是什么",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_webgpu_intro_quick",
+    "category": "technology",
+    "pages": [
+      "封面 · WebGPU 是什么",
+      "为什么会有 WebGPU",
+      "从网页到 GPU,中间隔着几层",
+      "三步拿到设备:gpu → adapter → device",
+      "core 与 compatibility:两档能力",
+      "WebGPU 目前有两类管线",
+      "顶点阶段与片元阶段,以及 WGSL",
+      "一个 WebGPU 应用大致要走五步",
+      "一趟渲染 pass,逐行读下来",
+      "算完的结果,怎么回到 JavaScript",
+      "错误会传染,所以要圈作用域来抓",
+      "今天能用到什么程度"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      4,
+      6,
+      9
+    ],
+    "reference_sha256": "05133410b35cf457a4d69ade89ec5acaada5ae9df213d5e66683fe8a83a16fb2"
+  },
+  {
+    "id": "ppt169_china_economy_2025_briefing",
+    "title": "2025 年中国经济数据简报",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_china_economy_2025_briefing",
+    "category": "data",
+    "pages": [
+      "封面 · 2025 年中国经济数据简报",
+      "导读 · 五个关键数字",
+      "总量与增速",
+      "三次产业：结构与贡献",
+      "增长从哪里来：三大需求",
+      "人口：总量与结构（原生表）",
+      "人口变动：出生、死亡与自然增长",
+      "就业与居民收入",
+      "消费：商品零售与餐饮",
+      "投资：全面收缩",
+      "对外贸易：规模与口径",
+      "主要贸易伙伴（原生表）",
+      "能源与绿色转型",
+      "创新与数字经济",
+      "民生：社保、医疗与教育（原生表）",
+      "关键要点回顾",
+      "数据来源与口径"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      3,
+      7,
+      14
+    ],
+    "reference_sha256": "07f030075a37e2b87ed1950969312005037ca16f3d31d4f6743e9a83e103bef1"
+  },
+  {
+    "id": "ppt169_pixel_breakfast_atlas",
+    "title": "中国早餐图鉴",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_pixel_breakfast_atlas",
+    "category": "culture",
+    "pages": [
+      "封面 · 中国早餐图鉴",
+      "图鉴读法与四条共性",
+      "No.01 北京 · 豆汁 焦圈",
+      "No.02 天津 · 煎饼馃子",
+      "No.03 上海 · 四大金刚",
+      "No.04 武汉 · 热干面",
+      "No.05 广州 · 肠粉与早茶",
+      "No.06 长沙 · 米粉",
+      "No.07 重庆 · 小面",
+      "No.08 西安 · 肉夹馍与肉丸胡辣汤",
+      "No.09 兰州 · 牛肉面",
+      "No.10 云南 · 小锅米线",
+      "No.11 新疆 · 烤包子与奶茶",
+      "两处争议：豆腐脑咸甜 · 胡辣汤南北",
+      "图鉴总表",
+      "图鉴完成"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      4,
+      9,
+      15
+    ],
+    "reference_sha256": "06ea596b717135e761f12caf3618518109e4f339bc48d9d7a1798f66d63720fe"
+  },
+  {
+    "id": "ppt169_mid_autumn_papercut",
+    "title": "中秋：一枚月饼里的八百年",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_mid_autumn_papercut",
+    "category": "culture",
+    "pages": [
+      "一枚月饼里的八百年",
+      "三秋恰半，蟾兔正圆",
+      "一 · 起：从一场祭仪到一个节日",
+      "先有「中秋夜迎寒」，一千年后才有赏月的诗",
+      "至午未间，家家无酒，拽下望子",
+      "虽陋巷贫窭之人……不肯虚度",
+      "二 · 饼：这个词比这个习俗早三百年",
+      "南宋菜单上的点心，怎么变成一饼值数百钱",
+      "差别不在馅，在饼皮怎么起",
+      "三 · 说：月亮里的三个人，来自三本书",
+      "《淮南子》里没有蟾蜍",
+      "树创随合，长跪捣药",
+      "同一个晚上，有人扎火龙，有人掷骰子",
+      "同一个编号 Ⅹ-5，写着五个地方的名字",
+      "法定是一天，我们过的是三天",
+      "但愿人长久，千里共婵娟。"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      2,
+      6,
+      15
+    ],
+    "reference_sha256": "f0195d4693417bb8e14786378a7ae4bdb62482580ecf1415d7bc61bb1c014b27"
+  },
+  {
+    "id": "ppt169_attention_is_all_you_need",
+    "title": "Attention Is All You Need",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_attention_is_all_you_need",
+    "category": "technology",
+    "pages": [
+      "Attention Is All You Need",
+      "What this drawing set covers",
+      "Before 2017, models paid for word order with time",
+      "Keep attention, drop everything else",
+      "Six identical layers on each side",
+      "Scaled dot-product attention",
+      "Multi-head attention: eight views at once",
+      "The same block is used in three places",
+      "Injecting order without recurrence",
+      "Three costs, four layer types (Table 1)",
+      "The spec sheet: data, hardware, schedule",
+      "State of the art on both WMT 2014 tasks",
+      "What the ablations taught (Table 3)",
+      "What was built on it",
+      "Attention is all you need — the rest was engineering"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      5,
+      8,
+      11
+    ],
+    "reference_sha256": "0af016ca16bbea46659935173e08d5eaef5e446d616639b0c728cd7efa07c853"
+  },
+  {
+    "id": "ppt43_wave_interference_diffraction",
+    "title": "波的干涉与衍射",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt43_wave_interference_diffraction",
+    "category": "education",
+    "pages": [
+      "波的干涉与衍射",
+      "这节课的路线",
+      "一 · 波的叠加原理",
+      "波的叠加原理",
+      "二 · 波的干涉",
+      "水波的干涉实验",
+      "干涉图样是怎么形成的",
+      "加强与减弱的条件",
+      "什么样的波才能干涉",
+      "三 · 波的衍射",
+      "缝的宽窄决定衍射明显与否",
+      "为什么会绕过去:惠更斯原理",
+      "四 · 光也是波",
+      "杨氏双缝干涉",
+      "光的衍射",
+      "泊松亮斑:一次\"反驳\"变成了证明",
+      "薄膜干涉:肥皂泡为什么是彩色的",
+      "小结:干涉与衍射",
+      "课堂练习",
+      "今天记住三句话"
+    ],
+    "canvas": "ppt43",
+    "representatives": [
+      4,
+      12,
+      17
+    ],
+    "reference_sha256": "4073121d1834d50128827356dcfea838d14f4ae682b5cb8a9e47106ead4f776b"
+  },
+  {
+    "id": "ppt169_china_telecom_2025",
+    "title": "中国电信 2025 年业绩解读",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_china_telecom_2025",
+    "category": "business",
+    "pages": [
+      "中国电信 2025 年全年业绩解读",
+      "目录:经营底盘 / 战新业务 / 智能云与 AI+ / 未来赛道",
+      "经营底盘保持稳健",
+      "经营收入 5296 亿元,盈利与现金流稳定",
+      "基础业务与产业数字化形成双轮驱动",
+      "战新业务成为增长亮点",
+      "天翼云 1207 亿元,战新业务成为第二增长曲线",
+      "智能云体系与 AI+ 规模化应用",
+      "五位一体智能云:算力→平台→数据→模型→应用",
+      "AI+ 从能力建设进入规模化应用",
+      "未来赛道与 2026 年经营主线",
+      "量子、低空、AI 安全与智能基础设施扩展增长边界",
+      "2026 年以 Token 服务为经营主线",
+      "以 Token 服务为经营主线 · 打造领先的 AI 服务商"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      5,
+      9,
+      10
+    ],
+    "reference_sha256": "214341b1372457ab84c05a0690899d74b028ad74446309396b030e3e3dde1674"
+  },
+  {
+    "id": "ppt169_pritzker_2026_quick",
+    "title": "Pritzker 2026 (Quick)",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_pritzker_2026_quick",
+    "category": "design",
+    "pages": [
+      "2026 普利兹克奖大师季 · 8 座新作,8 种深耕",
+      "一年之内,八座大师新作接连揭幕",
+      "目录 · 8 位得主 · 8 座新作",
+      "安藤忠雄 · 苏州 H+ 美术馆",
+      "戴卫·奇普菲尔德 · 场馆与古罗马圆形剧场的回响",
+      "扎哈·哈迪德事务所 · 淡水河口单塔斜拉桥",
+      "诺曼·福斯特 · 上海嘉艺术",
+      "OMA × SANAA · 纽约新美术馆扩建",
+      "彼得·卒姆托 · LACMA 大卫·格芬画廊",
+      "弗兰克·盖里 · 阿布扎比古根海姆博物馆",
+      "弗朗西斯·凯雷 · 达喀尔歌德学院",
+      "结语 · 8 种深耕,三种坚守",
+      "所有传世的经典,皆源于日复一日的坚守"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      2,
+      6,
+      11
+    ],
+    "reference_sha256": "082723012cc793bb8568bc3018af01aba00dbf4d352fba1dbc93ff4f7afce347"
+  },
+  {
+    "id": "ppt169_kubernetes_blueprint_2026",
+    "title": "Kubernetes Blueprint 2026",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_kubernetes_blueprint_2026",
+    "category": "technology",
+    "pages": [
+      "Kubernetes 集群架构拆解",
+      "两个平面,一条脊柱",
+      "控制平面的五个组件",
+      "调度:先过滤,再打分",
+      "控制器:一个永不停止的调和循环",
+      "每个工作节点上的三个组件",
+      "Pod 的一生:阶段、探针与优雅终止",
+      "Service:多变的 Pod 前面,一个稳定的入口",
+      "存储:三种资源分工,CSI 统一后端",
+      "生产高可用:三台起步,奇数 etcd,跨可用区",
+      "自愈的边界:什么会自动恢复,什么不会",
+      "通信总览:每一条线都经过 API server",
+      "回顾:五句话记住这套架构"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      3,
+      5,
+      9
+    ],
+    "reference_sha256": "c2f7f453c9c27aca0a1c1ccbd5f575ccf8ece80a1f981cfdaea8fa8e34c0de1c"
+  },
+  {
+    "id": "ppt169_what_is_ppt",
+    "title": "什么是 PPT",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_what_is_ppt",
+    "category": "education",
+    "pages": [
+      "什么是 PPT?它不只是几页幻灯片,而是四种东西的叠加",
+      "说“PPT”时,我们其实在说五种不同的东西",
+      "五种扩展名,一个现代标准",
+      "人们要的不是“几页”,是受众身上发生的改变",
+      "一份演示,可能同时在完成九种任务",
+      "七项属性叠加,才是 PowerPoint 的独特价值",
+      "PowerPoint 不该是所有信息任务的默认选择",
+      "同一份 deck,在不同阶段扮演不同角色",
+      "一页无法同时最优地服务四种传递场景",
+      ".pptx 是相互关联部件组成的包",
+      "视觉上正确的截图,仍可能结构很差",
+      "模板存在,是因为某种东西预计会重复出现",
+      "好的 deck,不能只用“视觉精美”来定义",
+      "研究并不支持“图片越多越好”",
+      "PPT 并不天然等于这八件事",
+      "做 PPT 之前,先回答这八个问题",
+      "先想清任务,工具才服务沟通"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      4,
+      8,
+      16
+    ],
+    "reference_sha256": "27c0c3959266da256120e758664e5ef466164965b7467bd835cf810a5d094ab7"
+  },
+  {
+    "id": "ppt169_lora_hu_2021",
+    "title": "LoRA Hu 2021",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_lora_hu_2021",
+    "category": "technology",
+    "pages": [
+      "LoRA: 大模型的低秩适配",
+      "本次讲什么",
+      "模型越大, 全量微调越不可行",
+      "为什么现有高效适配方法不够好",
+      "权重更新其实低秩",
+      "冻结 W0, 注入低秩 BA",
+      "一个常数 alpha, 一次部署合并",
+      "只适配注意力权重",
+      "LoRA 的四个关键优势",
+      "Adapter 增延迟, LoRA 不增",
+      "覆盖 NLU 到 NLG 的四类模型",
+      "更少参数, 持平或更优",
+      "在 175B 尺度上仍然成立",
+      "该适配谁? 秩要多大?",
+      "结论与影响"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      4,
+      8,
+      12
+    ],
+    "reference_sha256": "0d7fbbe30700d6a871649162e9674d6d6658ae3b57b1450a8c98d3205b62ec8e"
+  },
+  {
+    "id": "ppt169_pritzker_2026",
+    "title": "Pritzker 2026",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_pritzker_2026",
+    "category": "design",
+    "pages": [
+      "cover",
+      "overview",
+      "ando",
+      "chipperfield",
+      "zaha",
+      "foster",
+      "oma sanaa",
+      "zumthor",
+      "gehry",
+      "kere",
+      "epilogue"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      3,
+      5,
+      10
+    ],
+    "reference_sha256": "116f87492f777a8ef6b91518d1b6e81d7808507f95ede19661fd917bd8f84e07"
+  },
+  {
+    "id": "ppt169_global_ai_capital_2026",
+    "title": "Global AI Capital 2026",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_global_ai_capital_2026",
+    "category": "data",
+    "pages": [
+      "cover",
+      "editor note",
+      "contents",
+      "q1 vc landscape",
+      "hyperscaler capex",
+      "big three valuation leap",
+      "valuation vs revenue bubble",
+      "openai investor donut",
+      "big three comparison",
+      "china five ranking",
+      "us china dual track",
+      "second tier",
+      "chapter nvidia",
+      "nvidia sankey",
+      "nvidia pareto",
+      "stargate hub",
+      "chapter bubble",
+      "capex vs revenue",
+      "four risks quadrant",
+      "closing"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      6,
+      8,
+      18
+    ],
+    "reference_sha256": "1b5633ee5a8b2d7490daae643cfe7640582c5e08398db9aeb72b16b854327dab"
+  },
+  {
+    "id": "ppt169_swiss_grid_systems",
+    "title": "Swiss Grid Systems",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_swiss_grid_systems",
+    "category": "design",
+    "pages": [
+      "cover",
+      "quote",
+      "origin",
+      "principles",
+      "figures",
+      "brockmann",
+      "typefaces",
+      "grid types",
+      "modular",
+      "negative space",
+      "outputs",
+      "digital era",
+      "brands",
+      "closing"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      3,
+      6,
+      13
+    ],
+    "reference_sha256": "61abd3677e79f730c6df9781460fdb0471c46fc935738de46ae321efa406f8d4"
+  },
+  {
+    "id": "ppt169_glassmorphism_demo",
+    "title": "Glassmorphism Demo",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_glassmorphism_demo",
+    "category": "business",
+    "pages": [
+      "cover",
+      "hero demo to prod",
+      "three pains",
+      "agent architecture",
+      "three modes",
+      "tool orchestration",
+      "context engineering",
+      "kpi dashboard",
+      "metrics trend",
+      "failure modes",
+      "roadmap",
+      "cta closing"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      3,
+      6,
+      9
+    ],
+    "reference_sha256": "7ad691f56b3e6507352745acc8255e96945b162abc3bfcd1585b2144d10dde50"
+  },
+  {
+    "id": "ppt169_sugar_rush_memphis",
+    "title": "Sugar Rush Memphis",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_sugar_rush_memphis",
+    "category": "design",
+    "pages": [
+      "cover",
+      "what",
+      "numbers",
+      "principles",
+      "who",
+      "headliners",
+      "flavors",
+      "where",
+      "stages",
+      "schedule",
+      "vibes",
+      "beyond",
+      "tickets",
+      "closing"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      2,
+      6,
+      12
+    ],
+    "reference_sha256": "94b2e4c1093dfd6c34bb65c2031ae91b7539e62bc44a0f5f46ae0bbc85eae001"
+  },
+  {
+    "id": "ppt169_indie_bookstore_zine_guide",
+    "title": "Indie Bookstore Zine Guide",
+    "source": "https://hugohe3.github.io/ppt-master-examples/viewer.html?project=ppt169_indie_bookstore_zine_guide",
+    "category": "design",
+    "pages": [
+      "cover",
+      "toc",
+      "zine what",
+      "zine history",
+      "risograph origin",
+      "risograph process",
+      "zine folding",
+      "zine content types",
+      "jimbocho",
+      "three cities",
+      "berlin",
+      "china bookstore map",
+      "china art book fair",
+      "how to browse",
+      "how to collect",
+      "action checklist",
+      "sources",
+      "outro"
+    ],
+    "canvas": "ppt169",
+    "representatives": [
+      6,
+      9,
+      16
+    ],
+    "reference_sha256": "0dfe3577fe68e365308ce098306ba5b4d16aa0343ce092b2d2c33125bc56c4fd"
+  }
+]

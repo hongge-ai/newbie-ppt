@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" data-pptx-master="bauhaus" data-pptx-master-name="Bauhaus" data-pptx-layout="cover" data-pptx-layout-name="Cover" font-family="Microsoft YaHei, Arial, sans-serif">
+  <rect id="paper" x="0" y="0" width="1280" height="720" fill="#F2EEE5" data-pptx-layer="master" data-pptx-editable="false"/>
+  <circle id="field-3" cx="1220" cy="656" r="96" fill="#BD4029" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <line id="field-7" x1="64" y1="386" x2="184" y2="386" stroke="#BD4029" stroke-width="1" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <g id="slot-photo" data-pptx-placeholder="picture" data-pptx-idx="1" data-pptx-bounds="640 64 576 592">
+    <image data-pptx-carrier="true" x="640" y="64" width="576" height="592" href="../images/bauhaus-sample-1.jpg" preserveAspectRatio="xMidYMid slice"/>
+  </g>
+  <g id="slot-section" data-pptx-placeholder="body" data-pptx-idx="2" data-pptx-bounds="64 76 515 32">
+    <text data-pptx-carrier="true" x="64" y="92" font-size="16" font-weight="400" fill="#171717">{{SECTION}}</text>
+  </g>
+  <g id="slot-title" data-pptx-placeholder="title" data-pptx-idx="3" data-pptx-bounds="62 136 555 95">
+    <text data-pptx-carrier="true" x="62" y="200" font-size="64" font-weight="700" fill="#171717">{{TITLE}}</text>
+  </g>
+  <g id="slot-anchor" data-pptx-placeholder="body" data-pptx-idx="4" data-pptx-bounds="58 240 530 130">
+    <text data-pptx-carrier="true" x="58" y="331" font-size="108" font-weight="700" fill="#171717">{{ANCHOR}}</text>
+  </g>
+  <g id="slot-second_anchor" data-pptx-placeholder="body" data-pptx-idx="5" data-pptx-bounds="58 401 535 135">
+    <text data-pptx-carrier="true" x="58" y="492" font-size="108" font-weight="700" fill="#171717">{{SECOND_ANCHOR}}</text>
+  </g>
+  <g id="slot-subtitle" data-pptx-placeholder="body" data-pptx-idx="6" data-pptx-bounds="64 566 550 76">
+    <text data-pptx-carrier="true" x="64" y="592" font-size="26" font-weight="400" fill="#171717">{{SUBTITLE}}</text>
+  </g>
+</svg>

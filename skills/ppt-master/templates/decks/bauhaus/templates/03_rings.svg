@@ -1,0 +1,52 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" data-pptx-master="bauhaus" data-pptx-master-name="Bauhaus" data-pptx-layout="rings" data-pptx-layout-name="Concentric explanation" font-family="Microsoft YaHei, Arial, sans-serif">
+  <rect id="paper" x="0" y="0" width="1280" height="720" fill="#F2EEE5" data-pptx-layer="master" data-pptx-editable="false"/>
+  <circle id="field-2" cx="380" cy="400" r="259" fill="#E3DCCE" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <circle id="field-3" cx="380" cy="400" r="164" fill="#F2EEE5" stroke="#171717" stroke-width="2" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <circle id="field-4" cx="380" cy="400" r="79" fill="#BD4029" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <circle id="field-11" cx="736" cy="292" r="8" fill="#171717" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <circle id="field-14" cx="736" cy="405" r="8" fill="#171717" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <circle id="field-17" cx="736" cy="518" r="8" fill="#BD4029" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <g id="slot-outer" data-pptx-placeholder="body" data-pptx-idx="1" data-pptx-bounds="244 170 272 60">
+    <text data-pptx-carrier="true" x="380" y="196" text-anchor="middle" font-size="26" font-weight="700" fill="#171717">{{OUTER}}</text>
+  </g>
+  <g id="slot-middle" data-pptx-placeholder="body" data-pptx-idx="2" data-pptx-bounds="244 253 272 60">
+    <text data-pptx-carrier="true" x="380" y="279" text-anchor="middle" font-size="26" font-weight="700" fill="#171717">{{MIDDLE}}</text>
+  </g>
+  <g id="slot-core" data-pptx-placeholder="body" data-pptx-idx="3" data-pptx-bounds="244 372 272 60">
+    <text data-pptx-carrier="true" x="380" y="398" text-anchor="middle" font-size="26" font-weight="700" fill="#FFFFFF">{{CORE}}</text>
+  </g>
+  <g id="slot-section" data-pptx-placeholder="body" data-pptx-idx="4" data-pptx-bounds="720 68 496 26">
+    <text data-pptx-carrier="true" x="720" y="83" font-size="15" font-weight="400" fill="#171717">{{SECTION}}</text>
+  </g>
+  <g id="slot-page_title" data-pptx-placeholder="title" data-pptx-idx="5" data-pptx-bounds="720 123 496 64">
+    <text data-pptx-carrier="true" x="720" y="163" font-size="40" font-weight="700" fill="#171717">{{PAGE_TITLE}}</text>
+  </g>
+  <g id="slot-intro" data-pptx-placeholder="body" data-pptx-idx="6" data-pptx-bounds="720 188 496 77">
+    <text data-pptx-carrier="true" x="720" y="210" font-size="22" font-weight="400" fill="#171717">{{INTRO}}</text>
+  </g>
+  <g id="slot-label_1" data-pptx-placeholder="body" data-pptx-idx="7" data-pptx-bounds="755 275 451 44">
+    <text data-pptx-carrier="true" x="755" y="299" font-size="24" font-weight="700" fill="#171717">{{LABEL_1}}</text>
+  </g>
+  <g id="slot-detail_1" data-pptx-placeholder="body" data-pptx-idx="8" data-pptx-bounds="755 320 451 64">
+    <text data-pptx-carrier="true" x="755" y="338" font-size="18" font-weight="400" fill="#171717">{{DETAIL_1}}</text>
+  </g>
+  <g id="slot-label_2" data-pptx-placeholder="body" data-pptx-idx="9" data-pptx-bounds="755 388 451 44">
+    <text data-pptx-carrier="true" x="755" y="412" font-size="24" font-weight="700" fill="#171717">{{LABEL_2}}</text>
+  </g>
+  <g id="slot-detail_2" data-pptx-placeholder="body" data-pptx-idx="10" data-pptx-bounds="755 433 451 64">
+    <text data-pptx-carrier="true" x="755" y="451" font-size="18" font-weight="400" fill="#171717">{{DETAIL_2}}</text>
+  </g>
+  <g id="slot-label_3" data-pptx-placeholder="body" data-pptx-idx="11" data-pptx-bounds="755 501 451 44">
+    <text data-pptx-carrier="true" x="755" y="525" font-size="24" font-weight="700" fill="#171717">{{LABEL_3}}</text>
+  </g>
+  <g id="slot-detail_3" data-pptx-placeholder="body" data-pptx-idx="12" data-pptx-bounds="755 546 451 64">
+    <text data-pptx-carrier="true" x="755" y="564" font-size="18" font-weight="400" fill="#171717">{{DETAIL_3}}</text>
+  </g>
+  <g id="slot-source" data-pptx-placeholder="body" data-pptx-idx="13" data-pptx-bounds="64 666 860 28">
+    <text data-pptx-carrier="true" x="64" y="680" font-size="14" font-weight="400" fill="#746E64">{{SOURCE}}</text>
+  </g>
+  <g id="slot-folio" data-pptx-placeholder="body" data-pptx-idx="14" data-pptx-bounds="1090 666 130 28">
+    <text data-pptx-carrier="true" x="1090" y="680" font-size="14" font-weight="400" fill="#746E64">{{FOLIO}}</text>
+  </g>
+</svg>

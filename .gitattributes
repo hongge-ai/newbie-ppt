@@ -2,3 +2,6 @@
 # docs/assets ships with the repository but not with the slim ZIP.
 # 精简分发：make_dist.py 的 git archive 不携带以下路径（docs/assets 仅在完整仓库中）。
 docs/assets/ export-ignore
+
+# The gallery manifest verifies the exact bytes of each source bundle.
+skills/ppt-master/scripts/workbench/example_sources/*.json text eol=lf

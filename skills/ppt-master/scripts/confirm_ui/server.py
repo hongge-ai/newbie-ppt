@@ -2588,6 +2588,8 @@ def create_app(
             return jsonify({'error': 'invalid payload'}), 400
         confirm_dir.mkdir(parents=True, exist_ok=True)
         result = dict(payload)
+        result.pop('selection_preview', None)
+        result.pop('selection_preview_id', None)
         template_selection_payload = result.pop('template_selection', None)
         result_file = confirm_dir / RESULT_NAME
         raw_stage = result.get('stage')
