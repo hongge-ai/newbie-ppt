@@ -1,0 +1,33 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" data-pptx-master="bauhaus" data-pptx-master-name="Bauhaus" data-pptx-layout="ending" data-pptx-layout-name="Closing" font-family="Microsoft YaHei, Arial, sans-serif">
+  <rect id="paper" x="0" y="0" width="1280" height="720" fill="#F2EEE5" data-pptx-layer="master" data-pptx-editable="false"/>
+  <circle id="field-2" cx="640" cy="320" r="232" fill="#BD4029" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <line id="field-6" x1="64" y1="571" x2="1216" y2="571" stroke="#746E64" stroke-width="1" data-pptx-layer="layout" data-pptx-editable="false"/>
+  <g id="slot-section" data-pptx-placeholder="body" data-pptx-idx="1" data-pptx-bounds="64 68 650 32">
+    <text data-pptx-carrier="true" x="64" y="83" font-size="15" font-weight="400" fill="#171717">{{SECTION}}</text>
+  </g>
+  <g id="slot-conclusion" data-pptx-placeholder="title" data-pptx-idx="2" data-pptx-bounds="428 236 424 145">
+    <text data-pptx-carrier="true" x="640" y="279" text-anchor="middle" font-size="43" font-weight="700" fill="#FFFFFF">{{CONCLUSION}}</text>
+  </g>
+  <g id="slot-closing_line" data-pptx-placeholder="body" data-pptx-idx="3" data-pptx-bounds="438 393 404 65">
+    <text data-pptx-carrier="true" x="640" y="413" text-anchor="middle" font-size="20" font-weight="400" fill="#FFFFFF">{{CLOSING_LINE}}</text>
+  </g>
+  <g id="slot-anchor_1" data-pptx-placeholder="body" data-pptx-idx="4" data-pptx-bounds="65 591 382 52">
+    <text data-pptx-carrier="true" x="256" y="620" text-anchor="middle" font-size="29" font-weight="700" fill="#171717">{{ANCHOR_1}}</text>
+  </g>
+  <g id="slot-caption_1" data-pptx-placeholder="body" data-pptx-idx="5" data-pptx-bounds="65 648 382 41">
+    <text data-pptx-carrier="true" x="256" y="665" text-anchor="middle" font-size="17" font-weight="400" fill="#171717">{{CAPTION_1}}</text>
+  </g>
+  <g id="slot-anchor_2" data-pptx-placeholder="body" data-pptx-idx="6" data-pptx-bounds="449 591 382 52">
+    <text data-pptx-carrier="true" x="640" y="620" text-anchor="middle" font-size="29" font-weight="700" fill="#171717">{{ANCHOR_2}}</text>
+  </g>
+  <g id="slot-caption_2" data-pptx-placeholder="body" data-pptx-idx="7" data-pptx-bounds="449 648 382 41">
+    <text data-pptx-carrier="true" x="640" y="665" text-anchor="middle" font-size="17" font-weight="400" fill="#171717">{{CAPTION_2}}</text>
+  </g>
+  <g id="slot-anchor_3" data-pptx-placeholder="body" data-pptx-idx="8" data-pptx-bounds="833 591 382 52">
+    <text data-pptx-carrier="true" x="1024" y="620" text-anchor="middle" font-size="29" font-weight="700" fill="#171717">{{ANCHOR_3}}</text>
+  </g>
+  <g id="slot-caption_3" data-pptx-placeholder="body" data-pptx-idx="9" data-pptx-bounds="833 648 382 41">
+    <text data-pptx-carrier="true" x="1024" y="665" text-anchor="middle" font-size="17" font-weight="400" fill="#171717">{{CAPTION_3}}</text>
+  </g>
+</svg>

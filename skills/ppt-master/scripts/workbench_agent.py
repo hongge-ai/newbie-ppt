@@ -2,16 +2,14 @@
 """
 PPT Master - Workbench Agent Attach
 
-Connect one AI agent to the resident workbench, then wait until a human
-dispatches a task to it. The page lists connected agents; the human picks one
-and presses dispatch. This script prints the assigned task and exits, so the
-calling agent can pick the work up without anyone copying a trigger sentence.
+Enable background execution from a Codex session. Other clients wait for
+one human dispatch and return the assigned task to the calling agent.
 
 Usage:
     python3 scripts/workbench_agent.py attach --name "Claude Code"
     python3 scripts/workbench_agent.py attach --workbench http://127.0.0.1:7070
 
-Output on success (one JSON object on stdout):
+One-shot client output (one JSON object on stdout):
     {"event": "assigned", "agent_id": "a-1f2e3d4c", "task_id": "t...",
      "task_file": "<abs path>", "topic": "...", "hint": "..."}
 
@@ -23,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import socket
 import sys
 import time
@@ -30,12 +29,24 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+from console_encoding import configure_utf8_stdio
+from atomic_io import write_json_atomic
+
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 _REPO_ROOT = _SCRIPTS_DIR.parents[2]
 _LOCK_FILE = _REPO_ROOT / 'projects' / '.workbench' / 'workbench.lock'
 
 HEARTBEAT_SECONDS = 15
 POLL_SECONDS = 2
+
+
+def session_environment() -> str:
+    """Identify a supported AI session from its launcher-provided markers."""
+    if os.environ.get('CLAUDECODE') == '1':
+        return 'Claude Code'
+    if os.environ.get('CODEX_THREAD_ID') or os.environ.get('CODEX_SESSION_ID'):
+        return 'ChatGPT / Codex' if os.environ.get('CODEX_APP_RUNTIME_CLI_PATH') else 'Codex'
+    return ''
 
 
 def _default_workbench() -> str:
@@ -76,10 +87,23 @@ class Workbench:
         return self.call('POST', path, payload)
 
 
-def attach(args: argparse.Namespace) -> int:
-    workbench = Workbench(args.workbench)
+def attach(workbench_url: str, name: str, timeout: int = 0) -> int:
+    workbench = Workbench(workbench_url)
+    if 'Codex' in session_environment():
+        status, health = workbench.get('/api/health')
+        if status != 200 or health.get('service') != 'workbench' or Path(health['repo_root']).resolve() != _REPO_ROOT:
+            print('error: this workbench does not serve the current repository', file=sys.stderr)
+            return 1
+        if not health.get('codex_dispatch'):
+            print('error: restart the workbench with the Codex CLI available', file=sys.stderr)
+            return 1
+        write_json_atomic(_LOCK_FILE.with_name('codex-dispatch.json'), {
+            'instance': health['instance'], 'name': name,
+        })
+        print(f'{name} is available for background dispatch at {workbench_url}', file=sys.stderr)
+        return 0
     status, record = workbench.post('/api/agents/register', {
-        'name': args.name,
+        'name': name,
         'host': socket.gethostname(),
         'pid': None,
     })
@@ -89,7 +113,7 @@ def attach(args: argparse.Namespace) -> int:
     agent_id = record['agent_id']
     print(f'connected as {record["name"]} ({agent_id}); waiting for dispatch', file=sys.stderr)
 
-    deadline = None if args.timeout <= 0 else time.monotonic() + args.timeout
+    deadline = None if timeout <= 0 else time.monotonic() + timeout
     last_beat = time.monotonic()
 
     try:
@@ -127,6 +151,11 @@ def attach(args: argparse.Namespace) -> int:
     except KeyboardInterrupt:
         print('detached', file=sys.stderr)
         return 130
+    finally:
+        try:
+            workbench.call('DELETE', f'/api/agents/{agent_id}')
+        except OSError:
+            pass  # A stopped server will expire the last heartbeat.
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -135,7 +164,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument('action', nargs='?', default='attach', choices=('attach',))
     parser.add_argument('--workbench', default=_default_workbench(),
                         help='Workbench base URL (default: discovered lock or 127.0.0.1:7070)')
-    parser.add_argument('--name', default=socket.gethostname()[:60],
+    parser.add_argument('--name', default=session_environment() or socket.gethostname()[:60],
                         help='Name shown in the dispatch list')
     parser.add_argument('--timeout', type=int, default=0,
                         help='Seconds before giving up (0 waits until dispatch)')
@@ -143,8 +172,9 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    configure_utf8_stdio()
     args = build_parser().parse_args(argv)
-    return attach(args)
+    return attach(args.workbench, args.name, args.timeout)
 
 
 if __name__ == '__main__':

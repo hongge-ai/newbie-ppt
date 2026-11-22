@@ -17,7 +17,7 @@ description: Main-pipeline editor stage for starting live preview and applying s
 
 ## Step 1: Open the preview surface
 
-Tell the user, in their language, the workbench URL for this project's preview tab (`/p/<slug>/preview/`). The workbench must be running; if it is not, say so and start it once (`workbench/server.py --daemon`). Report the URL the workbench printed, never an inferred port. Then tell the user, in their language, in one short message:
+Tell the user, in their language, the workbench URL for this project's preview tab (`/p/<slug>/preview/`). The workbench must be running; if it is not, say so and start it once (`workbench/server.py --daemon --service-only`). Report the URL the workbench printed, never an inferred port. Then tell the user, in their language, in one short message:
 
 - the editor URL;
 - **Direct edit** for deterministic tweaks (wording, color, coordinates, attributes): select an element → change the right-panel controls → preview updates immediately, nothing is written until **Apply changes**; `Ctrl+Z` / **Undo** drops staged edits; re-export stays chat-driven ("re-export" / "重新导出");

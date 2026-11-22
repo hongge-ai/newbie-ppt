@@ -43,7 +43,9 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
+from functools import lru_cache
 from pathlib import Path
 from typing import Optional
 
@@ -55,6 +57,18 @@ if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
 import agent_bridge  # noqa: E402
+from apply_template import (  # noqa: E402
+    INSTALL_RECEIPT_NAME,
+    ApplyTemplateError,
+    apply_templates,
+    read_template_install,
+    snapshot_template_roots,
+)
+import workbench_agent  # noqa: E402
+from workbench import codex_dispatch  # noqa: E402
+from workbench.image_progress import project_image_progress  # noqa: E402
+from workbench.powerpoint_preview import PreviewRenderer  # noqa: E402
+from slide_roster import discover_slide_svgs  # noqa: E402
 from atomic_io import write_bytes_atomic, write_json_atomic  # noqa: E402
 from config import CANVAS_FORMATS, resolve_env_path, strip_env_quotes, strip_inline_env_comment  # noqa: E402
 from image_backends import backend_zzai
@@ -119,6 +133,7 @@ USER_DOMAIN_FIELDS = (
     'submitted_at',
     'display_title',
     'topic',
+    'example_id',
     'params',
     'uploads',
 )
@@ -152,8 +167,8 @@ AGENT_HINT_TEMPLATE = """请接手 newbie-ppt 仓库中的一个工作台任务�
    - 没有：新建项目（project_manager.py init <名称>），然后运行
      agent_bridge.py run start --project <项目路径> --task {task_id}
      把本次运行绑定到该任务，网页会自动显示进度。
-3. 先写逐页内容大纲 <项目路径>/outline.md 并等待用户在任务页面「① 内容大纲」确认或提交批注（confirm_ui/wait.py <项目路径> --stage outline）；大纲确认后再准备候选模板并在「② 选择模板」等待确认（--stage stage1），未确认前不要越级进入后续阶段。
-4. 需要用户决定时用 agent_bridge.py ask 提问；每完成一批页面用 progress 汇报；导出到 projects/<项目名>/exports/ 后结束运行。"""
+3. 对于 example_id 任务，按任务 params.canvas 初始化项目，根据新材料拟定页数和 outline.md，等待用户确认大纲（confirm_ui/wait.py --stage outline）。确认时工作台会安装所选资源：有 example_reference.json 时，读取其中的逐页 SVG 排版、预览位置和设计资料，为新主题设计可编辑页面；有 template_install.json 时，使用 templates/ 中的规范及版式。按已委托的方案配图、逐页绘制、校验与导出。每页完成后报告进度。详见 scripts/docs/workbench.md。
+4. 无 example_id 的旧任务依已有确认流程接续。导出到项目 exports/ 后报告完成。"""
 
 # Slide file names inside a generated project's svg_output/: a numeric
 # segment (with optional P prefix) followed by anything, e.g. P01.svg,
@@ -177,33 +192,32 @@ _SKILL_DIR = Path(__file__).resolve().parents[2]
 # repository checkout simply gets <install-parent>/projects as its root.
 DEFAULT_PROJECTS_ROOT = _SKILL_DIR.parent.parent / 'projects'
 _OPTIONS_PATH = Path(__file__).resolve().parent / 'static' / 'options.json'
-# The visual-style catalog lives beside confirm_ui; the workbench renders
-# live SVG previews client-side via static/style_slides.js.
-_CATALOGS_PATH = _SCRIPTS_DIR / 'confirm_ui' / 'catalogs.json'
+def _examples() -> dict[str, dict]:
+    catalog = Path(__file__).parent / 'static' / 'examples' / 'catalog.json'
+    return {entry['id']: entry for entry in json.loads(catalog.read_text(encoding='utf-8'))}
 
 
-def _visual_style_catalog() -> list:
-    """Flatten confirm_ui's visual-style catalog into preview-ready entries."""
-    try:
-        catalogs = _read_json_object(_CATALOGS_PATH, retries=0)
-    except (OSError, json.JSONDecodeError, ValueError):
-        return []
-    styles = []
-    for group in catalogs.get('visual_styles') or []:
-        if not isinstance(group, dict):
-            continue
-        group_label = group.get('group_zh') or group.get('group') or ''
-        for item in group.get('items') or []:
-            if not isinstance(item, dict) or not item.get('id'):
-                continue
-            style_id = str(item['id'])
-            styles.append({
-                'id': style_id,
-                'label': item.get('label_zh') or item.get('label') or style_id,
-                'group': group_label,
-                'description': item.get('desc_zh') or item.get('desc') or '',
-            })
-    return styles
+def _install_example(project: Path, example_id: str) -> None:
+    example = _examples().get(example_id)
+    if example is None:
+        raise ValueError('所选示例已不可用')
+    if 'reference_sha256' in example:
+        target = project / 'example_reference.json'
+        bundle = Path(__file__).parent / 'example_sources' / (example_id + '.json')
+        try:
+            payload = (target if target.exists() else bundle).read_bytes()
+            if hashlib.sha256(payload).hexdigest() != example['reference_sha256']:
+                raise ApplyTemplateError('原例排版资料与目录记录不一致')
+            if not target.exists():
+                write_bytes_atomic(target, payload)
+        except OSError as exc:
+            raise ApplyTemplateError(f'无法读取或安装原例排版资料：{exc}') from exc
+        return
+    roots = [str(_SKILL_DIR / 'templates' / 'decks' / example_id)]
+    if (project / INSTALL_RECEIPT_NAME).is_file():
+        read_template_install(project, snapshot_template_roots(project, roots), None)
+    else:
+        apply_templates(project, roots)
 
 
 _TEMPLATE_INDEX_PATHS = {
@@ -337,6 +351,10 @@ def _assignment_for(projects_root: Path, task_id: str) -> Optional[dict]:
     if not path.is_file():
         return None
     record = _read_json_object(path)
+    if record.get('agent_id') == codex_dispatch.AGENT_ID:
+        if record.get('phase') == 'accepted' and not _process_alive(record.get('pid')):
+            record['phase'] = 'stopped'
+        return record
     try:
         expires = datetime.fromisoformat(str(record.get('expires_at')))
     except (TypeError, ValueError):
@@ -420,12 +438,13 @@ def _default_task(task_id: str, topic: str, display_title: Optional[str]) -> dic
         'updated_at': now,
         'display_title': display_title,
         'topic': topic,
+        'example_id': None,
         'params': {
             'canvas': 'ppt169',
             'page_count': None,
             'primary_language': 'zh-CN',
             'speaker_notes': False,
-            'image_policy': 'auto',
+            'image_policy': 'ai',
         },
         'uploads': [],
     }
@@ -495,9 +514,19 @@ def _apply_user_patch(task: dict, payload: object) -> Optional[str]:
         if isinstance(title, str) and len(title) > 200:
             return 'display_title must be at most 200 characters'
         task['display_title'] = title.strip() if isinstance(title, str) else None
+    if 'example_id' in payload:
+        example_id = payload['example_id']
+        example = _examples().get(example_id) if isinstance(example_id, str) else None
+        if example is None:
+            return '未知示例'
+        if task.get('example_id') and example_id != task['example_id']:
+            return 'the selected example cannot be changed on this draft'
+        if not task.get('example_id'):
+            task['example_id'] = example_id
+            task['params']['canvas'] = example['canvas']
     if 'topic' in payload:
         topic = payload['topic']
-        if not isinstance(topic, str) or not topic.strip():
+        if not isinstance(topic, str) or (not task.get('example_id') and not topic.strip()):
             return 'topic must be a non-empty string'
         task['topic'] = topic.strip()
     if 'params' in payload:
@@ -509,7 +538,7 @@ def _apply_user_patch(task: dict, payload: object) -> Optional[str]:
 
 def _submit_error(task: dict) -> Optional[str]:
     """Return the blocking error for a draft submission, or None."""
-    if not str(task.get('topic') or '').strip():
+    if not str(task.get('topic') or '').strip() and not task.get('uploads'):
         return 'topic is required before submitting'
     return None
 
@@ -702,11 +731,13 @@ def _list_task_summaries(projects_root: Path) -> list:
         task = _normalize_task(data)
         runtime = runtime_index.get(task.get('task_id') or entry.name)
         summary = _runtime_summary(runtime)
+        status = _derived_state(task, runtime)
         summaries.append({
             'task_id': task.get('task_id') or entry.name,
             'display_title': task.get('display_title'),
             'topic': task.get('topic'),
-            'status': _derived_state(task, runtime),
+            'status': status,
+            'attention': _task_attention(status, runtime),
             'created_at': task.get('created_at'),
             'submitted_at': task.get('submitted_at'),
             'updated_at': task.get('updated_at'),
@@ -754,10 +785,28 @@ def _file_listing(directory: Path, name_pattern: re.Pattern) -> list:
     return listed
 
 
-def _slide_sort_key(name: str):
-    """Order slide names by their leading numeric segment."""
-    digits = re.match(r'(?:P)?(\d+)', name)
-    return (int(digits.group(1)) if digits else 0, name)
+@lru_cache(maxsize=512)
+def _slide_ready(path: Path, mtime_ns: int, size: int) -> bool:
+    """Cache XML completeness for this particular revision of a slide."""
+    try:
+        return ET.parse(path).getroot().tag in ('svg', '{http://www.w3.org/2000/svg}svg')
+    except (ET.ParseError, OSError):
+        return False
+
+
+def _previewable_slides(project: Path) -> list:
+    slides = []
+    for path in discover_slide_svgs(project / 'svg_output'):
+        if not _SLIDE_NAME_RE.fullmatch(path.name):
+            continue
+        try:
+            stat = path.stat()
+        except OSError:
+            continue
+        if stat.st_size and _slide_ready(path, stat.st_mtime_ns, stat.st_size):
+            slides.append({'name': path.name, 'size': stat.st_size, 'mtime': stat.st_mtime,
+                           'version': str(stat.st_mtime_ns)})
+    return slides
 
 
 def _plan_state(project_path: Path) -> dict:
@@ -776,9 +825,46 @@ def _plan_state(project_path: Path) -> dict:
     stage = result.get('stage')
     authored = (confirm_dir / 'recommendations.stage2.json').is_file()
     return {
-        'review_due': stage == 'stage1' and authored,
+        'review_due': stage == 'stage1' and authored and not get_workbench_stage1_prefs(project_path).get('skip_stage2_review'),
         'confirmed': stage == 'final',
     }
+
+
+def _task_inbox(project: Path, task_id: Optional[str]) -> list:
+    """Omit legacy link-only reminders that point back to this task's review UI."""
+    items = []
+    for item in agent_bridge.list_requests(project):
+        req = item['request']
+        if (req.get('kind') == 'confirm' and not req.get('options') and not req.get('body')
+                and not req.get('attachments') and task_id
+                and any(label in (req.get('title') or '') for label in ('「① 内容大纲」', '「② 选择模板」'))
+                and (req.get('url') or '').partition('#')[2] == f'/task/{task_id}'):
+            continue
+        items.append(item)
+    return items
+
+
+def _task_attention(status: str, runtime: Optional[dict], outline=None, plan=None, inbox=None) -> Optional[str]:
+    if status not in ('processing', 'interrupted') or not runtime:
+        return None
+    project = Path(runtime['project_dir'])
+    view = runtime.get('view') or {}
+    outline = outline if outline is not None else outline_summary(project)
+    if outline.get('status') == 'ready':
+        return 'outline'
+    plan = plan if plan is not None else _plan_state(project)
+    if plan['review_due']:
+        return 'plan'
+    confirm = project / 'confirm_ui'
+    if (view.get('stage') in ('confirm_stage1', 'template_prep') or outline.get('status') == 'confirmed') and (
+            (confirm / 'recommendations.stage1.json').is_file() and not (confirm / 'result.json').exists()):
+        return 'template'
+    if view.get('blocking'):
+        if inbox is None:
+            inbox = _task_inbox(project, view.get('task_id'))
+        if any(not item['response'] for item in inbox):
+            return 'answer'
+    return None
 
 
 def _task_progress_payload(task: dict, runtime: Optional[dict]) -> dict:
@@ -798,21 +884,23 @@ def _task_progress_payload(task: dict, runtime: Optional[dict]) -> dict:
         'requests': [],
         'slides': [],
         'slide_count': 0,
+        'image_progress': None,
         'quality': {'report_exists': False},
         'exports': [],
         'outline': None,
         'confirm': None,
         'plan': None,
+        'attention': None,
     }
     if not project_dir:
         return payload
     project_path = Path(project_dir)
     payload['outline'] = outline_summary(project_path)
     payload['events'] = agent_bridge.recent_events(project_path)
-    payload['requests'] = agent_bridge.list_requests(project_path)
-    slides = _file_listing(project_path / 'svg_output', _SLIDE_NAME_RE)
-    slides.sort(key=lambda item: _slide_sort_key(item['name']))
+    payload['requests'] = _task_inbox(project_path, task.get('task_id'))
+    slides = _previewable_slides(project_path)
     payload['slides'] = slides
+    payload['image_progress'] = project_image_progress(project_path)
     payload['slide_count'] = len(slides)
 
     quality_file = project_path / 'validation' / 'svg_quality_report.json'
@@ -841,6 +929,8 @@ def _task_progress_payload(task: dict, runtime: Optional[dict]) -> dict:
     except (OSError, json.JSONDecodeError, ValueError):
         payload['confirm'] = None
     payload['plan'] = _plan_state(project_path)
+    payload['attention'] = _task_attention(
+        payload['status'], runtime, payload['outline'], payload['plan'], payload['requests'])
     return payload
 
 
@@ -1079,6 +1169,7 @@ def _launch_background_server(
         '--timeout',
         str(idle_timeout),
         '--no-browser',
+        '--service-only',
     ]
     with log_path.open('a', encoding='utf-8') as log:
         proc = _popen_detached(
@@ -1161,6 +1252,21 @@ def create_app(
     """Create and configure the Flask app for a projects root directory."""
     projects_path = Path(projects_root).resolve()
     runtime_dir = _workbench_dir(projects_path)
+    instance = secrets.token_hex(16)
+    codex_cli = codex_dispatch.executable()
+    outline_install_lock = threading.Lock()
+    dispatch_lock = threading.RLock()
+    previews = PreviewRenderer(runtime_dir / 'page-previews')
+
+    def codex_agent():
+        try:
+            enabled = _read_json_object(runtime_dir / 'codex-dispatch.json', retries=0)
+        except (OSError, ValueError):
+            return None
+        if codex_cli and enabled.get('instance') == instance:
+            return {'agent_id': codex_dispatch.AGENT_ID, 'name': enabled['name'] + '（后台）',
+                    'online': True, 'host': '本机'}
+        return None
 
     app = Flask(__name__, static_folder='static', static_url_path='/static')
     app.config['PROJECTS_ROOT'] = projects_path
@@ -1229,6 +1335,8 @@ def create_app(
         resp = jsonify({
             'status': 'ok',
             'service': 'workbench',
+            'instance': instance,
+            'codex_dispatch': bool(codex_cli),
             'pid': os.getpid(),
             'repo_root': str(_repo_root(projects_path)),
             'projects_root': str(projects_path),
@@ -1257,7 +1365,10 @@ def create_app(
                 def configured(key, default=''):
                     return os.environ.get(key, settings.get(key)) or default
 
-                active = BACKEND_ALIASES.get(configured('IMAGE_BACKEND').lower())
+                active = BACKEND_ALIASES.get(configured('IMAGE_BACKEND').strip().lower())
+                if request.method == 'GET' and request.args.get('view') == 'status':
+                    keys = BACKEND_REGISTRY[active]['key_hint'].split(' / ') if active else []
+                    return jsonify(configured=any(configured(key) for key in keys)), 200, {'Cache-Control': 'no-store'}
                 selected = request.args.get('channel') or ('openai' if active == 'openai' else 'zzai')
                 if selected not in ('openai', 'zzai'):
                     return jsonify(error='未知渠道'), 400
@@ -1350,6 +1461,10 @@ def create_app(
             except (OSError, UnicodeError):
                 return jsonify(error='无法读写生图配置文件，请检查文件权限和编码'), 500
 
+    @app.get('/api/examples')
+    def list_examples():
+        return jsonify(examples=list(_examples().values()))
+
     @app.route('/api/options')
     def get_options():
         """Serve the option universe; canvas syncs live from config.py."""
@@ -1373,7 +1488,7 @@ def create_app(
             'page_counts': static_options.get('page_counts', []),
             'image_policies': static_options.get('image_policies', []),
             'languages': static_options.get('languages', []),
-            'visual_styles': _visual_style_catalog(),
+            'examples': list(_examples().values()),
         })
         resp.headers['Cache-Control'] = 'no-store'
         return resp
@@ -1389,14 +1504,24 @@ def create_app(
     def create_task():
         """Create one draft task from a topic (and optional initial params)."""
         data = request.get_json(silent=True) or {}
-        topic = data.get('topic')
-        if not isinstance(topic, str) or not topic.strip():
+        if not isinstance(data, dict):
+            return jsonify(error='invalid task'), 400
+        example_id = data.get('example_id')
+        example = _examples().get(example_id) if isinstance(example_id, str) else None
+        if example_id is not None and example is None:
+            return jsonify(error='未知示例'), 400
+        topic = data.get('topic', '')
+        if not isinstance(topic, str) or (not topic.strip() and not example_id):
             return jsonify({'error': 'topic must be a non-empty string'}), 400
         title = data.get('display_title')
         if title is not None and (not isinstance(title, str) or len(title) > 200):
             return jsonify({'error': 'display_title must be a string of at most 200 characters'}), 400
         task_id = _new_task_id()
         task = _default_task(task_id, topic.strip(), title.strip() if isinstance(title, str) else None)
+        if example_id:
+            task['example_id'] = example_id
+            task['params']['canvas'] = example['canvas']
+            task['params']['image_policy'] = 'auto'
         if isinstance(data.get('params'), dict):
             error = _apply_params_patch(task['params'], data['params'])
             if error:
@@ -1435,6 +1560,7 @@ def create_app(
         payload = dict(task)
         payload['status'] = _derived_state(task, runtime)
         payload['runtime'] = _runtime_summary(runtime)
+        payload['attention'] = _task_attention(payload['status'], runtime)
         payload['uploads_present'] = _uploads_listing(task_dir)
         payload['assignment'] = _assignment_for(projects_path, task_id)
         if payload['status'] == 'submitted':
@@ -1524,13 +1650,21 @@ def create_app(
             return error
         if task.get('submitted_at'):
             return jsonify({'error': 'task is already submitted'}), 409
+        task['uploads'] = _uploads_listing(task_dir)
         error = _submit_error(task)
         if error:
             return jsonify({'error': error}), 400
         task['submitted_at'] = _now_iso()
         task['updated_at'] = task['submitted_at']
-        task['uploads'] = _uploads_listing(task_dir)
+        if not task.get('display_title') and not task['topic'] and task['uploads']:
+            task['display_title'] = Path(task['uploads'][0]['name']).stem
         write_json_atomic(task_dir / TASK_FILE_NAME, task)
+        if task.get('example_id'):
+            managed = codex_agent()
+            agents = [managed] if managed else [a for a in _list_agents(projects_path) if a.get('online')]
+            if len(agents) == 1:
+                with dispatch_lock:
+                    dispatch_task(task_id, agents[0]['agent_id'])
         return jsonify({
             'status': 'submitted',
             'task_id': task_id,
@@ -1554,7 +1688,12 @@ def create_app(
         task, _task_dir, error = _load_task_or_abort(task_id)
         if error:
             return error
-        resp = jsonify(_task_progress_payload(task, _runtime_for(task_id)))
+        runtime = _runtime_for(task_id)
+        payload = _task_progress_payload(task, runtime)
+        if runtime and request.args.get('preview') == '1':
+            payload['page_preview'] = previews.view(Path(runtime['project_dir']), payload['slides'], payload['exports'])
+        payload['assignment'] = _assignment_for(projects_path, task_id)
+        resp = jsonify(payload)
         resp.headers['Cache-Control'] = 'no-store'
         return resp
 
@@ -1569,14 +1708,48 @@ def create_app(
         return send_from_directory(project_path / 'svg_output', name)
 
     @app.route('/api/tasks/<task_id>/exports/<name>', methods=['GET'])
-    def get_task_export(task_id: str, name: str):
-        """Serve one exported PPTX from the project's exports/."""
+    @app.post('/api/tasks/<task_id>/exports/<name>/open', defaults={'action': 'open'})
+    @app.post('/api/tasks/<task_id>/exports/<name>/save-as', defaults={'action': 'save-as'})
+    def get_task_export(task_id: str, name: str, action: str = 'download'):
+        """Download, open, or save a copy of one local task deliverable."""
         if _EXPORT_NAME_RE.fullmatch(name) is None:
             return jsonify({'error': 'invalid export name'}), 404
         project_path, _runtime, error = _project_or_abort(task_id)
         if error:
             return error
-        return send_from_directory(project_path / 'exports', name, as_attachment=True)
+        directory = project_path.resolve() / 'exports'
+        path = (directory / name).resolve()
+        if path.parent != directory or path.name != name or not path.is_file():
+            return jsonify(error='交付文件不存在'), 404
+        if action == 'download':
+            return send_from_directory(directory, name, as_attachment=True)
+        if not request.is_json or request.headers.get('Origin') != request.host_url.rstrip('/'):
+            return jsonify(error='请从本地工作台操作'), 403
+        try:
+            if action == 'open':
+                if os.name == 'nt':
+                    os.startfile(str(path))
+                else:
+                    opener = 'open' if sys.platform == 'darwin' else 'xdg-open'
+                    subprocess.run([opener, str(path)], check=True)
+                return jsonify(opened=True)
+
+            picker = Path(__file__).with_name('save_export_dialog.py')
+            result = subprocess.run(
+                [sys.executable, str(picker), name], check=True, capture_output=True,
+                creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0),
+            )
+            destination = json.loads(result.stdout)
+            if destination is None:
+                return jsonify(saved=False)
+            target = Path(destination)
+            if target != path:
+                write_bytes_atomic(target, path.read_bytes())
+            return jsonify(saved=True)
+        except (OSError, ValueError, subprocess.SubprocessError):
+            logger.exception('export %s failed for %s', action, name)
+            message = '无法打开文件，请检查默认演示软件。' if action == 'open' else '另存为失败，请检查保存位置。'
+            return jsonify(error=message), 500
 
     @app.route('/api/tasks/<task_id>/images/<path:filename>', methods=['GET'])
     def get_task_image(task_id: str, filename: str):
@@ -1695,7 +1868,12 @@ def create_app(
         if isinstance(title, str) and len(title.strip()) > 200:
             return jsonify({'error': 'display_title must be at most 200 characters'}), 400
         try:
-            view = confirm_outline(project_path, markdown=data.get('markdown'))
+            with outline_install_lock:
+                if task.get('example_id'):
+                    _install_example(project_path, task['example_id'])
+                view = confirm_outline(project_path, markdown=data.get('markdown'))
+        except ApplyTemplateError as exc:
+            return jsonify(error=f'示例版式安装失败：{exc}'), 409
         except OutlineConflictError as exc:
             return jsonify({'error': str(exc)}), 409
         except ValueError as exc:
@@ -1801,6 +1979,8 @@ def create_app(
         task, task_dir, error = _load_task_or_abort(task_id)
         if error:
             return error
+        if task.get('example_id'):
+            return jsonify(error='此任务在大纲确认时使用已选示例'), 409
         runtime = _runtime_for(task_id)
         surface = _confirm_surface(task_id)
         if surface is None:
@@ -1953,6 +2133,23 @@ def create_app(
         resp.headers['Cache-Control'] = 'no-store'
         return resp
 
+    @app.get('/api/projects/<slug>/page-previews')
+    def get_page_previews(slug: str):
+        project, error = _resolve_project_path(projects_path, slug)
+        if error:
+            return error
+        result = previews.view(project, _previewable_slides(project), _file_listing(project / 'exports', _EXPORT_NAME_RE))
+        return jsonify(result), {'Cache-Control': 'no-store'}
+
+    @app.get('/api/projects/<slug>/page-previews/<key>/<name>')
+    def get_page_preview_image(slug: str, key: str, name: str):
+        project, error = _resolve_project_path(projects_path, slug)
+        if error:
+            return error
+        if not re.fullmatch(r'[0-9a-f]{64}', key) or not re.fullmatch(r'[1-9][0-9]*(?:-sm)?\.webp', name):
+            return jsonify(error='unknown preview'), 404
+        return send_from_directory(previews.cache / project.name / key, name, max_age=31536000)
+
     @app.route('/api/projects/<slug>', methods=['GET'])
     def get_project(slug: str):
         """Return one project's run view, recent events, and inbox."""
@@ -1987,7 +2184,11 @@ def create_app(
 
     @app.route('/api/agents', methods=['GET'])
     def list_agent_presence():
-        return jsonify({'agents': _list_agents(projects_path)})
+        agents = _list_agents(projects_path)
+        background = codex_agent()
+        if background:
+            agents.append(background)
+        return jsonify({'agents': agents})
 
     @app.route('/api/agents/register', methods=['POST'])
     def register_agent():
@@ -2016,6 +2217,13 @@ def create_app(
         write_json_atomic(path, record)
         return jsonify({'agent_id': agent_id, 'last_seen': record['last_seen']})
 
+    @app.delete('/api/agents/<agent_id>')
+    def disconnect_agent(agent_id: str):
+        if not re.fullmatch(r'a-[0-9a-f]{8}', agent_id):
+            return jsonify(error='unknown agent'), 404
+        (_agents_dir(projects_path) / f'{agent_id}.json').unlink(missing_ok=True)
+        return '', 204
+
     @app.route('/api/agents/<agent_id>/assignment', methods=['GET'])
     def agent_assignment(agent_id: str):
         path = _agents_dir(projects_path) / f'{agent_id}.json'
@@ -2043,25 +2251,71 @@ def create_app(
 
     @app.route('/api/tasks/<task_id>/assign', methods=['POST'])
     def assign_task(task_id: str):
+        with dispatch_lock:
+            return dispatch_task(task_id)
+
+    def dispatch_task(task_id: str, agent_id: str = ''):
         task, task_dir, error = _load_task_or_abort(task_id)
         if error:
             return error
         if not task.get('submitted_at'):
             return jsonify({'error': 'only submitted tasks can be dispatched'}), 409
-        runtime = _runtime_for(task_id)
-        if runtime and runtime.get('project_dir'):
-            return jsonify({'error': 'task already has a run'}), 409
         data = request.get_json(silent=True) or {}
-        agent_id = str(data.get('agent_id') or '')
+        agent_id = agent_id or str(data.get('agent_id') or '')
+        existing = _assignment_for(projects_path, task_id)
+        managed = agent_id == codex_dispatch.AGENT_ID
+        if existing and existing.get('phase') == 'accepted':
+            if existing['agent_id'] == agent_id:
+                return jsonify(assignment=existing)
+            return jsonify(error='已有 AI 正在处理此任务'), 409
+        retry = managed and existing and existing.get('phase') == 'stopped' and data.get('retry') is True
+        runtime = _runtime_for(task_id)
+        if runtime and (not retry or _derived_state(task, runtime) == 'done'):
+            return jsonify({'error': 'task already has a run'}), 409
+        if existing and existing.get('agent_id') != agent_id and not retry:
+            return jsonify({'error': 'already dispatched to ' + str(existing.get('name'))}), 409
+        if managed:
+            if not request.is_json or request.headers.get('Origin', request.host_url.rstrip('/')) != request.host_url.rstrip('/'):
+                return jsonify(error='请在本地工作台分派任务'), 403
+            agent = codex_agent()
+            if not agent:
+                return jsonify(error='Codex 后台执行器未连接'), 409
+            if existing and existing.get('phase') == 'stopped' and not retry:
+                return jsonify(assignment=existing)
+            attempt = secrets.token_hex(6)
+            assignment = {'task_id': task_id, 'agent_id': agent_id, 'name': agent['name'], 'attempt': attempt,
+                          'created_at': _now_iso(), 'phase': 'stopped'}
+            path = _assignments_dir(projects_path) / f'{task_id}.json'
+            write_json_atomic(path, assignment)
+            log_path = runtime_dir / 'jobs' / task_id / (attempt + '.log')
+            prompt = AGENT_HINT_TEMPLATE.format(task_id=task_id, repo_root=_repo_root(projects_path),
+                                               base_url=_server_url(server_port or DEFAULT_PORT))
+            prompt += '\n请在本次后台执行中持续等待网页确认，按流程完成交付。'
+            try:
+                proc = codex_dispatch.launch(codex_cli, _repo_root(projects_path), log_path, prompt)
+            except OSError:
+                logger.exception('cannot launch Codex for %s', task_id)
+                return jsonify(error='Codex 启动失败，请检查本机 CLI 后重试'), 503
+            assignment.update(phase='accepted', pid=proc.pid)
+            write_json_atomic(path, assignment)
+
+            def record_exit():
+                code = proc.wait()
+                with dispatch_lock:
+                    latest = _assignment_for(projects_path, task_id)
+                    if latest and latest.get('attempt') == attempt:
+                        write_json_atomic(path, {**latest, 'phase': 'stopped', 'exit_code': code})
+
+            threading.Thread(target=record_exit, daemon=True).start()
+            return jsonify(assignment=assignment)
+        if not re.fullmatch(r'a-[0-9a-f]{8}', agent_id):
+            return jsonify(error='unknown agent'), 404
         agent_path = _agents_dir(projects_path) / f'{agent_id}.json'
         if not agent_id or not agent_path.is_file():
             return jsonify({'error': 'unknown agent'}), 404
         agent = _read_json_object(agent_path)
         if not _agent_online(agent):
             return jsonify({'error': 'agent is offline'}), 409
-        existing = _assignment_for(projects_path, task_id)
-        if existing and existing.get('agent_id') != agent_id:
-            return jsonify({'error': 'already dispatched to ' + str(existing.get('name'))}), 409
         _assignments_dir(projects_path).mkdir(parents=True, exist_ok=True)
         assignment = {
             'task_id': task_id,
@@ -2075,9 +2329,14 @@ def create_app(
 
     @app.route('/api/tasks/<task_id>/assign', methods=['DELETE'])
     def unassign_task(task_id: str):
-        _load_task_or_abort(task_id)
-        removed = _clear_assignment(projects_path, task_id)
-        return jsonify({'cleared': removed})
+        _, _, error = _load_task_or_abort(task_id)
+        if error:
+            return error
+        with dispatch_lock:
+            assignment = _assignment_for(projects_path, task_id)
+            if assignment and assignment.get('phase') == 'accepted':
+                return jsonify(error='执行已开始'), 409
+            return jsonify({'cleared': _clear_assignment(projects_path, task_id)})
 
     def _resolve_task_id_for_slug(slug: str) -> Optional[str]:
         project_dir, error = _resolve_project_path(projects_path, slug)
@@ -2110,9 +2369,10 @@ def build_parser() -> argparse.ArgumentParser:
         help=f'Exact port to listen on (default: first free port from {DEFAULT_PORT})',
     )
     parser.add_argument('--no-browser', action='store_true', help='Do not auto-open browser')
+    parser.add_argument('--service-only', action='store_true', help='Serve without attaching the calling AI session')
     parser.add_argument(
         '--daemon', action='store_true',
-        help='Start the server in the background and return once it is reachable',
+        help='Start the web server in the background (use --service-only to skip AI attach)',
     )
     parser.add_argument(
         '--timeout', type=int, default=DEFAULT_IDLE_TIMEOUT,
@@ -2150,10 +2410,15 @@ def main(argv: Optional[list[str]] = None) -> int:
     if args.shutdown:
         return _shutdown_existing(lock_file)
 
-    if args.daemon:
-        runtime_dir = _workbench_dir(projects_root)
+    agent_name = '' if args.service_only else workbench_agent.session_environment()
+    if args.daemon or agent_name:
         existing = _read_lock(lock_file)
         if existing and _process_alive(_lock_pid(existing)):
+            port = int(existing.get('port') or DEFAULT_PORT)
+            if agent_name and args.port in (None, port):
+                url = _server_url(port)
+                logger.info('attaching %s to the existing workbench at %s', agent_name, url)
+                return workbench_agent.attach(url, agent_name)
             logger.error(
                 'workbench is already running (pid=%s, port=%s). Open %s',
                 existing.get('pid', '?'), existing.get('port', '?'),
@@ -2171,7 +2436,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         except RuntimeError as exc:
             logger.error('%s', exc)
             return 1
-        return 0
+        return workbench_agent.attach(_server_url(port), agent_name) if agent_name else 0
 
     try:
         port = args.port if args.port is not None else _find_free_port(DEFAULT_PORT)

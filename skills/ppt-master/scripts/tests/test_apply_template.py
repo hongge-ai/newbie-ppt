@@ -3,7 +3,9 @@
 
 from __future__ import annotations
 
+import os
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -66,6 +68,31 @@ class ApplyTemplateTests(unittest.TestCase):
         self._apply(STYLE_ROOT)
         plan = self._apply(STYLE_ROOT)
         self.assertEqual([m.status for m in plan.mappings], ["identical"])
+
+    @unittest.skipUnless(os.name == "nt", "Requires Windows ACL inheritance")
+    def test_installed_files_inherit_project_permissions(self) -> None:
+        # Give this project a recognizable, read-only ACE for Local Service.
+        subprocess.run(
+            ["icacls", str(self.project), "/grant", "*S-1-5-19:(OI)(CI)R"],
+            check=True, capture_output=True,
+        )
+        (self.project / "icons").mkdir()
+        (self.project / "icons" / "existing.svg").write_text("<svg/>", encoding="utf-8")
+        for _ in range(2):
+            self._apply(BRAND_ROOT)
+            result = subprocess.run(
+                ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", """
+                $ErrorActionPreference = 'Stop'
+                foreach ($file in Get-ChildItem -Recurse -Force) {
+                    $acl = $file.GetAccessControl()
+                    $rules = $acl.GetAccessRules($false, $true, [Security.Principal.SecurityIdentifier])
+                    if ($acl.AreAccessRulesProtected -or 'S-1-5-19' -notin $rules.IdentityReference.Value) {
+                        throw "Missing project inheritance on $($file.Name)"
+                    }
+                }
+                """], cwd=self.project, capture_output=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_brand_assets_travel_with_the_spec(self) -> None:
         plan = self._apply(BRAND_ROOT, STYLE_ROOT)

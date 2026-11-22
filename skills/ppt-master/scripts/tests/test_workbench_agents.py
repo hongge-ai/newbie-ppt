@@ -13,6 +13,7 @@ Dependencies:
 """
 
 import json
+import os
 import sys
 import tempfile
 import time
@@ -71,6 +72,33 @@ class AgentDispatchTests(unittest.TestCase):
         task_id = self._task(submitted=False)
         response = self.client.post(f'/api/tasks/{task_id}/assign', json={'agent_id': agent_id})
         self.assertEqual(response.status_code, 409)
+
+    def test_background_dispatch_survives_lease_and_retries_only_after_exit(self) -> None:
+        with patch.object(workbench_server.codex_dispatch, 'executable', return_value='codex'):
+            client = workbench_server.create_app(str(self.projects), idle_timeout=0).test_client()
+        task_id = self._task()
+        endpoint = f'/api/tasks/{task_id}/assign'
+        choice = {'agent_id': 'codex-local'}
+        self.assertEqual(client.post(endpoint, json=choice).status_code, 409)
+        instance = client.get('/api/health').get_json()['instance']
+        root = self.projects / '.workbench'
+        (root / 'codex-dispatch.json').write_text(json.dumps({'instance': instance, 'name': 'Codex'}))
+        with patch.object(workbench_server.codex_dispatch, 'launch') as launch, \
+                patch.object(workbench_server.threading.Thread, 'start'):
+            launch.return_value.pid = os.getpid()
+            accepted = client.post(endpoint, json=choice).get_json()['assignment']
+            self.assertEqual(accepted['phase'], 'accepted')
+            self.assertEqual(client.post(endpoint, json=choice).get_json()['assignment'], accepted)
+            self.assertEqual(client.delete(endpoint).status_code, 409)
+            launch.assert_called_once()
+            path = root / 'assignments' / (task_id + '.json')
+            path.write_text(json.dumps({**accepted, 'pid': 0}))
+            self.assertEqual(client.get(f'/api/tasks/{task_id}').get_json()['assignment']['phase'], 'stopped')
+            client.post(endpoint, json=choice)
+            launch.assert_called_once()
+            retried = client.post(endpoint, json={**choice, 'retry': True}).get_json()['assignment']
+            self.assertNotEqual(retried['attempt'], accepted['attempt'])
+            self.assertEqual(launch.call_count, 2)
 
     def test_dispatch_is_exclusive_and_reaches_the_agent(self) -> None:
         first = self._agent('Claude Code')

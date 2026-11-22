@@ -30,6 +30,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -513,7 +514,13 @@ def _write(plan: InstallPlan) -> None:
     renames if any publication fails, including removed Deck files and the old
     receipt. Backups survive if rollback itself fails so recovery remains possible.
     """
-    transaction = Path(tempfile.mkdtemp(prefix=".template-install-", dir=plan.project))
+    if os.name == "nt":
+        # Renames retain NTFS access rules. Stage under the project's inherited
+        # ACL so the account consuming the installed files can read them.
+        transaction = plan.project / f".template-install-{uuid.uuid4().hex}"
+        transaction.mkdir()
+    else:
+        transaction = Path(tempfile.mkdtemp(prefix=".template-install-", dir=plan.project))
     staged = transaction / "staged"
     backup = transaction / "backup"
     moved: list[str] = []
