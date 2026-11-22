@@ -89,7 +89,8 @@ Task surface (server writes `task.json`; frozen once submitted):
 | GET `/api/options` | Option universe: `canvas` (synced live from `config.CANVAS_FORMATS`, labels from `static/options.json`), `page_counts`, `image_policies`, `languages` |
 | GET `/api/settings/image?view=status` | Returns `{configured}` for the task form, based on the active backend and presence of a matching API key. |
 | GET `/api/tasks` | `{tasks: [...]}` newest-first summaries with derived `status` and a `runtime` block; corrupt records appear with `status: "error"` |
-| POST `/api/tasks` | `{topic, display_title?, params?}` → `201 {task_id}`; creates a draft |
+| POST `/api/tasks` | `{example_id, topic?, display_title?, params?}` → `201 {task_id}`. A missing or unknown catalog ID returns HTTP 400 with `code: "example_required"` and the gallery URL. |
+| POST `/api/tasks/<id>/resume-with-example` | `{example_id}` selects a curated example for an interrupted legacy task with a confirmed outline, before slide production. Installs the resource and dispatches the existing project. |
 | GET `/api/tasks/<id>` | The user-domain record plus derived `status`, `runtime`, and `uploads_present` |
 | PATCH `/api/tasks/<id>` | Merge user-domain fields (draft only); after submit only `display_title` is accepted, anything else is 409 |
 | POST `/api/tasks/<id>/uploads` | Multipart files → `201 {uploads: [{name, size}]}` (draft only; raw staging, never converts) |
@@ -188,6 +189,8 @@ python3 scripts/confirm_ui/wait.py <project> --stage stage1                # pri
 ```
 
 ## Curated examples
+
+Every new web or AI workbench task starts with the user's choice from the catalog. If the user has given only a subject or materials, show the gallery or offer named examples from `GET /api/examples` and wait for their selection before creating the draft. For a legacy task offering `attention: "example"`, use the resume endpoint with that choice. The existing task, canvas, confirmed outline and page count carry forward. Production uses the selected design directly.
 
 `GET /api/examples` exposes the bundled landscape examples in source order. Include a deck when its original page width exceeds its height. Each entry identifies the full set of original page previews, its official viewer and the canvas for a new task. On outline confirmation the workbench installs one of two production inputs:
 

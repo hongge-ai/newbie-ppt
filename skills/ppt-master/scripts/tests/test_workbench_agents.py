@@ -40,7 +40,7 @@ class AgentDispatchTests(unittest.TestCase):
         self.client = self.app.test_client()
 
     def _task(self, submitted: bool = True) -> str:
-        created = self.client.post('/api/tasks', json={'topic': '分派测试'}).get_json()
+        created = self.client.post('/api/tasks', json={'topic': '分派测试', 'example_id': 'bauhaus'}).get_json()
         task_id = created['task_id']
         if submitted:
             self.client.post(f'/api/tasks/{task_id}/submit', json={})
